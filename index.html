@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Castle Door & Hardware — commercial door, frame, and hardware solutions. Fast quotes, accurate schedules, and clean installs." />
+  <title>Castle Door & Hardware</title>
+
+  <!-- Social preview (optional) -->
+  <meta property="og:title" content="Castle Door & Hardware" />
+  <meta property="og:description" content="Commercial door, frame, and hardware solutions. Fast quotes, accurate schedules, and clean installs." />
+  <meta property="og:type" content="website" />
+
+  <style>
+    :root{
+      --bg: #0b1220;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.09);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.72);
+      --border: rgba(255,255,255,.12);
+      --brand: #8b5cf6; /* violet */
+      --brand2: #22c55e; /* green accent */
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+      --max: 1120px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(1200px 500px at 15% 10%, rgba(139,92,246,.28), transparent 55%),
+        radial-gradient(900px 420px at 80% 15%, rgba(34,197,94,.18), transparent 60%),
+        radial-gradient(900px 520px at 60% 85%, rgba(59,130,246,.16), transparent 55%),
+        var(--bg);
+      line-height: 1.5;
+    }
+
+    a{color:inherit; text-decoration:none}
+    a:focus, button:focus, input:focus, textarea:focus{outline: 3px solid rgba(139,92,246,.55); outline-offset: 2px}
+    .wrap{max-width: var(--max); margin:0 auto; padding: 0 20px}
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 999px; background: rgba(255,255,255,.04);
+      color: var(--muted); font-size: 13px;
+      backdrop-filter: blur(10px);
+    }
+    .dot{width:8px; height:8px; border-radius:999px; background: var(--brand2); box-shadow: 0 0 0 4px rgba(34,197,94,.15)}
+    header{
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(11,18,32,.55);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      height: 72px;
+    }
+    .logo{
+      display:flex; align-items:center; gap:12px;
+      font-weight: 750; letter-spacing:.2px;
+    }
+    .mark{
+      width: 36px; height: 36px; border-radius: 12px;
+      background:
+        radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,.25), transparent 60%),
+        linear-gradient(135deg, rgba(139,92,246,.95), rgba(34,197,94,.75));
+      box-shadow: 0 10px 24px rgba(139,92,246,.25);
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    .links{display:flex; gap:18px; align-items:center}
+    .links a{
+      font-size: 14px; color: var(--muted);
+      padding: 10px 10px; border-radius: 12px;
+    }
+    .links a:hover{color: var(--text); background: rgba(255,255,255,.05)}
+    .ctaRow{display:flex; gap:10px; align-items:center}
+    .btn{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-weight: 650;
+      font-size: 14px;
+      display:inline-flex; align-items:center; gap:10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
+    .btn.primary{
+      border-color: rgba(139,92,246,.35);
+      background: linear-gradient(135deg, rgba(139,92,246,.95), rgba(34,197,94,.65));
+    }
+    .btn.primary:hover{filter: brightness(1.02)}
+    .btn span.icon{display:inline-block; width: 18px; height: 18px}
+
+    main{padding: 40px 0 80px}
+    .hero{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 28px;
+      align-items: start;
+      padding: 42px 0 20px;
+    }
+    .hero h1{
+      margin: 16px 0 12px;
+      font-size: clamp(34px, 4.2vw, 56px);
+      line-height: 1.06;
+      letter-spacing: -0.02em;
+    }
+    .hero p{
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 58ch;
+    }
+    .heroActions{display:flex; flex-wrap:wrap; gap: 12px; align-items:center}
+    .mini{
+      display:flex; gap: 16px; margin-top: 18px; color: var(--muted);
+      flex-wrap:wrap;
+    }
+    .mini strong{color: var(--text)}
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .heroCard{
+      padding: 18px;
+      position: relative;
+      overflow:hidden;
+    }
+    .heroCard:before{
+      content:"";
+      position:absolute; inset:-1px;
+      background: radial-gradient(400px 250px at 30% 0%, rgba(139,92,246,.35), transparent 55%),
+                  radial-gradient(420px 260px at 90% 20%, rgba(34,197,94,.22), transparent 55%);
+      pointer-events:none;
+      opacity:.7;
+    }
+    .heroCard > *{position:relative}
+    .statGrid{
+      display:grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+      margin-top: 12px;
+    }
+    .stat{
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.09);
+    }
+    .stat .k{font-size: 22px; font-weight: 800; letter-spacing: -0.02em}
+    .stat .l{color: var(--muted); font-size: 13px; margin-top: 4px}
+
+    .section{
+      margin-top: 44px;
+    }
+    .sectionHead{
+      display:flex; align-items:flex-end; justify-content:space-between;
+      gap: 16px; margin-bottom: 16px;
+    }
+    .sectionHead h2{
+      margin:0;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+    }
+    .sectionHead p{margin:0; color: var(--muted); max-width: 70ch; font-size: 14px}
+
+    .grid3{display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px}
+    .feature{
+      padding: 18px;
+    }
+    .feature .tag{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size: 12px; color: var(--muted);
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .feature h3{margin: 10px 0 8px; font-size: 16px}
+    .feature p{margin:0; color: var(--muted); font-size: 14px}
+
+    .brands{
+      display:flex; flex-wrap:wrap; gap: 10px; align-items:center;
+      padding: 14px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.04);
+      border: 1px dashed rgba(255,255,255,.14);
+      color: var(--muted);
+    }
+    .brandPill{
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      font-size: 13px;
+      color: rgba(255,255,255,.78);
+    }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    form{
+      padding: 18px;
+    }
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
+    label{display:block; font-size: 13px; color: var(--muted); margin: 0 0 6px}
+    input, textarea{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(6,10,18,.35);
+      color: var(--text);
+    }
+    textarea{min-height: 120px; resize: vertical}
+    .formActions{display:flex; gap: 10px; align-items:center; margin-top: 12px; flex-wrap:wrap}
+    .fine{font-size: 12px; color: rgba(255,255,255,.6)}
+    footer{
+      margin-top: 54px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.7);
+      font-size: 13px;
+      display:flex; flex-wrap:wrap; gap: 10px; justify-content:space-between; align-items:center;
+    }
+
+    /* Mobile */
+    @media (max-width: 920px){
+      .hero{grid-template-columns: 1fr; padding-top: 26px}
+      .grid3{grid-template-columns: 1fr}
+      .split{grid-template-columns: 1fr}
+      .links{display:none}
+      .row{grid-template-columns: 1fr}
+    }
+
+    /* Small touch improvement */
+    .lift{transition: transform .18s ease, filter .18s ease}
+    .lift:hover{transform: translateY(-2px)}
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="wrap nav">
+      <a class="logo" href="#top" aria-label="Castle Door & Hardware home">
+        <span class="mark" aria-hidden="true"></span>
+        <span>Castle Door &amp; Hardware</span>
+      </a>
+
+      <nav class="links" aria-label="Primary">
+        <a href="#services">Services</a>
+        <a href="#process">Process</a>
+        <a href="#brands">Brands</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <div class="ctaRow">
+        <a class="btn lift" href="tel:+1-000-000-0000" aria-label="Call Castle Door and Hardware">
+          <span class="icon" aria-hidden="true">☎</span>
+          Call
+        </a>
+        <a class="btn primary lift" href="#contact">
+          <span class="icon" aria-hidden="true">➜</span>
+          Request a Quote
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="wrap hero">
+      <section>
+        <div class="pill">
+          <span class="dot" aria-hidden="true"></span>
+          <span>Commercial door, frame &amp; hardware solutions — quoting fast, installing clean.</span>
+        </div>
+
+        <h1>Doors &amp; hardware that show up on time—and work on day one.</h1>
+        <p>
+          Castle Door &amp; Hardware supports contractors, facilities, and project teams with
+          accurate takeoffs, clear submittals, and dependable field execution.
+        </p>
+
+        <div class="heroActions">
+          <a class="btn primary lift" href="#contact">
+            <span class="icon" aria-hidden="true">🧾</span>
+            Get a Quote
+          </a>
+          <a class="btn lift" href="#services">
+            <span class="icon" aria-hidden="true">▦</span>
+            See Services
+          </a>
+          <a class="btn lift" href="#process">
+            <span class="icon" aria-hidden="true">✓</span>
+            How We Work
+          </a>
+        </div>
+
+        <div class="mini" aria-label="Highlights">
+          <div><strong>Fast</strong> turnaround</div>
+          <div><strong>Accurate</strong> schedules</div>
+          <div><strong>Clean</strong> installs</div>
+          <div><strong>Responsive</strong> support</div>
+        </div>
+      </section>
+
+      <aside class="card heroCard">
+        <div class="pill" style="margin-bottom: 12px;">
+          <span aria-hidden="true">🛠️</span>
+          <span>Project-ready deliverables</span>
+        </div>
+
+        <div class="statGrid">
+          <div class="stat">
+            <div class="k">Takeoff</div>
+            <div class="l">Door + hardware sets organized for bid &amp; buyout</div>
+          </div>
+          <div class="stat">
+            <div class="k">Submittals</div>
+            <div class="l">Clear cut sheets, approvals, and alternates</div>
+          </div>
+          <div class="stat">
+            <div class="k">Coordination</div>
+            <div class="l">RFIs &amp; field conditions handled quickly</div>
+          </div>
+          <div class="stat">
+            <div class="k">Install</div>
+            <div class="l">Trusted crews, punch-list minded</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; color: var(--muted); font-size: 13px;">
+          Need a door schedule review? Send it over and we’ll flag issues before they cost time.
+        </div>
+      </aside>
+    </div>
+
+    <div class="wrap section" id="services">
+      <div class="sectionHead">
+        <div>
+          <h2>What we do</h2>
+          <p>Support from bid through closeout—so your openings don’t become your schedule risk.</p>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="card feature lift">
+          <div class="tag">📐 Estimating</div>
+          <h3>Takeoffs &amp; budgets</h3>
+          <p>Fast, organized counts with clear scope and alternates to keep bids tight.</p>
+        </div>
+
+        <div class="card feature lift">
+          <div class="tag">🧷 Hardware</div>
+          <h3>Hardware sets</h3>
+          <p>Code-aware sets built for function, durability, and consistent field install.</p>
+        </div>
+
+        <div class="card feature lift">
+          <div class="tag">🚪 Doors &amp; frames</div>
+          <h3>Hollow metal / wood</h3>
+          <p>Openings coordinated for lead times, ratings, and real-world conditions.</p>
+        </div>
+
+        <div class="card feature lift">
+          <div class="tag">📄 Submittals</div>
+          <h3>Submittals &amp; approvals</h3>
+          <p>Clean packages that make approvals painless and procurement predictable.</p>
+        </div>
+
+        <div class="card feature lift">
+          <div class="tag">🧰 Field</div>
+          <h3>Install &amp; service</h3>
+          <p>Install support, adjustments, and fixes that keep the punch list short.</p>
+        </div>
+
+        <div class="card feature lift">
+          <div class="tag">🔐 Access</div>
+          <h3>Locks &amp; access control</h3>
+          <p>From cores to electrified hardware—planned to work with the rest of the opening.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap section" id="process">
+      <div class="sectionHead">
+        <div>
+          <h2>How we work</h2>
+          <p>Simple, transparent, and documented—so everyone stays aligned.</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="card feature">
+          <div class="tag">1) Scope</div>
+          <h3>Review drawings &amp; schedule</h3>
+          <p>We confirm openings, ratings, and constraints (fire, egress, ADA) early.</p>
+        </div>
+        <div class="card feature">
+          <div class="tag">2) Package</div>
+          <h3>Deliver takeoff + sets + alternates</h3>
+          <p>You get a clean, field-ready package with notes where decisions matter.</p>
+        </div>
+        <div class="card feature">
+          <div class="tag">3) Approvals</div>
+          <h3>Submittals &amp; procurement</h3>
+          <p>We keep approvals moving and update lead times as selections lock in.</p>
+        </div>
+        <div class="card feature">
+          <div class="tag">4) Install</div>
+          <h3>Coordinate + install + closeout</h3>
+          <p>We support field questions and deliver closeout documentation cleanly.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap section" id="brands">
+      <div class="sectionHead">
+        <div>
+          <h2>Brands we work with</h2>
+          <p>Swap these placeholders for your actual manufacturer list.</p>
+        </div>
+      </div>
+
+      <div class="brands" aria-label="Brand list">
+        <span class="brandPill">Assa Abloy</span>
+        <span class="brandPill">Schlage</span>
+        <span class="brandPill">LCN</span>
+        <span class="brandPill">Von Duprin</span>
+        <span class="brandPill">Allegion</span>
+        <span class="brandPill">Sargent</span>
+        <span class="brandPill">Hager</span>
+        <span class="brandPill">Dormakaba</span>
+      </div>
+    </div>
+
+    <div class="wrap section" id="contact">
+      <div class="sectionHead">
+        <div>
+          <h2>Request a quote</h2>
+          <p>Send a door schedule or describe the scope. We’ll respond with next steps.</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="card feature">
+          <div class="tag">Contact</div>
+          <h3>Castle Door &amp; Hardware</h3>
+          <p style="margin-bottom: 14px;">
+            <strong>Email:</strong> <a href="mailto:info@castledoorandhardware.com">info@castledoorandhardware.com</a><br>
+            <strong>Phone:</strong> <a href="tel:+1-000-000-0000">+1 (000) 000-0000</a><br>
+            <strong>Service area:</strong> (Update this)
+          </p>
+          <p class="fine">
+            Tip: Add your real phone number, office address, and hours here.
+          </p>
+        </div>
+
+        <!--
+          If using Cloudflare Pages + Forms:
+          - Add: data-netlify="true" is for Netlify; Cloudflare has its own approach.
+          - Cloudflare Pages supports "Pages Functions" for handling POST, or third-party form endpoints.
+          - This form will still work visually even without a backend.
+        -->
+        <div class="card">
+          <form method="post" action="#" onsubmit="return fakeSubmit(event)">
+            <div class="row">
+              <div>
+                <label for="name">Name</label>
+                <input id="name" name="name" autocomplete="name" required />
+              </div>
+              <div>
+                <label for="company">Company</label>
+                <input id="company" name="company" autocomplete="organization" />
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+              <div>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
+              </div>
+              <div>
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" autocomplete="tel" />
+              </div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <label for="message">Project details</label>
+              <textarea id="message" name="message" placeholder="Tell us what you need (door types, ratings, quantities, timeline)."></textarea>
+            </div>
+
+            <div class="formActions">
+              <button class="btn primary lift" type="submit">
+                <span class="icon" aria-hidden="true">➜</span>
+                Send Request
+              </button>
+              <span class="fine" id="formStatus" aria-live="polite"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <footer>
+        <div>© <span id="year"></span> Castle Door &amp; Hardware. All rights reserved.</div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <a href="#services">Services</a>
+          <a href="#process">Process</a>
+          <a href="#brands">Brands</a>
+          <a href="#top">Back to top ↑</a>
+        </div>
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    // Year
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Demo-only submit: replace with real backend endpoint.
+    function fakeSubmit(e){
+      e.preventDefault();
+      const status = document.getElementById("formStatus");
+      status.textContent = "Thanks! This demo form isn’t wired yet. Connect it to a Pages Function or form service.";
+      return false;
+    }
+  </script>
+</body>
+</html>
