@@ -189,16 +189,16 @@ export default {
       data.uses = (data.uses || 0) + 1;
       await env.ENROLL_TOKENS.put(enrollKey, JSON.stringify(data));
 
-// Set cookie for 1 year, shared across *.castledoorict.com
-const cookie = [
-  `castle_access=${deviceTokenId}`,
-  "Path=/",
-  "Max-Age=31536000", // 1 year
-  "Secure",
-  "HttpOnly",
-  "SameSite=Lax",
-  "Domain=.castledoorict.com",
-].join("; ");
+      // Set cookie for 1 year, shared across *.castledoorict.com
+      const cookie = [
+        `castle_access=${deviceTokenId}`,
+        "Path=/",
+        "Max-Age=31536000", // 1 year
+        "Secure",
+        "HttpOnly",
+        "SameSite=Lax",
+        "Domain=.castledoorict.com",
+      ].join("; ");
 
 
       const htmlBody = `<!DOCTYPE html>
@@ -210,8 +210,8 @@ const cookie = [
   <body>
     <h1>Device enrolled for ${esc(biz)}</h1>
     <p>This device can now view reports for ${esc(
-      biz
-    )} using your normal door links.</p>
+        biz
+      )} using your normal door links.</p>
   </body>
 </html>`;
 
@@ -243,10 +243,10 @@ const cookie = [
     }
     function decodeMimeFilename(name) {
       if (!name) return name;
-    
+
       const m = name.match(/^=\?utf-8\?B\?(.+)\?=$/i);
       if (!m) return name;
-    
+
       try {
         return atob(m[1]);
       } catch (err) {
@@ -254,7 +254,7 @@ const cookie = [
         return name;
       }
     }
-    
+
     // =====================================================================
     //  POST /upload  (FastField -> Worker)
     // =====================================================================
@@ -331,103 +331,103 @@ const cookie = [
         submittedAt = `${datePart} ${timePart}`.trim();
       } else {
         //       // --- Underscore format (current FF output, no UID toggle) ---
-      const uParts = baseName.split("_").map((p) => p.trim());
-      console.log("Underscore-split parts:", uParts);
+        const uParts = baseName.split("_").map((p) => p.trim());
+        console.log("Underscore-split parts:", uParts);
 
-      // Single underscore mask (no UID toggle):
-      //
-      //    0: business
-      //    1: doorStatus
-      //    2: building
-      //    3: doorLabel
-      //    4: UID
-      //    5: constructionCompany
-      //    6: date
-      //    7+: time
-      //
-      // Building-missing and legacy patterns are kept for backward compatibility.
+        // Single underscore mask (no UID toggle):
+        //
+        //    0: business
+        //    1: doorStatus
+        //    2: building
+        //    3: doorLabel
+        //    4: UID
+        //    5: constructionCompany
+        //    6: date
+        //    7+: time
+        //
+        // Building-missing and legacy patterns are kept for backward compatibility.
 
-      if (uParts.length >= 8) {
-        // Main pattern (building present)
-        business = uParts[0];
-        doorStatusRaw = uParts[1];
-        building = uParts[2];
-        doorLabel = uParts[3];
-        barcodeUid = (uParts[4] || "").trim();
-        constructionCompany = uParts[5];
+        if (uParts.length >= 8) {
+          // Main pattern (building present)
+          business = uParts[0];
+          doorStatusRaw = uParts[1];
+          building = uParts[2];
+          doorLabel = uParts[3];
+          barcodeUid = (uParts[4] || "").trim();
+          constructionCompany = uParts[5];
 
-        const datePart = uParts[6];
-        const timePart = uParts.slice(7).join(" ");
-        submittedAt = `${datePart} ${timePart}`.trim();
+          const datePart = uParts[6];
+          const timePart = uParts.slice(7).join(" ");
+          submittedAt = `${datePart} ${timePart}`.trim();
 
-        // Optional: peel off a legacy trailing "true"/"false" accidentally
-        // baked into the UID, e.g. "testuid1 true" -> "testuid1".
-        if (barcodeUid) {
-          const tokens = barcodeUid.split(" ").filter(Boolean);
-          if (
-            tokens.length > 1 &&
-            /^(true|false)$/i.test(tokens[tokens.length - 1])
-          ) {
-            tokens.pop(); // drop the trailing true/false
-            barcodeUid = tokens.join(" ");
+          // Optional: peel off a legacy trailing "true"/"false" accidentally
+          // baked into the UID, e.g. "testuid1 true" -> "testuid1".
+          if (barcodeUid) {
+            const tokens = barcodeUid.split(" ").filter(Boolean);
+            if (
+              tokens.length > 1 &&
+              /^(true|false)$/i.test(tokens[tokens.length - 1])
+            ) {
+              tokens.pop(); // drop the trailing true/false
+              barcodeUid = tokens.join(" ");
+            }
           }
-        }
-      } else if (uParts.length === 7) {
-        // Building missing — shift everything left (older exports)
-        business = uParts[0];
-        doorStatusRaw = uParts[1];
-        building = ""; // explicitly blank building
-        doorLabel = uParts[2];
-        barcodeUid = (uParts[3] || "").trim();
-        constructionCompany = uParts[4];
+        } else if (uParts.length === 7) {
+          // Building missing — shift everything left (older exports)
+          business = uParts[0];
+          doorStatusRaw = uParts[1];
+          building = ""; // explicitly blank building
+          doorLabel = uParts[2];
+          barcodeUid = (uParts[3] || "").trim();
+          constructionCompany = uParts[4];
 
-        const datePart = uParts[5];
-        const timePart = uParts.slice(6).join(" ");
-        submittedAt = `${datePart} ${timePart}`.trim();
-      } else if (uParts.length >= 5) {
-        // Legacy fallback (very old format)
-        business = uParts[0];
-        triRaw = uParts[1];
-        building = uParts[2];
-        doorLabel = uParts[3];
-        barcodeUid = (uParts[4] || "").trim();
+          const datePart = uParts[5];
+          const timePart = uParts.slice(6).join(" ");
+          submittedAt = `${datePart} ${timePart}`.trim();
+        } else if (uParts.length >= 5) {
+          // Legacy fallback (very old format)
+          business = uParts[0];
+          triRaw = uParts[1];
+          building = uParts[2];
+          doorLabel = uParts[3];
+          barcodeUid = (uParts[4] || "").trim();
 
-        if (uParts.length > 5) {
-          submittedAt = uParts.slice(5).join(" ");
+          if (uParts.length > 5) {
+            submittedAt = uParts.slice(5).join(" ");
+          }
+        } else {
+          console.log("Filename did not match expected formats, falling back", {
+            baseName,
+          });
+          business = baseName;
+          triRaw = "0";
+          building = "";
+          doorLabel = baseName;
+          barcodeUid = baseName;
         }
-      } else {
-        console.log("Filename did not match expected formats, falling back", {
-          baseName,
-        });
-        business = baseName;
-        triRaw = "0";
-        building = "";
-        doorLabel = baseName;
-        barcodeUid = baseName;
       }
-    }
 
-// -------- Status normalization (canonical) --------
-let status = "";
+      // -------- Status normalization (canonical) --------
+      let status = "";
 
-if (doorStatusRaw) {
-  const v = doorStatusRaw.trim().toLowerCase();
+      if (doorStatusRaw) {
+        const v = doorStatusRaw.trim().toLowerCase();
 
-  if (v === "pass") {
-    status = "Pass";
-  } else if (v === "conditional pass") {
-    status = "Conditional Pass";
-  } else if (v === "fail" || v === "flagged") {
-    status = "Fail";
-  } else {
-    // Unknown custom value, carry through
-    status = doorStatusRaw.trim();
-  }
-} else if (triRaw === "1") {
-  status = "Fail";
-} else if (triRaw === "0") {
-  status = "Pass";
-}
+        if (v === "pass") {
+          status = "Pass";
+        } else if (v === "conditional pass") {
+          status = "Conditional Pass";
+        } else if (v === "fail" || v === "flagged") {
+          status = "Fail";
+        } else {
+          // Unknown custom value, carry through
+          status = doorStatusRaw.trim();
+        }
+      } else if (triRaw === "1") {
+        status = "Fail";
+      } else if (triRaw === "0") {
+        status = "Pass";
+      }
       // --- FIX: Ensure building never breaks upload ---
       building = (building || "").toString().trim();
 
@@ -485,60 +485,60 @@ if (doorStatusRaw) {
       const safeDoor = doorId.replace(/[^\w\-./]/g, "_");
       const fileName = `${ts}.pdf`;
       const objectKey = `${safeDoor}/${fileName}`;
-// ===============================================
-// AUTO-CREATE BUSINESS CONFIG + ENROLL TOKEN
-// ===============================================
+      // ===============================================
+      // AUTO-CREATE BUSINESS CONFIG + ENROLL TOKEN
+      // ===============================================
 
-// create a stable slug from business name
-const businessSlug = slug(business || "unknown");
+      // create a stable slug from business name
+      const businessSlug = slug(business || "unknown");
 
-// bizcfg key in KV
-const bizCfgKey = `bizcfg:${businessSlug}`;
+      // bizcfg key in KV
+      const bizCfgKey = `bizcfg:${businessSlug}`;
 
-// check if business config exists
-let bizCfgRaw = await env.ENROLL_TOKENS.get(bizCfgKey, "text");
-let bizCfg;
+      // check if business config exists
+      let bizCfgRaw = await env.ENROLL_TOKENS.get(bizCfgKey, "text");
+      let bizCfg;
 
-if (!bizCfgRaw) {
-  // NEW business detected → auto-create config
-  const newToken = crypto.randomUUID().replace(/-/g, "");
+      if (!bizCfgRaw) {
+        // NEW business detected → auto-create config
+        const newToken = crypto.randomUUID().replace(/-/g, "");
 
-  // unlimited enrollment token (no expiry, unlimited uses)
-  const tokenKey = `enroll:${newToken}`;
-  const tokenData = {
-    biz: businessSlug,
-    max_uses: null,        // unlimited
-    uses: 0,
-    expires_at: null       // no expiration
-  };
+        // unlimited enrollment token (no expiry, unlimited uses)
+        const tokenKey = `enroll:${newToken}`;
+        const tokenData = {
+          biz: businessSlug,
+          max_uses: null,        // unlimited
+          uses: 0,
+          expires_at: null       // no expiration
+        };
 
-  // store token
-  await env.ENROLL_TOKENS.put(tokenKey, JSON.stringify(tokenData));
+        // store token
+        await env.ENROLL_TOKENS.put(tokenKey, JSON.stringify(tokenData));
 
-  // business config
-  bizCfg = {
-    slug: businessSlug,
-    name: business || businessSlug,
-    mode: "standard",        // all new businesses start unsecured
-    device_limit: null,      // unlimited
-    enrollment_token: newToken,
-    enrollment_uses: 0
-  };
+        // business config
+        bizCfg = {
+          slug: businessSlug,
+          name: business || businessSlug,
+          mode: "standard",        // all new businesses start unsecured
+          device_limit: null,      // unlimited
+          enrollment_token: newToken,
+          enrollment_uses: 0
+        };
 
-  await env.ENROLL_TOKENS.put(bizCfgKey, JSON.stringify(bizCfg));
-} else {
-  // existing business → load config
-  try {
-    bizCfg = JSON.parse(bizCfgRaw);
-  } catch (e) {
-    bizCfg = {
-      slug: businessSlug,
-      name: business || businessSlug,
-      mode: "standard",
-      device_limit: null
-    };
-  }
-}
+        await env.ENROLL_TOKENS.put(bizCfgKey, JSON.stringify(bizCfg));
+      } else {
+        // existing business → load config
+        try {
+          bizCfg = JSON.parse(bizCfgRaw);
+        } catch (e) {
+          bizCfg = {
+            slug: businessSlug,
+            name: business || businessSlug,
+            mode: "standard",
+            device_limit: null
+          };
+        }
+      }
 
 
 
@@ -594,33 +594,33 @@ if (!bizCfgRaw) {
         businessCode,
         buildingCode,
       };
-// -------------------------------------------------
-// UID-FIRST RECORD (canonical anchor)
-// -------------------------------------------------
-const uidKey = `door:${safeDoor}`;
+      // -------------------------------------------------
+      // UID-FIRST RECORD (canonical anchor)
+      // -------------------------------------------------
+      const uidKey = `door:${safeDoor}`;
 
-const summaryWithUidFields = {
-  uid: safeDoor,               // immutable physical opening
-  doorId,                      // raw UID before sanitization
-  displayLabel,
+      const summaryWithUidFields = {
+        uid: safeDoor,               // immutable physical opening
+        doorId,                      // raw UID before sanitization
+        displayLabel,
 
-  // current assignment (mutable)
-  business,
-  building,
-  businessCode,
-  buildingCode,
-  doorSlug,
+        // current assignment (mutable)
+        business,
+        building,
+        businessCode,
+        buildingCode,
+        doorSlug,
 
-  // status snapshot
-  status,
-  
-  // report pointers
-  lastReportKey: objectKey,
-  lastInspectedAt: inspectedAt,
+        // status snapshot
+        status,
 
-  // timestamps
-  updatedAt: ts,
-};
+        // report pointers
+        lastReportKey: objectKey,
+        lastInspectedAt: inspectedAt,
+
+        // timestamps
+        updatedAt: ts,
+      };
 
       // 6a) Alias from safeDoor (the thing you use in /r/:id) → codes + slug
       const aliasKey = `doorIndex:${safeDoor}`; // <-- THIS must match /r route
@@ -664,23 +664,19 @@ const summaryWithUidFields = {
         Promise.all([
           // existing path-based index (unchanged)
           env.REPORTS_KV.put(doorKey, JSON.stringify(summary)),
-      
+
           // NEW: UID-first canonical record
           env.REPORTS_KV.put(uidKey, JSON.stringify(summaryWithUidFields)),
-      
+
           // QR pointer
           env.REPORTS_KV.put(
             aliasKey,
             JSON.stringify({ businessCode, buildingCode, doorSlug })
           ),
-      
+
           ensureBizConfig(),
         ])
       );
-      
-
-
-
 
       // 7) Response back to FastField
       return json(
@@ -740,21 +736,21 @@ const summaryWithUidFields = {
       return resp;
     }
 
-// =====================================================================
-//  GET /pdfviewer/:doorId/:fileName  (simple HTML wrapper around PDF)
-// =====================================================================
-if (req.method === "GET" && pathname.startsWith("/pdfviewer/")) {
-  const parts = pathname.split("/").filter(Boolean); // ["pdfviewer", ":doorId", ":fileName"]
-  if (parts.length !== 3) return text("Not Found", 404);
+    // =====================================================================
+    //  GET /pdfviewer/:doorId/:fileName  (simple HTML wrapper around PDF)
+    // =====================================================================
+    if (req.method === "GET" && pathname.startsWith("/pdfviewer/")) {
+      const parts = pathname.split("/").filter(Boolean); // ["pdfviewer", ":doorId", ":fileName"]
+      if (parts.length !== 3) return text("Not Found", 404);
 
-  const safeDoor = decodeURIComponent(parts[1]);
-  const fileName = decodeURIComponent(parts[2]);
+      const safeDoor = decodeURIComponent(parts[1]);
+      const fileName = decodeURIComponent(parts[2]);
 
-  const filePath = `/file/${encodeURIComponent(
-    safeDoor
-  )}/${encodeURIComponent(fileName)}`;
+      const filePath = `/file/${encodeURIComponent(
+        safeDoor
+      )}/${encodeURIComponent(fileName)}`;
 
-  return html(`<!DOCTYPE html>
+      return html(`<!DOCTYPE html>
   <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -903,7 +899,7 @@ if (req.method === "GET" && pathname.startsWith("/pdfviewer/")) {
     </script>
   </body>
   </html>`);
-}
+    }
 
 
     // =====================================================================
@@ -946,7 +942,7 @@ if (req.method === "GET" && pathname.startsWith("/pdfviewer/")) {
 
       const scope = url.searchParams.get("scope");
       const scopeAll = scope === "all";
-    
+
       let doorId;
       let business = "";
       let building = "";
@@ -955,103 +951,103 @@ if (req.method === "GET" && pathname.startsWith("/pdfviewer/")) {
       let doorSlug;
       let doorRec = null; // <-- ADD THIS
 
-// Shape A: /reports/:businessCode/:buildingCode/:doorSlug
-if (parts.length === 4) {
-  businessCode = decodeURIComponent(parts[1]);
-  buildingCode = decodeURIComponent(parts[2]);
-  doorSlug = decodeURIComponent(parts[3]);
+      // Shape A: /reports/:businessCode/:buildingCode/:doorSlug
+      if (parts.length === 4) {
+        businessCode = decodeURIComponent(parts[1]);
+        buildingCode = decodeURIComponent(parts[2]);
+        doorSlug = decodeURIComponent(parts[3]);
 
-  const summaryJson = await env.REPORTS_KV.get(
-    `door:${businessCode}:${buildingCode}:${doorSlug}`,
-    "text"
-  );
-  if (!summaryJson) return text("Door not found", 404);
+        const summaryJson = await env.REPORTS_KV.get(
+          `door:${businessCode}:${buildingCode}:${doorSlug}`,
+          "text"
+        );
+        if (!summaryJson) return text("Door not found", 404);
 
-const summary = JSON.parse(summaryJson);
-doorRec = summary; // keep full door record for overrides
-doorRec = summary; // <-- ADD THIS
-doorId = summary.doorId;
-business = summary.business || "";
-building = summary.building || "";
+        const summary = JSON.parse(summaryJson);
+        doorRec = summary; // keep full door record for overrides
+        doorRec = summary; // <-- ADD THIS
+        doorId = summary.doorId;
+        business = summary.business || "";
+        building = summary.building || "";
 
-  // Canonical redirect via doorIndex:<UID>
-  if (summary && summary.doorId) {
-    const uid = String(summary.doorId).replace(/[^\w\-./]/g, "_");
-    const map = await env.REPORTS_KV.get(`doorIndex:${uid}`, "json");
+        // Canonical redirect via doorIndex:<UID>
+        if (summary && summary.doorId) {
+          const uid = String(summary.doorId).replace(/[^\w\-./]/g, "_");
+          const map = await env.REPORTS_KV.get(`doorIndex:${uid}`, "json");
 
-    if (map) {
-      const canonical =
-        `/reports/${map.businessCode}/${map.buildingCode}/${map.doorSlug}` +
-        (url.search || "");
+          if (map) {
+            const canonical =
+              `/reports/${map.businessCode}/${map.buildingCode}/${map.doorSlug}` +
+              (url.search || "");
 
-      if (url.pathname !== `/reports/${map.businessCode}/${map.buildingCode}/${map.doorSlug}`) {
-        return Response.redirect(canonical, 302);
+            if (url.pathname !== `/reports/${map.businessCode}/${map.buildingCode}/${map.doorSlug}`) {
+              return Response.redirect(canonical, 302);
+            }
+          }
+        }
       }
-    }
-  }
-}
 
-// Shape B (legacy): /reports/:doorId
-else if (parts.length === 2) {
-  const token = decodeURIComponent(parts[1]);
-  doorId = token;
+      // Shape B (legacy): /reports/:doorId
+      else if (parts.length === 2) {
+        const token = decodeURIComponent(parts[1]);
+        doorId = token;
 
-  // Canonical redirect via doorIndex:<UID>
-  const uid = String(doorId).replace(/[^\w\-./]/g, "_");
-  const map = await env.REPORTS_KV.get(`doorIndex:${uid}`, "json");
+        // Canonical redirect via doorIndex:<UID>
+        const uid = String(doorId).replace(/[^\w\-./]/g, "_");
+        const map = await env.REPORTS_KV.get(`doorIndex:${uid}`, "json");
 
-  if (map) {
-    const canonical =
-      `/reports/${map.businessCode}/${map.buildingCode}/${map.doorSlug}` +
-      (url.search || "");
-    return Response.redirect(canonical, 302);
-  }
+        if (map) {
+          const canonical =
+            `/reports/${map.businessCode}/${map.buildingCode}/${map.doorSlug}` +
+            (url.search || "");
+          return Response.redirect(canonical, 302);
+        }
 
-  // If no mapping, continue legacy rendering (R2 metadata)
-}
+        // If no mapping, continue legacy rendering (R2 metadata)
+      }
 
-else {
-  return text("Not found", 404);
-}
+      else {
+        return text("Not found", 404);
+      }
 
 
       // Use sanitized doorId as folder prefix in R2
       const safeDoor = doorId.replace(/[^\w\-./]/g, "_");
-      
+
       let uidHistory = null;
       // If we didn't get a door record from Shape A, try UID-first record.
-// Upload path writes this as door:${safeDoor}.
-if (!doorRec) {
-  try {
-    doorRec = await env.REPORTS_KV.get(`door:${safeDoor}`, "json");
-  } catch {}
-}
-try {
-  const raw = await env.REPORTS_KV.get(`uidEvents:${safeDoor}`, "json");
-  if (Array.isArray(raw) && raw.length > 0) {
-    uidHistory = raw;
-  }
-} catch {}
+      // Upload path writes this as door:${safeDoor}.
+      if (!doorRec) {
+        try {
+          doorRec = await env.REPORTS_KV.get(`door:${safeDoor}`, "json");
+        } catch { }
+      }
+      try {
+        const raw = await env.REPORTS_KV.get(`uidEvents:${safeDoor}`, "json");
+        if (Array.isArray(raw) && raw.length > 0) {
+          uidHistory = raw;
+        }
+      } catch { }
 
-let objects = [];
+      let objects = [];
 
-if (uidHistory) {
-  // UID-first history
-  objects = uidHistory
-    .slice()
-    .sort((a, b) => (b.ts || "").localeCompare(a.ts || ""));
-} else {
-  // Legacy fallback
-  const list = await env.REPORTS_BUCKET.list({
-    prefix: `${safeDoor}/`,
-  });
+      if (uidHistory) {
+        // UID-first history
+        objects = uidHistory
+          .slice()
+          .sort((a, b) => (b.ts || "").localeCompare(a.ts || ""));
+      } else {
+        // Legacy fallback
+        const list = await env.REPORTS_BUCKET.list({
+          prefix: `${safeDoor}/`,
+        });
 
-  objects = list.objects
-    .slice()
-    .sort((a, b) => b.key.localeCompare(a.key));
-}
+        objects = list.objects
+          .slice()
+          .sort((a, b) => b.key.localeCompare(a.key));
+      }
 
-    
+
       if (objects.length === 0) {
         return html(`<h1>No reports yet for ${esc(doorId)}</h1>`);
       }
@@ -1059,62 +1055,61 @@ if (uidHistory) {
       const latest = objects[0];
       const meta = latest.customMetadata || latest || {};
       // ---- normalize effective status for grouping ----
-// ---- normalize effective status for grouping ----
-const metaStatus = (meta.status || "").toString().trim();
-const metaSeverityNum =
-  meta.severity !== undefined && meta.severity !== null && meta.severity !== ""
-    ? Number(meta.severity)
-    : null;
+      const metaStatus = (meta.status || "").toString().trim();
+      const metaSeverityNum =
+        meta.severity !== undefined && meta.severity !== null && meta.severity !== ""
+          ? Number(meta.severity)
+          : null;
 
-// Pull admin overrides from the door KV record if present
-// (Admin writes these on purpose; viewer should respect them.)
-const adminStatusRaw = (doorRec && doorRec.status != null) ? String(doorRec.status).trim() : "";
-const adminSeverityRaw = (doorRec && doorRec.severity != null) ? doorRec.severity : null;
+      // Pull admin overrides from the door KV record if present
+      // (Admin writes these on purpose; viewer should respect them.)
+      const adminStatusRaw = (doorRec && doorRec.status != null) ? String(doorRec.status).trim() : "";
+      const adminSeverityRaw = (doorRec && doorRec.severity != null) ? doorRec.severity : null;
 
-// Convert adminSeverity to number if possible
-const adminSeverityNum =
-  adminSeverityRaw !== null && adminSeverityRaw !== undefined && adminSeverityRaw !== ""
-    ? Number(adminSeverityRaw)
-    : null;
+      // Convert adminSeverity to number if possible
+      const adminSeverityNum =
+        adminSeverityRaw !== null && adminSeverityRaw !== undefined && adminSeverityRaw !== ""
+          ? Number(adminSeverityRaw)
+          : null;
 
-// Display normalization: treat internal "Needs Repair" as customer-facing "Flagged"
-const normalizeDisplayStatus = (s) => {
-  const v = String(s || "").trim();
-  if (!v) return "";
-  if (v.toLowerCase() === "needs repair") return "Flagged";
-  return v;
-};
+      // Display normalization: treat internal "Needs Repair" as customer-facing "Flagged"
+      const normalizeDisplayStatus = (s) => {
+        const v = String(s || "").trim();
+        if (!v) return "";
+        if (v.toLowerCase() === "needs repair") return "Flagged";
+        return v;
+      };
 
-// Admin override wins (if present), otherwise metadata wins
-let effectiveStatus = normalizeDisplayStatus(adminStatusRaw) || normalizeDisplayStatus(metaStatus);
+      // Admin override wins (if present), otherwise metadata wins
+      let effectiveStatus = normalizeDisplayStatus(adminStatusRaw) || normalizeDisplayStatus(metaStatus);
 
-// If still missing, derive from severity (admin first, then metadata)
-// Canonical severity: 0=Pass, 1=Conditional Pass, 2=Flagged
-if (!effectiveStatus) {
-  const sev =
-    (adminSeverityNum !== null && !Number.isNaN(adminSeverityNum)) ? adminSeverityNum :
-    (metaSeverityNum !== null && !Number.isNaN(metaSeverityNum)) ? metaSeverityNum :
-    null;
+      // If still missing, derive from severity (admin first, then metadata)
+      // Canonical severity: 0=Pass, 1=Conditional Pass, 2=Flagged
+      if (!effectiveStatus) {
+        const sev =
+          (adminSeverityNum !== null && !Number.isNaN(adminSeverityNum)) ? adminSeverityNum :
+            (metaSeverityNum !== null && !Number.isNaN(metaSeverityNum)) ? metaSeverityNum :
+              null;
 
-  if (sev !== null) {
-    if (sev >= 2) effectiveStatus = "Flagged";
-    else if (sev === 1) effectiveStatus = "Conditional Pass";
-    else effectiveStatus = "Pass";
-  }
-}
+        if (sev !== null) {
+          if (sev >= 2) effectiveStatus = "Flagged";
+          else if (sev === 1) effectiveStatus = "Conditional Pass";
+          else effectiveStatus = "Pass";
+        }
+      }
 
       console.log("LATEST META", JSON.stringify(meta));
 
-      
+
 
       // If business/building not filled yet (legacy path), use metadata
       if (!business) business = meta.business || "";
       if (!building) building = meta.building || "";
 
       const latestFile = latest.key
-      ? latest.key.split("/").pop()
-      : latest.objectKey.split("/").pop();
-    
+        ? latest.key.split("/").pop()
+        : latest.objectKey.split("/").pop();
+
       const latestUrl = `/file/${encodeURIComponent(
         safeDoor
       )}/${encodeURIComponent(latestFile)}`;
@@ -1122,41 +1117,41 @@ if (!effectiveStatus) {
         safeDoor
       )}/${encodeURIComponent(latestFile)}`;
 
- // Build History list for the sidebar (newest → oldest)
- const historyItemsHtml = objects
- .map((o, idx) => {
-   const m = o.customMetadata || o || {};
-   const file = o.key
-     ? o.key.split("/").pop()
-     : o.objectKey.split("/").pop();
- 
+      // Build History list for the sidebar (newest → oldest)
+      const historyItemsHtml = objects
+        .map((o, idx) => {
+          const m = o.customMetadata || o || {};
+          const file = o.key
+            ? o.key.split("/").pop()
+            : o.objectKey.split("/").pop();
 
-  const viewUrl = `/pdfviewer/${encodeURIComponent(safeDoor)}/${encodeURIComponent(file)}`;
-  const dlUrl = `/file/${encodeURIComponent(safeDoor)}/${encodeURIComponent(file)}`;
 
-  const when = m.inspectedAt || m.uploadedAt || file.replace(/\.pdf$/i, "");
+          const viewUrl = `/pdfviewer/${encodeURIComponent(safeDoor)}/${encodeURIComponent(file)}`;
+          const dlUrl = `/file/${encodeURIComponent(safeDoor)}/${encodeURIComponent(file)}`;
 
-  const doorLabel = (m.displayLabel || m.label || m.doorId || "").toString().trim();
-  
-  const statusTextRaw = (m.status || m.doorStatusRaw || "").toString().trim();
-  const statusText = statusTextRaw ? statusTextRaw : "Unknown";
-  
-  // “actual condition” (best available from metadata)
-  const conditionText =
-    (typeof m.severity !== "undefined" && m.severity !== null && String(m.severity).trim() !== "")
-      ? `Severity ${String(m.severity).trim()}`
-      : "";
-  
-  const statusWithCondition = conditionText
-    ? `${statusText} [${conditionText}]`
-    : statusText;
-  
-  // optional: keep location line if you want it
-  const where = [m.business, m.building].filter(Boolean).join(" • ");
-  
-  const loc = o.key; // “history location” in R2
+          const when = m.inspectedAt || m.uploadedAt || file.replace(/\.pdf$/i, "");
 
-  return `
+          const doorLabel = (m.displayLabel || m.label || m.doorId || "").toString().trim();
+
+          const statusTextRaw = (m.status || m.doorStatusRaw || "").toString().trim();
+          const statusText = statusTextRaw ? statusTextRaw : "Unknown";
+
+          // “actual condition” (best available from metadata)
+          const conditionText =
+            (typeof m.severity !== "undefined" && m.severity !== null && String(m.severity).trim() !== "")
+              ? `Severity ${String(m.severity).trim()}`
+              : "";
+
+          const statusWithCondition = conditionText
+            ? `${statusText} [${conditionText}]`
+            : statusText;
+
+          // optional: keep location line if you want it
+          const where = [m.business, m.building].filter(Boolean).join(" • ");
+
+          const loc = o.key; // “history location” in R2
+
+          return `
   <li class="door-item history-item${idx === 0 ? " current" : ""}" data-viewer-url="${viewUrl}">
     <div class="door-label">${esc(doorLabel)} ${esc(when)} - ${esc(statusWithCondition)}</div>
     <div class="door-subline">${esc(where || "—")}</div>
@@ -1166,12 +1161,12 @@ if (!effectiveStatus) {
   </li>
 `;
 
-})
-.join("");
+        })
+        .join("");
 
-const historySectionHtml =
-  objects.length > 1
-    ? `
+      const historySectionHtml =
+        objects.length > 1
+          ? `
   <div class="sidebar-section history-bottom collapsed" data-bucket="history">
     <div class="section-title">
       <span>History</span>
@@ -1182,84 +1177,84 @@ const historySectionHtml =
     </ul>
   </div>
 `
-    : ``;
+          : ``;
 
-   
-            // Resolve business/building codes for KV lookup
-            const businessName = business || meta.business || "";
-            const buildingName = building || meta.building || "main";
-      
-            businessCode =
-              businessCode ||
-              (meta.businessCode && String(meta.businessCode)) ||
-              slug(businessName);
-      
-            buildingCode =
-              buildingCode ||
-              (meta.buildingCode && String(meta.buildingCode)) ||
-              slug(buildingName || "main");
-      
-            // -------------------------------------------------------------
-            // SECURITY GATE: enforce secure mode per business
-            // -------------------------------------------------------------
-            let bizMode = "standard";
-      
-            if (businessCode) {
-              const cfgRaw = await env.ENROLL_TOKENS.get(
-                `bizcfg:${businessCode}`,
-                "text"
-              );
-              if (cfgRaw) {
-                try {
-                  const cfg = JSON.parse(cfgRaw);
-                  bizMode = cfg.mode || "standard";
-                } catch (e) {
-                  bizMode = "standard";
-                }
-              }
-            }
-      
-            if (bizMode === "secure") {
-              const cookies = parseCookies(req.headers.get("Cookie"));
-              const tokenId = cookies["castle_access"];
-      
-              if (!tokenId) {
-                return html(
-                  "<h1>Access restricted</h1><p>This business requires an enrolled device. Ask your admin for an access link.</p>",
-                  403
-                );
-              }
-      
-              const deviceRaw = await env.DEVICE_TOKENS.get(
-                `device:${tokenId}`,
-                "text"
-              );
-              if (!deviceRaw) {
-                return html(
-                  "<h1>Access restricted</h1><p>Invalid device token.</p>",
-                  403
-                );
-              }
-      
-              try {
-                const device = JSON.parse(deviceRaw);
-                // device.biz is the slug we used in /enroll (businessCode)
-                if (device.revoked || device.biz !== businessCode) {
-                  return html(
-                    "<h1>Access restricted</h1><p>Invalid device token.</p>",
-                    403
-                  );
-                }
-              } catch (e) {
-                return html(
-                  "<h1>Access restricted</h1><p>Invalid device token.</p>",
-                  403
-                );
-              }
-            }
-      
 
-        
+      // Resolve business/building codes for KV lookup
+      const businessName = business || meta.business || "";
+      const buildingName = building || meta.building || "main";
+
+      businessCode =
+        businessCode ||
+        (meta.businessCode && String(meta.businessCode)) ||
+        slug(businessName);
+
+      buildingCode =
+        buildingCode ||
+        (meta.buildingCode && String(meta.buildingCode)) ||
+        slug(buildingName || "main");
+
+      // -------------------------------------------------------------
+      // SECURITY GATE: enforce secure mode per business
+      // -------------------------------------------------------------
+      let bizMode = "standard";
+
+      if (businessCode) {
+        const cfgRaw = await env.ENROLL_TOKENS.get(
+          `bizcfg:${businessCode}`,
+          "text"
+        );
+        if (cfgRaw) {
+          try {
+            const cfg = JSON.parse(cfgRaw);
+            bizMode = cfg.mode || "standard";
+          } catch (e) {
+            bizMode = "standard";
+          }
+        }
+      }
+
+      if (bizMode === "secure") {
+        const cookies = parseCookies(req.headers.get("Cookie"));
+        const tokenId = cookies["castle_access"];
+
+        if (!tokenId) {
+          return html(
+            "<h1>Access restricted</h1><p>This business requires an enrolled device. Ask your admin for an access link.</p>",
+            403
+          );
+        }
+
+        const deviceRaw = await env.DEVICE_TOKENS.get(
+          `device:${tokenId}`,
+          "text"
+        );
+        if (!deviceRaw) {
+          return html(
+            "<h1>Access restricted</h1><p>Invalid device token.</p>",
+            403
+          );
+        }
+
+        try {
+          const device = JSON.parse(deviceRaw);
+          // device.biz is the slug we used in /enroll (businessCode)
+          if (device.revoked || device.biz !== businessCode) {
+            return html(
+              "<h1>Access restricted</h1><p>Invalid device token.</p>",
+              403
+            );
+          }
+        } catch (e) {
+          return html(
+            "<h1>Access restricted</h1><p>Invalid device token.</p>",
+            403
+          );
+        }
+      }
+
+
+
       // ---------- Per-business secure mode gate + CTA config ----------
       // Worker B (admin) stores configs as: bizcfg:<businessCode> in ENROLL_TOKENS
       // with fields like { slug, mode, cta_enabled, cta_default_to, cta_always_cc }.
@@ -1319,8 +1314,8 @@ const historySectionHtml =
   <body>
     <h1>Access restricted</h1>
     <p>This report is only available to authorized devices for ${esc(
-      businessCode
-    )}.</p>
+            businessCode
+          )}.</p>
     <p>If you should have access, please contact your administrator or maintenance manager.</p>
   </body>
 </html>`;
@@ -1344,386 +1339,386 @@ const historySectionHtml =
         .filter(Boolean)
         .join(" • ");
 
-// -------------------------------------------------------------
-// Look up ALL doors for this business and group by building
-// -------------------------------------------------------------
+      // -------------------------------------------------------------
+      // Look up ALL doors for this business and group by building
+      // -------------------------------------------------------------
 
-const allDoorPrefix = `door:${businessCode}:`;
-const doorList = await env.REPORTS_KV.list({ prefix: allDoorPrefix });
+      const allDoorPrefix = `door:${businessCode}:`;
+      const doorList = await env.REPORTS_KV.list({ prefix: allDoorPrefix });
 
-// -------------------------------------------------------------
-// Build Buildings sidebar using ADMIN building display names
-//
-// Source of truth:
-//   buildingCode (stable identity)
-//   bldcfg:<biz>:<buildingCode> → { name: "East Wing" }
-//
-// Default behavior:
-//   Show uploaded building name unless admin overrides it
-// -------------------------------------------------------------
+      // -------------------------------------------------------------
+      // Build Buildings sidebar using ADMIN building display names
+      //
+      // Source of truth:
+      //   buildingCode (stable identity)
+      //   bldcfg:<biz>:<buildingCode> → { name: "East Wing" }
+      //
+      // Default behavior:
+      //   Show uploaded building name unless admin overrides it
+      // -------------------------------------------------------------
 
-const buildingsMap = new Map();
-// buildingCode -> { code, name, doors: [] }
+      const buildingsMap = new Map();
+      // buildingCode -> { code, name, doors: [] }
 
-// Cache admin overrides so we don't KV-read repeatedly
-const buildingNameCache = new Map();
+      // Cache admin overrides so we don't KV-read repeatedly
+      const buildingNameCache = new Map();
 
-async function getBuildingDisplayName(bizCode, bCode) {
-  if (buildingNameCache.has(bCode)) {
-    return buildingNameCache.get(bCode);
-  }
+      async function getBuildingDisplayName(bizCode, bCode) {
+        if (buildingNameCache.has(bCode)) {
+          return buildingNameCache.get(bCode);
+        }
 
-  // Admin rename record
-  const cfgKey = `bldcfg:${bizCode}:${bCode}`;
-  const cfg = await env.REPORTS_KV.get(cfgKey, "json");
+        // Admin rename record
+        const cfgKey = `bldcfg:${bizCode}:${bCode}`;
+        const cfg = await env.REPORTS_KV.get(cfgKey, "json");
 
-  let displayName = "";
+        let displayName = "";
 
-  // Admin override wins if present
-  if (cfg && typeof cfg.name === "string" && cfg.name.trim()) {
-    displayName = cfg.name.trim();
-  }
+        // Admin override wins if present
+        if (cfg && typeof cfg.name === "string" && cfg.name.trim()) {
+          displayName = cfg.name.trim();
+        }
 
-  // IMPORTANT:
-  // If no admin rename exists, return blank.
-  // The loop will fall back to uploaded building name.
-  buildingNameCache.set(bCode, displayName);
-  return displayName;
-}
-
-for (const item of doorList.keys || []) {
-  try {
-    const value = await env.REPORTS_KV.get(item.name, "text");
-    if (!value) continue;
-
-    const d = JSON.parse(value);
-
-    // Stable building identity
-    const bCode = d.buildingCode || "main";
-
-    // 1) Admin override (if set)
-    let bName = await getBuildingDisplayName(businessCode, bCode);
-
-    // 2) Default fallback = uploaded building name
-    if (!bName) {
-      bName =
-        (d.building && String(d.building).trim()) ||
-        (bCode === "main" ? "Main" : "Unnamed building");
-    }
-
-    let bucket = buildingsMap.get(bCode);
-    if (!bucket) {
-      bucket = { code: bCode, name: bName, doors: [] };
-      buildingsMap.set(bCode, bucket);
-    }
-
-    bucket.doors.push(d);
-  } catch (e) {
-    console.log("Error parsing door summary", item.name, e);
-  }
-}
-
-const currentBuildingCode = buildingCode;
-const currentBuilding =
-  buildingsMap.get(currentBuildingCode) ||
-  { code: currentBuildingCode, name: building || "Main", doors: [] };
-
-// Flatten all doors once for "All buildings" mode
-const allDoors = [];
-for (const b of buildingsMap.values()) {
-  allDoors.push(...b.doors);
-}
-
-// If scopeAll=true, use allDoors; otherwise, only this building's doors
-const doors = scopeAll ? allDoors : currentBuilding.doors;
-
-// -------------------------------------------------------------
-// Compute per-building summaries for the Buildings selector
-// -------------------------------------------------------------
-
-
-const buildingSummaries = [];
-
-// Global "All buildings" target door (prefer flagged > conditional > any)
-let allTargetBuildingCode = null;
-let allTargetSlug = null;
-let allTargetPriority = 0; // 0=any, 1=conditional, 2=flagged
-
-for (const [bCode, b] of buildingsMap.entries()) {
-  const total = b.doors.length;
-
-  let firstFlaggedSlug = null;
-  let firstConditionalSlug = null;
-  let firstAnySlug = null;
-
-  for (const d of b.doors) {
-  const statusNorm = (d.status || "").toString().trim().toLowerCase();
-
-  const slugForDoor = d.doorSlug || slug(String(d.doorId || ""));
-
-  if (!firstAnySlug) {
-    firstAnySlug = slugForDoor;
-  }
-
-  // Severity is deprecated: use STATUS only
-  const isFlagged =
-    (statusNorm === "fail") || (statusNorm === "flagged");
-
-  const isConditional =
-    (statusNorm === "conditional pass") || (statusNorm === "conditional");
-
-  if (isFlagged && !firstFlaggedSlug) {
-    firstFlaggedSlug = slugForDoor;
-  } else if (isConditional && !firstConditionalSlug) {
-    firstConditionalSlug = slugForDoor;
-  }
-
-  // Global target for "All buildings"
-  if (!allTargetSlug) {
-    allTargetBuildingCode = bCode;
-    allTargetSlug = slugForDoor;
-    allTargetPriority = 0;
-  }
-
-  if (isFlagged && allTargetPriority < 2) {
-    allTargetBuildingCode = bCode;
-    allTargetSlug = slugForDoor;
-    allTargetPriority = 2;
-  } else if (isConditional && allTargetPriority < 1) {
-    allTargetBuildingCode = bCode;
-    allTargetSlug = slugForDoor;
-    allTargetPriority = 1;
-  }
-}
-
-  const targetSlug =
-    firstFlaggedSlug || firstConditionalSlug || firstAnySlug || null;
-
-  buildingSummaries.push({
-    code: bCode,
-    name: b.name || "Main",
-    total,
-    targetSlug,
-    isCurrent: !scopeAll && bCode === currentBuildingCode,
-  });
-}
-
-// sort buildings by name for nicer ordering
-buildingSummaries.sort((a, b) =>
-  (a.name || "").localeCompare(b.name || "")
-);
-
-const totalDoorsAll = allDoors.length;
-
-function renderBuildingListHtml(buildings) {
-  if (!buildings.length) {
-    return '<li class="building-item empty">No buildings</li>';
-  }
-
-  return buildings
-    .map((b) => {
-      const nameEsc = esc(b.name || "Main");
-      const count = b.total || 0;
-
-      let href = "#";
-      if (b.targetSlug) {
-        // Always go to per-building view when clicking a building row.
-        // Do NOT preserve ?scope=all here.
-        href =
-          "/reports/" +
-          encodeURIComponent(businessCode) +
-          "/" +
-          encodeURIComponent(b.code) +
-          "/" +
-          encodeURIComponent(b.targetSlug);
+        // IMPORTANT:
+        // If no admin rename exists, return blank.
+        // The loop will fall back to uploaded building name.
+        buildingNameCache.set(bCode, displayName);
+        return displayName;
       }
 
-      const currentClass = b.isCurrent ? " current" : "";
+      for (const item of doorList.keys || []) {
+        try {
+          const value = await env.REPORTS_KV.get(item.name, "text");
+          if (!value) continue;
 
-      return (
-        '<li class="building-item' +
-        currentClass +
-        '">' +
-        '<a href="' +
-        href +
-        '">' +
-        '<span class="building-name">' +
-        nameEsc +
-        "</span>" +
-        '<span class="building-count">(' +
-        String(count) +
-        ")</span>" +
-        "</a>" +
-        "</li>"
+          const d = JSON.parse(value);
+
+          // Stable building identity
+          const bCode = d.buildingCode || "main";
+
+          // 1) Admin override (if set)
+          let bName = await getBuildingDisplayName(businessCode, bCode);
+
+          // 2) Default fallback = uploaded building name
+          if (!bName) {
+            bName =
+              (d.building && String(d.building).trim()) ||
+              (bCode === "main" ? "Main" : "Unnamed building");
+          }
+
+          let bucket = buildingsMap.get(bCode);
+          if (!bucket) {
+            bucket = { code: bCode, name: bName, doors: [] };
+            buildingsMap.set(bCode, bucket);
+          }
+
+          bucket.doors.push(d);
+        } catch (e) {
+          console.log("Error parsing door summary", item.name, e);
+        }
+      }
+
+      const currentBuildingCode = buildingCode;
+      const currentBuilding =
+        buildingsMap.get(currentBuildingCode) ||
+        { code: currentBuildingCode, name: building || "Main", doors: [] };
+
+      // Flatten all doors once for "All buildings" mode
+      const allDoors = [];
+      for (const b of buildingsMap.values()) {
+        allDoors.push(...b.doors);
+      }
+
+      // If scopeAll=true, use allDoors; otherwise, only this building's doors
+      const doors = scopeAll ? allDoors : currentBuilding.doors;
+
+      // -------------------------------------------------------------
+      // Compute per-building summaries for the Buildings selector
+      // -------------------------------------------------------------
+
+
+      const buildingSummaries = [];
+
+      // Global "All buildings" target door (prefer flagged > conditional > any)
+      let allTargetBuildingCode = null;
+      let allTargetSlug = null;
+      let allTargetPriority = 0; // 0=any, 1=conditional, 2=flagged
+
+      for (const [bCode, b] of buildingsMap.entries()) {
+        const total = b.doors.length;
+
+        let firstFlaggedSlug = null;
+        let firstConditionalSlug = null;
+        let firstAnySlug = null;
+
+        for (const d of b.doors) {
+          const statusNorm = (d.status || "").toString().trim().toLowerCase();
+
+          const slugForDoor = d.doorSlug || slug(String(d.doorId || ""));
+
+          if (!firstAnySlug) {
+            firstAnySlug = slugForDoor;
+          }
+
+          // Severity is deprecated: use STATUS only
+          const isFlagged =
+            (statusNorm === "fail") || (statusNorm === "flagged");
+
+          const isConditional =
+            (statusNorm === "conditional pass") || (statusNorm === "conditional");
+
+          if (isFlagged && !firstFlaggedSlug) {
+            firstFlaggedSlug = slugForDoor;
+          } else if (isConditional && !firstConditionalSlug) {
+            firstConditionalSlug = slugForDoor;
+          }
+
+          // Global target for "All buildings"
+          if (!allTargetSlug) {
+            allTargetBuildingCode = bCode;
+            allTargetSlug = slugForDoor;
+            allTargetPriority = 0;
+          }
+
+          if (isFlagged && allTargetPriority < 2) {
+            allTargetBuildingCode = bCode;
+            allTargetSlug = slugForDoor;
+            allTargetPriority = 2;
+          } else if (isConditional && allTargetPriority < 1) {
+            allTargetBuildingCode = bCode;
+            allTargetSlug = slugForDoor;
+            allTargetPriority = 1;
+          }
+        }
+
+        const targetSlug =
+          firstFlaggedSlug || firstConditionalSlug || firstAnySlug || null;
+
+        buildingSummaries.push({
+          code: bCode,
+          name: b.name || "Main",
+          total,
+          targetSlug,
+          isCurrent: !scopeAll && bCode === currentBuildingCode,
+        });
+      }
+
+      // sort buildings by name for nicer ordering
+      buildingSummaries.sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "")
       );
-    })
-    .join("");
-}
 
-const buildingsHtml = renderBuildingListHtml(buildingSummaries);
+      const totalDoorsAll = allDoors.length;
 
-// -------------------------------------------------------------
-// Group by status / severity for UI buckets
-// -------------------------------------------------------------
-const flaggedDoors = [];
-const conditionalDoors = [];
-const passedDoors = [];
-const otherDoors = [];
+      function renderBuildingListHtml(buildings) {
+        if (!buildings.length) {
+          return '<li class="building-item empty">No buildings</li>';
+        }
 
-const currentSlug = doorSlug || slug(String(doorId || ""));
+        return buildings
+          .map((b) => {
+            const nameEsc = esc(b.name || "Main");
+            const count = b.total || 0;
 
-let currentInFlagged = false;
-let currentInConditional = false;
-let currentInPassed = false;
-let currentInOther = false;
+            let href = "#";
+            if (b.targetSlug) {
+              // Always go to per-building view when clicking a building row.
+              // Do NOT preserve ?scope=all here.
+              href =
+                "/reports/" +
+                encodeURIComponent(businessCode) +
+                "/" +
+                encodeURIComponent(b.code) +
+                "/" +
+                encodeURIComponent(b.targetSlug);
+            }
 
-for (const d of doors) {
-  const label = d.displayLabel || d.label || d.doorId || "Unknown door";
+            const currentClass = b.isCurrent ? " current" : "";
 
-  let status = (d.status || "").toString().trim();
-  let severityNum = Number(d.severity);
-  let sev = Number.isFinite(severityNum) ? severityNum : null;
-  
-  // Derive status from severity if status missing
-  if (!status && sev !== null) {
-    if (sev >= 2) status = "Fail";
-    else if (sev === 1) status = "Conditional Pass";
-    else status = "Pass";
-  }
-  
-  const statusNorm = status.toLowerCase();
-  
+            return (
+              '<li class="building-item' +
+              currentClass +
+              '">' +
+              '<a href="' +
+              href +
+              '">' +
+              '<span class="building-name">' +
+              nameEsc +
+              "</span>" +
+              '<span class="building-count">(' +
+              String(count) +
+              ")</span>" +
+              "</a>" +
+              "</li>"
+            );
+          })
+          .join("");
+      }
 
-  const lastInspectedAt = d.lastInspectedAt || "";
+      const buildingsHtml = renderBuildingListHtml(buildingSummaries);
 
-  const thisBizCode = d.businessCode || businessCode;
-  const thisBldCode = d.buildingCode || buildingCode;
+      // -------------------------------------------------------------
+      // Group by status / severity for UI buckets
+      // -------------------------------------------------------------
+      const flaggedDoors = [];
+      const conditionalDoors = [];
+      const passedDoors = [];
+      const otherDoors = [];
 
-  const targetSlug = d.doorSlug || slug(String(d.doorId || ""));
-  const isCurrent =
-    targetSlug === currentSlug ||
-    String(d.doorId || "") === String(doorId);
+      const currentSlug = doorSlug || slug(String(doorId || ""));
 
-  const url = `/reports/${encodeURIComponent(
-    thisBizCode
-  )}/${encodeURIComponent(thisBldCode)}/${encodeURIComponent(
-    targetSlug
-  )}${scopeAll ? "?scope=all" : ""}`;
+      let currentInFlagged = false;
+      let currentInConditional = false;
+      let currentInPassed = false;
+      let currentInOther = false;
 
-  const doorKey =
-    thisBizCode +
-    ":" +
-    thisBldCode +
-    ":" +
-    String(d.doorId || targetSlug || "");
+      for (const d of doors) {
+        const label = d.displayLabel || d.label || d.doorId || "Unknown door";
 
-  // compute direct PDF URL from lastReportKey
-  let fileUrl = "";
-  if (d.lastReportKey && typeof d.lastReportKey === "string") {
-    const parts = d.lastReportKey.split("/");
-    if (parts.length >= 2) {
-      const folder = parts[0];
-      const fname = parts.slice(1).join("/");
-      fileUrl = `/file/${encodeURIComponent(
-        folder
-      )}/${encodeURIComponent(fname)}`;
-    }
-  }
+        let status = (d.status || "").toString().trim();
+        let severityNum = Number(d.severity);
+        let sev = Number.isFinite(severityNum) ? severityNum : null;
 
-  const entry = {
-    label,
-    status,       // keep original (trimmed)
-    severity: sev, // normalized numeric severity
-    lastInspectedAt,
-    url,
-    isCurrent,
-    fileUrl,
-    doorId: d.doorId || null,
-    doorKey, // used by selection JS
-  };
+        // Derive status from severity if status missing
+        if (!status && sev !== null) {
+          if (sev >= 2) status = "Fail";
+          else if (sev === 1) status = "Conditional Pass";
+          else status = "Pass";
+        }
 
-  if (sev === 2 || statusNorm === "fail" || statusNorm === "flagged") {
-    if (isCurrent) currentInFlagged = true;
-    flaggedDoors.push(entry);
-  } else if (sev === 1 || statusNorm === "conditional pass") {
-    if (isCurrent) currentInConditional = true;
-    conditionalDoors.push(entry);
-  } else if (sev === 0 && statusNorm === "pass") {
-    if (isCurrent) currentInPassed = true;
-    passedDoors.push(entry);
-  } else {
-    if (isCurrent) currentInOther = true;
-    otherDoors.push(entry);
-  }
-}
+        const statusNorm = status.toLowerCase();
 
-const flaggedCount = flaggedDoors.length;
-const conditionalCount = conditionalDoors.length;
-const passedCount = passedDoors.length;
-const otherCount = otherDoors.length;
 
-function renderDoorList(list) {
-  if (!list.length) {
-    return '<li class="door-subline">None</li>';
-  }
+        const lastInspectedAt = d.lastInspectedAt || "";
 
-  return list
-    .map((d) => {
-      const labelEsc = esc(d.label || "");
-      const statusEsc = esc(d.status || "");
-      const timeEsc = d.lastInspectedAt ? " • " + esc(d.lastInspectedAt) : "";
-      const currentClass = d.isCurrent ? " current" : "";
+        const thisBizCode = d.businessCode || businessCode;
+        const thisBldCode = d.buildingCode || buildingCode;
 
-      const statusValue = (d.status || "").toString().trim().toLowerCase();
+        const targetSlug = d.doorSlug || slug(String(d.doorId || ""));
+        const isCurrent =
+          targetSlug === currentSlug ||
+          String(d.doorId || "") === String(doorId);
 
-      const doorKeyValue = d.doorKey ? String(d.doorKey) : "";
-      const doorKeyAttr = doorKeyValue
-        ? ' data-door-key="' + esc(doorKeyValue) + '"'
-        : "";
+        const url = `/reports/${encodeURIComponent(
+          thisBizCode
+        )}/${encodeURIComponent(thisBldCode)}/${encodeURIComponent(
+          targetSlug
+        )}${scopeAll ? "?scope=all" : ""}`;
 
-      const fileUrlAttr = d.fileUrl
-        ? ' data-file-url="' + esc(d.fileUrl) + '"'
-        : "";
+        const doorKey =
+          thisBizCode +
+          ":" +
+          thisBldCode +
+          ":" +
+          String(d.doorId || targetSlug || "");
 
-      const doorIdValue = d.doorId ? String(d.doorId) : "";
-      const doorIdAttr = doorIdValue
-        ? ' data-door-id="' + esc(doorIdValue) + '"'
-        : "";
+        // compute direct PDF URL from lastReportKey
+        let fileUrl = "";
+        if (d.lastReportKey && typeof d.lastReportKey === "string") {
+          const parts = d.lastReportKey.split("/");
+          if (parts.length >= 2) {
+            const folder = parts[0];
+            const fname = parts.slice(1).join("/");
+            fileUrl = `/file/${encodeURIComponent(
+              folder
+            )}/${encodeURIComponent(fname)}`;
+          }
+        }
 
-      const statusAttr = statusValue
-        ? ' data-status="' + esc(statusValue) + '"'
-        : "";
+        const entry = {
+          label,
+          status,       // keep original (trimmed)
+          severity: sev, // normalized numeric severity
+          lastInspectedAt,
+          url,
+          isCurrent,
+          fileUrl,
+          doorId: d.doorId || null,
+          doorKey, // used by selection JS
+        };
 
-      return (
-        '<li class="door-item' +
-        currentClass +
-        '"' +
-        fileUrlAttr +
-        doorIdAttr +
-        doorKeyAttr +
-        statusAttr +
-        ">" +
-        '<div class="door-row">' +
-        '<input type="checkbox" class="door-select" />' +
-        '<div class="door-text">' +
-        '<a href="' +
-        d.url +
-        '">' +
-        '<div class="door-label">' +
-        labelEsc +
-        "</div>" +
-        '<div class="door-subline">' +
-        statusEsc +
-        timeEsc +
-        "</div>" +
-        "</a>" +
-        "</div>" +
-        "</div>" +
-        "</li>"
-      );
-    })
-    .join("");
-}
+        if (sev === 2 || statusNorm === "fail" || statusNorm === "flagged") {
+          if (isCurrent) currentInFlagged = true;
+          flaggedDoors.push(entry);
+        } else if (sev === 1 || statusNorm === "conditional pass") {
+          if (isCurrent) currentInConditional = true;
+          conditionalDoors.push(entry);
+        } else if (sev === 0 && statusNorm === "pass") {
+          if (isCurrent) currentInPassed = true;
+          passedDoors.push(entry);
+        } else {
+          if (isCurrent) currentInOther = true;
+          otherDoors.push(entry);
+        }
+      }
+
+      const flaggedCount = flaggedDoors.length;
+      const conditionalCount = conditionalDoors.length;
+      const passedCount = passedDoors.length;
+      const otherCount = otherDoors.length;
+
+      function renderDoorList(list) {
+        if (!list.length) {
+          return '<li class="door-subline">None</li>';
+        }
+
+        return list
+          .map((d) => {
+            const labelEsc = esc(d.label || "");
+            const statusEsc = esc(d.status || "");
+            const timeEsc = d.lastInspectedAt ? " • " + esc(d.lastInspectedAt) : "";
+            const currentClass = d.isCurrent ? " current" : "";
+
+            const statusValue = (d.status || "").toString().trim().toLowerCase();
+
+            const doorKeyValue = d.doorKey ? String(d.doorKey) : "";
+            const doorKeyAttr = doorKeyValue
+              ? ' data-door-key="' + esc(doorKeyValue) + '"'
+              : "";
+
+            const fileUrlAttr = d.fileUrl
+              ? ' data-file-url="' + esc(d.fileUrl) + '"'
+              : "";
+
+            const doorIdValue = d.doorId ? String(d.doorId) : "";
+            const doorIdAttr = doorIdValue
+              ? ' data-door-id="' + esc(doorIdValue) + '"'
+              : "";
+
+            const statusAttr = statusValue
+              ? ' data-status="' + esc(statusValue) + '"'
+              : "";
+
+            return (
+              '<li class="door-item' +
+              currentClass +
+              '"' +
+              fileUrlAttr +
+              doorIdAttr +
+              doorKeyAttr +
+              statusAttr +
+              ">" +
+              '<div class="door-row">' +
+              '<input type="checkbox" class="door-select" />' +
+              '<div class="door-text">' +
+              '<a href="' +
+              d.url +
+              '">' +
+              '<div class="door-label">' +
+              labelEsc +
+              "</div>" +
+              '<div class="door-subline">' +
+              statusEsc +
+              timeEsc +
+              "</div>" +
+              "</a>" +
+              "</div>" +
+              "</div>" +
+              "</li>"
+            );
+          })
+          .join("");
+      }
       return html(`<!DOCTYPE html>
       <html lang="en">
       <head>
@@ -2194,12 +2189,11 @@ function renderDoorList(list) {
           <button type="button" class="btn btn-small viewer-nav-toggle">
             ☰ Doors
           </button>
-          ${
-            bizCtaEnabled
-              ? '<button type="button" class="btn btn-small cta-repair">Request repair</button>' +
-                '<button type="button" class="btn btn-small cta-reinspect">Request reinspection</button>'
-              : ""
-          }
+          ${bizCtaEnabled
+          ? '<button type="button" class="btn btn-small cta-repair">Request repair</button>' +
+          '<button type="button" class="btn btn-small cta-reinspect">Request reinspection</button>'
+          : ""
+        }
         </div>
       </header>    
           <main class="content">
@@ -2225,15 +2219,14 @@ function renderDoorList(list) {
             <!-- All buildings row (only show if 2+ buildings) -->
             ${buildingSummaries.length > 1 ? `
               <li class="building-item${scopeAll ? " current" : ""}">
-  <a href="${
-    allTargetSlug && allTargetBuildingCode
-      ? `/reports/${encodeURIComponent(
-          businessCode
-        )}/${encodeURIComponent(
-          allTargetBuildingCode
-        )}/${encodeURIComponent(allTargetSlug)}?scope=all`
-      : "#"
-  }">
+  <a href="${allTargetSlug && allTargetBuildingCode
+            ? `/reports/${encodeURIComponent(
+              businessCode
+            )}/${encodeURIComponent(
+              allTargetBuildingCode
+            )}/${encodeURIComponent(allTargetSlug)}?scope=all`
+            : "#"
+          }">
     <span class="building-name">All buildings</span>
     <span class="building-count">(${totalDoorsAll})</span>
   </a>
@@ -2342,23 +2335,23 @@ function renderDoorList(list) {
       
         <script>
         window.__DOOR_CTX = ${JSON.stringify({
-          // slugs / codes
-          businessCode,
-          buildingCode,
-          doorId,
-          doorSlug,
+            // slugs / codes
+            businessCode,
+            buildingCode,
+            doorId,
+            doorSlug,
 
-          // human labels
-          businessLabel: business,
-          buildingLabel: buildingCode,
-          doorLabel: displayLabel,
-          doorStatus: (meta && meta.status) || "",
+            // human labels
+            businessLabel: business,
+            buildingLabel: buildingCode,
+            doorLabel: displayLabel,
+            doorStatus: (meta && meta.status) || "",
 
-          // CTA settings
-          bizCtaEnabled,
-          bizCtaDefaultTo,
-          bizCtaAlwaysCc,
-        })};
+            // CTA settings
+            bizCtaEnabled,
+            bizCtaDefaultTo,
+            bizCtaAlwaysCc,
+          })};
         document.addEventListener("DOMContentLoaded", function () {
           // Per-business+building key for section collapsed state
           var sectionStateKey =
@@ -2741,9 +2734,9 @@ function collectBucketUrls(bucket) {
         </script>
       </body>
       </html>`);
-      
+
     }
-     // =====================================================================
+    // =====================================================================
     //  POST /api/cta-request  (store CTA + send email via Resend)
     // =====================================================================
     if (req.method === "POST" && pathname === "/api/cta-request") {
@@ -2754,20 +2747,20 @@ function collectBucketUrls(bucket) {
         return json({ error: "Bad JSON" }, 400);
       }
 
-      const kind            = (body.kind || "").toString();
-      const businessCode    = (body.businessCode || "").toString();
-      const buildingCode    = (body.buildingCode || "").toString();
-      const doorId          = (body.doorId || "").toString();
-      const doorSlug        = (body.doorSlug || "").toString();
-      const requesterName   = (body.requesterName || "").toString();
-      const requesterEmail  = (body.requesterEmail || "").toString();
-      const sendToOverride  = (body.sendToOverride || "").toString();
-      const notes           = (body.notes || "").toString();
+      const kind = (body.kind || "").toString();
+      const businessCode = (body.businessCode || "").toString();
+      const buildingCode = (body.buildingCode || "").toString();
+      const doorId = (body.doorId || "").toString();
+      const doorSlug = (body.doorSlug || "").toString();
+      const requesterName = (body.requesterName || "").toString();
+      const requesterEmail = (body.requesterEmail || "").toString();
+      const sendToOverride = (body.sendToOverride || "").toString();
+      const notes = (body.notes || "").toString();
 
-      const businessLabel   = (body.businessLabel || "").toString();
-      const buildingLabel   = (body.buildingLabel || "").toString();
-      const doorLabel       = (body.doorLabel || "").toString();
-      const doorStatus      = (body.doorStatus || "").toString();
+      const businessLabel = (body.businessLabel || "").toString();
+      const buildingLabel = (body.buildingLabel || "").toString();
+      const doorLabel = (body.doorLabel || "").toString();
+      const doorStatus = (body.doorStatus || "").toString();
 
       if (!kind || !businessCode || (!doorId && !doorSlug)) {
         return json({ error: "Missing required fields" }, 400);
@@ -2821,7 +2814,7 @@ function collectBucketUrls(bucket) {
       const sendEmail = async () => {
         try {
           const apiKey = env.RESEND_API_KEY;
-          const from   = env.RESEND_FROM;
+          const from = env.RESEND_FROM;
           if (!apiKey || !from) {
             console.log("Resend not configured (missing RESEND_API_KEY or RESEND_FROM)");
             return;
@@ -2855,8 +2848,8 @@ function collectBucketUrls(bucket) {
             kind === "repair"
               ? "Repair"
               : kind === "reinspect"
-              ? "Reinspection"
-              : kind;
+                ? "Reinspection"
+                : kind;
 
           const bizName =
             businessLabel || businessCode || "(unknown business)";
@@ -2931,9 +2924,8 @@ function collectBucketUrls(bucket) {
               font-family: system-ui, sans-serif;
             ">${safeNotes}</pre>
 
-            ${
-              doorUrl
-                ? `
+            ${doorUrl
+              ? `
                   <p style="margin-top: 1.5em;">
                     <a href="${doorUrl}"
                       style="
@@ -2947,7 +2939,7 @@ function collectBucketUrls(bucket) {
                       ">View Full Door Report</a>
                   </p>
                 `
-                : ""
+              : ""
             }
 
             <p style="margin-top: 1.5em; font-size: 12px; color: #999;">
@@ -2982,35 +2974,35 @@ function collectBucketUrls(bucket) {
 
       return json({ ok: true, id });
     }
-// =====================================================
-// DEBUG: GET /__debug/door?uid=XXXX
-// Shows doorIndex mapping + resolved door summary record
-// =====================================================
-if (req.method === "GET" && pathname === "/__debug/door") {
-  const uidRaw = String(url.searchParams.get("uid") || "").trim();
-  if (!uidRaw) return text("uid required", 400);
+    // =====================================================
+    // DEBUG: GET /__debug/door?uid=XXXX
+    // Shows doorIndex mapping + resolved door summary record
+    // =====================================================
+    if (req.method === "GET" && pathname === "/__debug/door") {
+      const uidRaw = String(url.searchParams.get("uid") || "").trim();
+      if (!uidRaw) return text("uid required", 400);
 
-  const safeDoor = uidRaw.replace(/[^\w\-./]/g, "_");
+      const safeDoor = uidRaw.replace(/[^\w\-./]/g, "_");
 
-  const mapping = await env.REPORTS_KV.get(`doorIndex:${safeDoor}`, "json");
-  if (!mapping) {
-    return json({ ok: false, uid: safeDoor, error: "doorIndex not found" }, 404);
-  }
+      const mapping = await env.REPORTS_KV.get(`doorIndex:${safeDoor}`, "json");
+      if (!mapping) {
+        return json({ ok: false, uid: safeDoor, error: "doorIndex not found" }, 404);
+      }
 
-  const doorKey = `door:${mapping.businessCode}:${mapping.buildingCode}:${mapping.doorSlug}`;
-  const rec = await env.REPORTS_KV.get(doorKey, "json");
+      const doorKey = `door:${mapping.businessCode}:${mapping.buildingCode}:${mapping.doorSlug}`;
+      const rec = await env.REPORTS_KV.get(doorKey, "json");
 
-  return json({
-    ok: true,
-    uid: safeDoor,
-    doorIndexKey: `doorIndex:${safeDoor}`,
-    mapping,
-    doorKey,
-    doorSummary: rec || null,
-    summaryStatus: rec?.status ?? null,
-    summarySeverity: rec?.severity ?? null,
-  });
-}
+      return json({
+        ok: true,
+        uid: safeDoor,
+        doorIndexKey: `doorIndex:${safeDoor}`,
+        mapping,
+        doorKey,
+        doorSummary: rec || null,
+        summaryStatus: rec?.status ?? null,
+        summarySeverity: rec?.severity ?? null,
+      });
+    }
     // Fallback 404
     return text("Not found", 404);
   },

@@ -1159,12 +1159,17 @@ export default {
               body.status = status;
             }
         
-            await api("/admin/add-event", {
+            const res = await fetch("/admin/add-event", {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify(body),
             });
-        
+
+            if (!res.ok) {
+              eventResult.textContent = "Failed to add";
+              return;
+            }
+
             eventResult.textContent = "Event added ✓";
             eventNotes.value = "";
             eventStatus.value = "";
@@ -2078,6 +2083,12 @@ if (request.method === "POST" && pathname === "/admin/add-event") {
             buildingCode: parts[2],
             doorSlug: parts.slice(3).join(":"),
           };
+
+          await env.REPORTS_KV.put(
+            `doorIndex:${uid}`,
+            JSON.stringify(pointer)
+          );
+
           found = true;
           break;
         }
@@ -2113,6 +2124,15 @@ if (request.method === "POST" && pathname === "/admin/add-event") {
 
   if (normalizedStatus) {
     newEvent.status = normalizedStatus;
+  }
+
+  // Status updates should affect current door status immediately,
+  // while admin notes remain history-only.
+  const shouldMutateTopLevelStatus =
+    Boolean(normalizedStatus) && eventType !== "admin_note";
+
+  if (shouldMutateTopLevelStatus) {
+    doorRec.status = normalizedStatus;
   }
 
   if (!Array.isArray(doorRec.eventHistory)) {
