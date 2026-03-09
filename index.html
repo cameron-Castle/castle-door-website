@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Castle Door & Hardware — commercial door, frame, and hardware solutions. Fast quotes, accurate schedules, and clean installs." />
+  <meta name="description" content="Castle Door & Hardware — Wichita commercial door, frame, hardware, and build support. Request simple quotes fast." />
   <title>Castle Door & Hardware</title>
 
   <!-- Social preview (optional) -->
   <meta property="og:title" content="Castle Door & Hardware" />
-  <meta property="og:description" content="Commercial door, frame, and hardware solutions. Fast quotes, accurate schedules, and clean installs." />
+  <meta property="og:description" content="Wichita commercial door, frame, hardware, and build support with fast simple quotes." />
   <meta property="og:type" content="website" />
 
   <style>
@@ -201,6 +201,14 @@
       color: rgba(255,255,255,.78);
     }
 
+    .checklist{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .checklist li{margin-bottom: 6px}
+
     .split{
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -272,6 +280,7 @@
 
       <nav class="links" aria-label="Primary">
         <a href="#services">Services</a>
+        <a href="#build">Build Support</a>
         <a href="#brands">Brands</a>
         <a href="#contact">Contact</a>
       </nav>
@@ -294,13 +303,14 @@
       <section>
         <div class="pill">
           <span class="dot" aria-hidden="true"></span>
-          <span>Commercial door, frame &amp; hardware solutions — quoting fast, installing clean.</span>
+          <span>Commercial door, frame &amp; hardware + build support — quoting fast and clearly.</span>
         </div>
 
-        <h1>Doors &amp; hardware that show up on time—and work on day one.</h1>
+        <h1>Need commercial doors in Wichita and surrounding areas? We’re your easy button.</h1>
         <p>
           Castle Door &amp; Hardware supports contractors, facilities, and project teams with
-          clear communication, reliable scheduling, and dependable field execution.
+          responsive communication, reliable scheduling, and straightforward quoting for both
+          simple requests and full build scopes.
         </p>
 
         <div class="heroActions">
@@ -357,7 +367,7 @@
       <div class="sectionHead">
         <div>
           <h2>What we do</h2>
-          <p>Support from bid through closeout—so your openings don’t become your schedule risk.</p>
+          <p>Commercial openings support that keeps your project moving and your scope clean.</p>
         </div>
       </div>
 
@@ -378,6 +388,38 @@
           <div class="tag">🔐 Access</div>
           <h3>Locks &amp; access control</h3>
           <p>From cores to electrified hardware—planned to work with the rest of the opening.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap section" id="build">
+      <div class="sectionHead">
+        <div>
+          <h2>Build support</h2>
+          <p>From quick pricing to full project coordination, we can match the level of support your build needs.</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="card feature">
+          <div class="tag">🏗️ For builders &amp; GCs</div>
+          <h3>Scope-ready help for active projects</h3>
+          <ul class="checklist">
+            <li>Simple quote requests for standard openings</li>
+            <li>Build quote requests for multi-opening projects</li>
+            <li>Door, frame, and hardware planning support</li>
+            <li>Wichita, Newton, Derby, Mulvane, Goddard + surrounding area</li>
+          </ul>
+        </div>
+
+        <div class="card feature">
+          <div class="tag">📍 Local + responsive</div>
+          <h3>Convenient North Wichita location</h3>
+          <p>
+            3515 N Santa Fe, Wichita, KS 67219<br>
+            Monday–Friday, 7:30 AM – 4:30 PM<br>
+            <em>We stay open if we know you're coming.</em>
+          </p>
         </div>
       </div>
     </div>
@@ -464,6 +506,16 @@
             </div>
 
             <div style="margin-top:12px;">
+              <label for="quoteType">Quote type</label>
+              <input id="quoteType" name="quoteType" list="quoteTypeOptions" placeholder="Choose or type quote type" />
+              <datalist id="quoteTypeOptions">
+                <option value="Simple Quote"></option>
+                <option value="Build Quote"></option>
+                <option value="Service / Adjustment"></option>
+              </datalist>
+            </div>
+
+            <div style="margin-top:12px;">
               <label for="location">Project location / city</label>
               <input id="location" name="location" placeholder="e.g. Wichita, Newton, Derby" />
             </div>
@@ -488,6 +540,7 @@
         <div>© <span id="year"></span> Castle Door &amp; Hardware. All rights reserved.</div>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
           <a href="#services">Services</a>
+          <a href="#build">Build Support</a>
           <a href="#brands">Brands</a>
           <a href="#top">Back to top ↑</a>
         </div>
