@@ -221,7 +221,7 @@
     }
     .row{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
     label{display:block; font-size: 13px; color: var(--muted); margin: 0 0 6px}
-    input, textarea{
+    input, select, textarea{
       width: 100%;
       padding: 12px 12px;
       border-radius: 14px;
@@ -229,7 +229,20 @@
       background: rgba(6,10,18,.35);
       color: var(--text);
     }
+    select{appearance:none}
     textarea{min-height: 120px; resize: vertical}
+    fieldset{
+      margin: 12px 0 0;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255,255,255,.02);
+    }
+    legend{
+      color: var(--text);
+      font-size: 13px;
+      padding: 0 6px;
+    }
     .formActions{display:flex; gap: 10px; align-items:center; margin-top: 12px; flex-wrap:wrap}
     .fine{font-size: 12px; color: rgba(255,255,255,.6)}
     .contactList{display:grid; gap:8px; margin: 10px 0 0; color: var(--muted); font-size: 14px}
@@ -428,12 +441,13 @@
       <div class="sectionHead">
         <div>
           <h2>Brands we work with</h2>
-          <p>Swap these placeholders for your actual manufacturer list.</p>
+          <p>Trusted manufacturers we regularly source for commercial door and hardware projects.</p>
         </div>
       </div>
 
       <div class="brands" aria-label="Brand list">
         <span class="brandPill">Assa Abloy</span>
+        <span class="brandPill">Cal-Royal</span>
         <span class="brandPill">Schlage</span>
         <span class="brandPill">LCN</span>
         <span class="brandPill">Von Duprin</span>
@@ -507,13 +521,72 @@
 
             <div style="margin-top:12px;">
               <label for="quoteType">Quote type</label>
-              <input id="quoteType" name="quoteType" list="quoteTypeOptions" placeholder="Choose or type quote type" />
-              <datalist id="quoteTypeOptions">
-                <option value="Simple Quote"></option>
-                <option value="Build Quote"></option>
-                <option value="Service / Adjustment"></option>
-              </datalist>
+              <select id="quoteType" name="quoteType" required>
+                <option value="">Select quote type</option>
+                <option>Simple Quote</option>
+                <option>Build Quote</option>
+                <option>Service / Adjustment</option>
+              </select>
             </div>
+
+            <fieldset>
+              <legend>Door &amp; frame details</legend>
+              <div class="row">
+                <div>
+                  <label for="frameType">Frame type</label>
+                  <select id="frameType" name="frameType">
+                    <option value="">Select frame type</option>
+                    <option>Hollow Metal Welded</option>
+                    <option>Hollow Metal Knockdown</option>
+                    <option>Aluminum Storefront Frame</option>
+                    <option>Wood Frame</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="doorType">Door type</label>
+                  <select id="doorType" name="doorType">
+                    <option value="">Select door type</option>
+                    <option>Hollow Metal Door</option>
+                    <option>Wood Door</option>
+                    <option>Aluminum/Glass Door</option>
+                    <option>Fire-Rated Door</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:12px;">
+                <div>
+                  <label for="doorSize">Door size (WxH)</label>
+                  <input id="doorSize" name="doorSize" placeholder="e.g. 3'-0\" x 7'-0\"" />
+                </div>
+                <div>
+                  <label for="windowOption">Door window / vision lite</label>
+                  <select id="windowOption" name="windowOption">
+                    <option value="">Select option</option>
+                    <option>Without Window</option>
+                    <option>With Window / Vision Lite</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:12px;">
+                <div>
+                  <label for="quantity">Quantity</label>
+                  <input id="quantity" name="quantity" type="number" min="1" placeholder="e.g. 2" />
+                </div>
+                <div>
+                  <label for="fireRating">Fire rating</label>
+                  <select id="fireRating" name="fireRating">
+                    <option value="">Select rating</option>
+                    <option>Not Rated</option>
+                    <option>20 Minute</option>
+                    <option>45 Minute</option>
+                    <option>60 Minute</option>
+                    <option>90 Minute</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
 
             <div style="margin-top:12px;">
               <label for="location">Project location / city</label>
@@ -522,7 +595,7 @@
 
             <div style="margin-top:12px;">
               <label for="message">Project details</label>
-              <textarea id="message" name="message" placeholder="Tell us what you need (door types, ratings, quantities, timeline)."></textarea>
+              <textarea id="message" name="message" placeholder="Tell us job name, timeline, hardware needs, and any special requirements."></textarea>
             </div>
 
             <div class="formActions">
