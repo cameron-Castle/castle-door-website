@@ -224,6 +224,20 @@
     textarea{min-height: 120px; resize: vertical}
     .formActions{display:flex; gap: 10px; align-items:center; margin-top: 12px; flex-wrap:wrap}
     .fine{font-size: 12px; color: rgba(255,255,255,.6)}
+    .contactList{display:grid; gap:8px; margin: 10px 0 0; color: var(--muted); font-size: 14px}
+    .contactList strong{color: var(--text)}
+    .serviceArea{
+      margin-top: 12px;
+      display:flex; flex-wrap:wrap; gap:8px;
+    }
+    .serviceArea span{
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      font-size: 12px;
+      color: rgba(255,255,255,.82);
+    }
     footer{
       margin-top: 54px;
       padding-top: 22px;
@@ -447,7 +461,7 @@
       <div class="sectionHead">
         <div>
           <h2>Request a quote</h2>
-          <p>Send a door schedule or describe the scope. We’ll respond with next steps.</p>
+          <p>Send your project details and service location. We’ll respond with next steps and scheduling options.</p>
         </div>
       </div>
 
@@ -455,14 +469,23 @@
         <div class="card feature">
           <div class="tag">Contact</div>
           <h3>Castle Door &amp; Hardware</h3>
-          <p style="margin-bottom: 14px;">
-            <strong>Email:</strong> <a href="mailto:info@castledoorandhardware.com">info@castledoorandhardware.com</a><br>
-            <strong>Phone:</strong> <a href="tel:+1-000-000-0000">+1 (000) 000-0000</a><br>
-            <strong>Service area:</strong> (Update this)
-          </p>
-          <p class="fine">
-            Tip: Add your real phone number, office address, and hours here.
-          </p>
+          <div class="contactList" style="margin-bottom: 12px;">
+            <div><strong>Address:</strong> 3515 N Santa Fe, Wichita, KS 67219</div>
+            <div><strong>Phone:</strong> <a href="tel:+1316832300">(316) 832-300</a></div>
+            <div><strong>Email:</strong> <a href="mailto:info@castledoorandhardware.com">info@castledoorandhardware.com</a></div>
+            <div><strong>Hours:</strong> 7:30 AM – 4:30 PM, Monday–Friday</div>
+            <div><strong>After-hours note:</strong> We stay open if we know you're coming.</div>
+          </div>
+
+          <div class="fine" style="margin-bottom: 8px;">Primary service areas:</div>
+          <div class="serviceArea" aria-label="Primary service areas">
+            <span>Wichita</span>
+            <span>Newton</span>
+            <span>Derby</span>
+            <span>Mulvane</span>
+            <span>Goddard</span>
+            <span>Wichita Surrounding Area</span>
+          </div>
         </div>
 
         <!--
@@ -493,6 +516,11 @@
                 <label for="phone">Phone</label>
                 <input id="phone" name="phone" autocomplete="tel" />
               </div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <label for="location">Project location / city</label>
+              <input id="location" name="location" placeholder="e.g. Wichita, Newton, Derby" />
             </div>
 
             <div style="margin-top:12px;">
