@@ -78,6 +78,16 @@ export default {
       }
     };
 
+    const mapWithConcurrency = async (items, worker, chunkSize = 25) => {
+      const out = [];
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize);
+        const rows = await Promise.all(chunk.map(worker));
+        out.push(...rows);
+      }
+      return out;
+    };
+
     // ---------- required bindings ----------
     // ENROLL_TOKENS is where bizcfg:* lives today
     // REPORTS_KV is where door:* and doorIndex:* live today
@@ -191,6 +201,11 @@ export default {
           .btn{border:1px solid #334155;background:#111827;color:#e5e7eb;border-radius:10px;padding:8px 10px;cursor:pointer}
           .btn.primary{background:#2563eb;border-color:#1d4ed8;color:#fff;font-weight:600}
           .panel{margin-top:14px;background:#0f172a;border:1px solid #1f2937;border-radius:14px;overflow:hidden}
+          .tabs{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid #1f2937;flex-wrap:wrap}
+          .tabbtn{border:1px solid #334155;background:#111827;color:#e5e7eb;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:12px}
+          .tabbtn.active{background:#2563eb;border-color:#1d4ed8;color:#fff;font-weight:600}
+          .tabpanel{display:none}
+          .tabpanel.active{display:block}
           .bar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #1f2937;flex-wrap:wrap}
           input{background:#0b1220;color:#e5e7eb;border:1px solid #243043;border-radius:10px;padding:8px 10px;min-width:220px}
           table{width:100%;border-collapse:collapse}
@@ -240,52 +255,67 @@ export default {
         </div>
       
         <div class="panel">
-        <div class="bar">
-        <div class="muted">Businesses (merge typo businesses into correct business)</div>
-        <input id="q" placeholder="Search name or code"/>
-      </div>
-      
-      <div class="bar">
-      <div class="muted">Find a door by UID (QR repair tool)</div>
-      <input id="uidSearch" placeholder="Enter UID…"/>
-      <button class="btn primary" id="uidGo">Find</button>
-      <div class="muted" id="uidResult" style="margin-left:10px;"></div>
-    </div>
+          <div class="tabs">
+            <button class="tabbtn active" id="tabComments" data-tab="comments">Comments</button>
+            <button class="tabbtn" id="tabBusiness" data-tab="business">Business</button>
+            <button class="tabbtn" id="tabSecurity" data-tab="security">Security</button>
+          </div>
 
-    <div class="bar">
-      <div class="muted">Add Event / Override Status</div>
-      <input id="eventUid" placeholder="UID…" style="min-width:120px"/>
-      <select id="eventType" style="background:#0b1220;color:#e5e7eb;border:1px solid #243043;border-radius:10px;padding:8px 10px;">
-        <option value="admin_note">Admin Note</option>
-        <option value="admin_override">Status Override</option>
-      </select>
-      <select id="eventStatus" style="background:#0b1220;color:#e5e7eb;border:1px solid #243043;border-radius:10px;padding:8px 10px;">
-      <option value="">No change</option>
-      <option value="Pass">Pass</option>
-      <option value="Conditional Pass">Conditional Pass</option>
-      <option value="Fail">Flagged</option>
-    </select>
-      <input id="eventNotes" placeholder="Notes (required)" style="min-width:300px"/>
-      <button class="btn primary" id="eventAdd">Add Event</button>
-      <div class="muted" id="eventResult" style="margin-left:10px;"></div>
-    </div>
-      
-        
-          <div class="status muted" id="status">Loading…</div>
-      
-          <div style="overflow:auto;">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Code</th>
-                  <th>Status</th>
-                  <th>Merged into</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="tbody"></tbody>
-            </table>
+          <div class="tabpanel active" id="panelComments">
+            <div class="bar">
+              <div class="muted">Find a door by UID (QR repair tool)</div>
+              <input id="uidSearch" placeholder="Enter UID…"/>
+              <button class="btn primary" id="uidGo">Find</button>
+              <div class="muted" id="uidResult" style="margin-left:10px;"></div>
+            </div>
+
+            <div class="bar">
+              <div class="muted">Add Event / Override Status</div>
+              <input id="eventUid" placeholder="UID…" style="min-width:120px"/>
+              <select id="eventType" style="background:#0b1220;color:#e5e7eb;border:1px solid #243043;border-radius:10px;padding:8px 10px;">
+                <option value="admin_note">Admin Note</option>
+                <option value="admin_override">Status Override</option>
+              </select>
+              <select id="eventStatus" style="background:#0b1220;color:#e5e7eb;border:1px solid #243043;border-radius:10px;padding:8px 10px;">
+                <option value="">No change</option>
+                <option value="Pass">Pass</option>
+                <option value="Conditional Pass">Conditional Pass</option>
+                <option value="Fail">Flagged</option>
+              </select>
+              <input id="eventNotes" placeholder="Notes (required)" style="min-width:300px"/>
+              <button class="btn primary" id="eventAdd">Add Event</button>
+              <div class="muted" id="eventResult" style="margin-left:10px;"></div>
+            </div>
+          </div>
+
+          <div class="tabpanel" id="panelBusiness">
+            <div class="bar">
+              <div class="muted">Businesses (merge typo businesses into correct business)</div>
+              <input id="q" placeholder="Search name or code"/>
+            </div>
+
+            <div class="status muted" id="status">Open Business tab to load…</div>
+
+            <div style="overflow:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Code</th>
+                    <th>Status</th>
+                    <th>Merged into</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="tabpanel" id="panelSecurity">
+            <div class="bar">
+              <div class="muted">Security placeholder: enrollment/device policy controls will live here.</div>
+            </div>
           </div>
         </div>
       
@@ -384,6 +414,13 @@ export default {
         const status = document.getElementById("status");
         const q = document.getElementById("q");
         const refresh = document.getElementById("refresh");
+
+        const tabComments = document.getElementById("tabComments");
+        const tabBusiness = document.getElementById("tabBusiness");
+        const tabSecurity = document.getElementById("tabSecurity");
+        const panelComments = document.getElementById("panelComments");
+        const panelBusiness = document.getElementById("panelBusiness");
+        const panelSecurity = document.getElementById("panelSecurity");
       
         // Merge modal
         const modalback = document.getElementById("modalback");
@@ -420,6 +457,8 @@ export default {
       
         let all = [];
         let mergeFrom = null;
+        let businessLoaded = false;
+        let activeTab = "comments";
       
         // Doors modal state
         let doorsFromBiz = null;
@@ -568,8 +607,25 @@ export default {
             const bizs = await api("/admin/businesses");
             all = Array.isArray(bizs) ? bizs : [];
             applyFilter();
+            businessLoaded = true;
           } catch(e) {
             status.textContent = "Error: " + (e.message || e);
+          }
+        }
+
+        async function setTab(next){
+          activeTab = next;
+
+          tabComments.classList.toggle("active", next === "comments");
+          tabBusiness.classList.toggle("active", next === "business");
+          tabSecurity.classList.toggle("active", next === "security");
+
+          panelComments.classList.toggle("active", next === "comments");
+          panelBusiness.classList.toggle("active", next === "business");
+          panelSecurity.classList.toggle("active", next === "security");
+
+          if (next === "business" && !businessLoaded) {
+            await load();
           }
         }
       
@@ -1018,7 +1074,17 @@ export default {
             };
             
         q.addEventListener("input", applyFilter);
-        refresh.onclick = load;
+        refresh.onclick = async () => {
+          if (activeTab === "business") {
+            businessLoaded = false;
+            await load();
+            return;
+          }
+        };
+
+        tabComments.onclick = () => setTab("comments");
+        tabBusiness.onclick = () => setTab("business");
+        tabSecurity.onclick = () => setTab("security");
         // ---------- UID Search (partial + multi results) ----------
         const uidSearch = document.getElementById("uidSearch");
         const uidGo = document.getElementById("uidGo");
@@ -1181,7 +1247,7 @@ export default {
         };
         
         
-        load();
+        setTab("comments");
       })();
       </script>
       </body>
@@ -1199,27 +1265,33 @@ export default {
       if (authErr) return authErr;
 
       const list = await env.ENROLL_TOKENS.list({ prefix: "bizcfg:" });
-      const businesses = [];
+      const keys = list.keys.map((k) => k.name);
 
-      for (const { name } of list.keys) {
-        const raw = await env.ENROLL_TOKENS.get(name, "text");
-        if (!raw) continue;
+      const rows = await mapWithConcurrency(
+        keys,
+        async (name) => {
+          const raw = await env.ENROLL_TOKENS.get(name, "text");
+          if (!raw) return null;
 
-        let cfg;
-        try {
-          cfg = JSON.parse(raw);
-        } catch {
-          cfg = {};
-        }
+          let cfg;
+          try {
+            cfg = JSON.parse(raw);
+          } catch {
+            cfg = {};
+          }
 
-        const s = cfg.slug || (name.startsWith("bizcfg:") ? name.slice("bizcfg:".length) : "");
-        businesses.push({
-          slug: s,
-          name: cfg.name || s,
-          active: cfg.active !== false, // default true
-          merged_into: cfg.merged_into || "",
-        });
-      }
+          const s = cfg.slug || (name.startsWith("bizcfg:") ? name.slice("bizcfg:".length) : "");
+          return {
+            slug: s,
+            name: cfg.name || s,
+            active: cfg.active !== false, // default true
+            merged_into: cfg.merged_into || "",
+          };
+        },
+        40
+      );
+
+      const businesses = rows.filter(Boolean);
 
       businesses.sort((a, b) =>
         (a.name || a.slug || "").localeCompare(b.name || b.slug || "")
@@ -1688,73 +1760,81 @@ if (request.method === "GET" && pathname === "/admin/search") {
   const matches = [];
   const seenUid = new Set();
 
-  // ---------- 1) Search doorIndex:* keys (best source of truth) ----------
-  // KV can only list by prefix, not substring. So we scan doorIndex: and filter.
+  const pushDoorIndexMatch = async (uid, source = "doorIndex") => {
+    const uidNorm = String(uid || "").toLowerCase();
+    if (!uid || seenUid.has(uidNorm) || matches.length >= 50) return;
+
+    const map = await env.REPORTS_KV.get(`doorIndex:${uid}`, "json");
+    matches.push({
+      uid,
+      source,
+      businessCode: map?.businessCode || "",
+      buildingCode: map?.buildingCode || "",
+      doorSlug: map?.doorSlug || "",
+      hasDoorIndex: true,
+    });
+    seenUid.add(uidNorm);
+  };
+
+  // ---------- 0) Exact UID lookup first ----------
+  await pushDoorIndexMatch(qNorm, "doorIndex_exact");
+
+  // ---------- 1) Prefix search on doorIndex:<uid> (fast path) ----------
   let cursor;
   do {
-    const list = await env.REPORTS_KV.list({ prefix: "doorIndex:", cursor });
+    const list = await env.REPORTS_KV.list({
+      prefix: `doorIndex:${qNorm}`,
+      cursor,
+      limit: 100,
+    });
+
     for (const { name } of list.keys) {
       const uid = name.slice("doorIndex:".length);
-      const uidNorm = uid.toLowerCase();
-      if (!uidNorm.includes(qNorm)) continue;
-
-      const map = await env.REPORTS_KV.get(name, "json");
-      matches.push({
-        uid,
-        source: "doorIndex",
-        businessCode: map?.businessCode || "",
-        buildingCode: map?.buildingCode || "",
-        doorSlug: map?.doorSlug || "",
-        hasDoorIndex: true,
-      });
-      seenUid.add(uidNorm);
-
+      await pushDoorIndexMatch(uid, "doorIndex_prefix");
       if (matches.length >= 50) break;
     }
+
     cursor = list.cursor;
   } while (cursor && matches.length < 50);
 
-  // ---------- 2) Search door:* records too (catches missing doorIndex) ----------
-  // Only do this if we still have room and/or we want to catch orphans.
-  cursor = undefined;
-  do {
-    const list = await env.REPORTS_KV.list({ prefix: "door:", cursor });
-    for (const { name } of list.keys) {
-      const rec = await env.REPORTS_KV.get(name, "json");
-      if (!rec?.doorId) continue;
+  // ---------- 2) Deep fallback only when fast path finds nothing ----------
+  // This catches missing doorIndex pointers, but avoids full-table scans on every search.
+  if (!matches.length) {
+    cursor = undefined;
+    do {
+      const list = await env.REPORTS_KV.list({ prefix: "door:", cursor, limit: 200 });
+      for (const { name } of list.keys) {
+        const rec = await env.REPORTS_KV.get(name, "json");
+        if (!rec?.doorId) continue;
 
-      const uid = safeDoorId(rec.doorId);
-      const uidNorm = uid.toLowerCase();
+        const uid = safeDoorId(rec.doorId);
+        const uidNorm = uid.toLowerCase();
 
-      // If already found from doorIndex list, skip
-      if (seenUid.has(uidNorm)) continue;
+        const label = String(rec.displayLabel || rec.doorLabel || "").toLowerCase();
+        if (!uidNorm.includes(qNorm) && !label.includes(qNorm)) continue;
 
-      // Match on UID substring OR label substring (nice bonus)
-      const label = String(rec.displayLabel || rec.doorLabel || "").toLowerCase();
-      if (!uidNorm.includes(qNorm) && !label.includes(qNorm)) continue;
+        const parts = name.split(":");
+        const businessCode = parts[1] || "";
+        const buildingCode = parts[2] || "";
+        const doorSlug = parts.slice(3).join(":") || "";
 
-      // Parse key: door:<biz>:<building>:<doorSlug>
-      const parts = name.split(":");
-      const businessCode = parts[1] || "";
-      const buildingCode = parts[2] || "";
-      const doorSlug = parts.slice(3).join(":") || "";
+        const doorIndex = await env.REPORTS_KV.get(`doorIndex:${uid}`, "json");
 
-      const doorIndex = await env.REPORTS_KV.get(`doorIndex:${uid}`, "json");
+        matches.push({
+          uid,
+          source: "door_deep",
+          businessCode,
+          buildingCode,
+          doorSlug,
+          label: rec.displayLabel || rec.doorLabel || uid,
+          hasDoorIndex: !!doorIndex,
+        });
 
-      matches.push({
-        uid,
-        source: "door",
-        businessCode,
-        buildingCode,
-        doorSlug,
-        label: rec.displayLabel || rec.doorLabel || uid,
-        hasDoorIndex: !!doorIndex,
-      });
-
-      if (matches.length >= 50) break;
-    }
-    cursor = list.cursor;
-  } while (cursor && matches.length < 50);
+        if (matches.length >= 50) break;
+      }
+      cursor = list.cursor;
+    } while (cursor && matches.length < 50);
+  }
 
   return json({ ok: true, q, matches });
 }

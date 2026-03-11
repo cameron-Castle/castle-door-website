@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Castle Door &amp; Hardware | Inspection Access and Service Coordination</title>
+  <meta
+    name="description"
+    content="Castle Door & Hardware provides clear fire door inspection access for customers, technicians, and administrators with simple pathways for reports, secure portal sign-in, and service coordination."
+  />
+
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111827;
+      --panel-soft: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.1);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --blue: #3b82f6;
+      --blue-strong: #2563eb;
+      --blue-soft: rgba(59,130,246,0.12);
+      --green-soft: rgba(16,185,129,0.14);
+      --green: #6ee7b7;
+      --amber-soft: rgba(245,158,11,0.14);
+      --amber: #fbbf24;
+      --shadow: 0 20px 60px rgba(0,0,0,0.28);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 32%),
+        radial-gradient(circle at 80% 10%, rgba(148,163,184,0.12), transparent 22%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(14px);
+      background: rgba(11,18,32,0.78);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .site-header__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 76px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand__mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(96,165,250,0.35);
+      background: rgba(59,130,246,0.14);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #dbeafe;
+      letter-spacing: 0.08em;
+      flex-shrink: 0;
+    }
+
+    .brand__name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand__sub {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: #cbd5e1;
+      font-size: 0.92rem;
+    }
+
+    .nav a:hover { color: #fff; }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-weight: 600;
+      transition: 180ms ease;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 0.93rem;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .btn--primary {
+      background: linear-gradient(180deg, #3b82f6, #2563eb);
+      border-color: rgba(96,165,250,0.45);
+      box-shadow: 0 12px 30px rgba(37,99,235,0.28);
+    }
+
+    .btn--primary:hover {
+      background: linear-gradient(180deg, #60a5fa, #2563eb);
+    }
+
+    .hero {
+      padding: 72px 0 44px;
+    }
+
+    .hero__grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(96,165,250,0.24);
+      background: rgba(255,255,255,0.04);
+      color: #dbeafe;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 4.1rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      max-width: 13ch;
+    }
+
+    .hero__lead {
+      margin-top: 18px;
+      max-width: 62ch;
+      font-size: 1.05rem;
+      color: #cbd5e1;
+      line-height: 1.8;
+    }
+
+    .hero__cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .hero__highlights {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .pill-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      color: #e2e8f0;
+      font-size: 0.93rem;
+      box-shadow: var(--shadow);
+    }
+
+    .preview-card {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(17,24,39,0.94), rgba(10,15,28,0.96));
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .preview-card__inner {
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.03);
+      padding: 22px;
+    }
+
+    .preview-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-tag {
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid rgba(110,231,183,0.28);
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .preview-label {
+      font-size: 0.76rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .preview-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .status-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .status-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .status-badge {
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid rgba(251,191,36,0.25);
+      background: var(--amber-soft);
+      color: var(--amber);
+      font-size: 0.84rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+    }
+
+    .mini-card__eyebrow {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+
+    .mini-card__title {
+      margin-top: 8px;
+      font-size: 0.98rem;
+      font-weight: 700;
+    }
+
+    .mini-card__text {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .proof {
+      margin-top: 14px;
+      border: 1px solid rgba(59,130,246,0.2);
+      background: var(--blue-soft);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      color: #dbeafe;
+      font-size: 0.93rem;
+      line-height: 1.7;
+    }
+
+    section.block { padding: 34px 0; }
+
+    .panel {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.035);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .section-intro {
+      max-width: 760px;
+      margin-bottom: 24px;
+    }
+
+    .section-kicker {
+      font-size: 0.8rem;
+      color: #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-weight: 700;
+    }
+
+    .section-title {
+      margin-top: 10px;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+    }
+
+    .section-copy {
+      margin-top: 12px;
+      font-size: 1rem;
+      color: #cbd5e1;
+      line-height: 1.75;
+      max-width: 65ch;
+    }
+
+    .cards-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .role-card,
+    .info-card {
+      padding: 22px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .role-card h3,
+    .info-card h3 {
+      font-size: 1.08rem;
+      line-height: 1.35;
+    }
+
+    .role-card p,
+    .info-card p {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.72;
+      font-size: 0.95rem;
+    }
+
+    .role-card .btn {
+      margin-top: 14px;
+      width: 100%;
+    }
+
+    .split-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .list-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      color: #e2e8f0;
+      line-height: 1.65;
+      font-size: 0.95rem;
+    }
+
+    .list-item::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      margin-top: 9px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #60a5fa, #2563eb);
+      box-shadow: 0 0 0 5px rgba(59,130,246,0.12);
+    }
+
+    .contact-panel {
+      padding: 32px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.14), rgba(17,24,39,0.9) 40%, rgba(17,24,39,0.98));
+    }
+
+    .contact-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .contact-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 240px;
+    }
+
+    .footer {
+      padding: 26px 0 38px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-links a:hover { color: #fff; }
+
+    @media (max-width: 1040px) {
+      .hero__grid,
+      .cards-3,
+      .split-grid,
+      .contact-row {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-actions { min-width: 0; }
+    }
+
+    @media (max-width: 860px) {
+      .nav { display: none; }
+      .hero { padding-top: 42px; }
+      .hero__highlights,
+      .mini-grid { grid-template-columns: 1fr; }
+      .actions .btn:last-child { display: none; }
+    }
+
+    @media (max-width: 560px) {
+      .container { width: min(calc(100% - 22px), var(--max)); }
+      .brand__name { font-size: 0.82rem; }
+      .contact-panel,
+      .preview-card,
+      .preview-card__inner,
+      .role-card,
+      .info-card { padding-left: 18px; padding-right: 18px; }
+      .hero h1 { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="#top" aria-label="Castle Door and Hardware home">
+        <div class="brand__mark">CD</div>
+        <div>
+          <div class="brand__name">Castle Door &amp; Hardware</div>
+          <div class="brand__sub">Inspection access and service coordination</div>
+        </div>
+      </a>
+
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="#overview">Overview</a>
+        <a href="#pathways">Role Pathways</a>
+        <a href="#security">Security &amp; Access</a>
+        <a href="#service">Service Requests</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <div class="actions">
+        <a class="btn" href="/portal/login">Portal Sign In</a>
+        <a class="btn btn--primary" href="/reports">View Reports</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" id="overview">
+      <div class="container hero__grid">
+        <div>
+          <div class="eyebrow">Simple pathways for customers, field teams, and administrators</div>
+          <h1>A clear front door for inspection reporting and follow-up action.</h1>
+          <p class="hero__lead">
+            This landing page is designed for fast orientation: customers can access reports, enrolled users can enter the secure portal,
+            and teams can move directly from report review to service coordination.
+          </p>
+
+          <div class="hero__cta">
+            <a class="btn btn--primary" href="/reports">View Reports</a>
+            <a class="btn" href="/portal/login">Portal Sign In</a>
+          </div>
+
+          <div class="hero__highlights" aria-label="Platform highlights">
+            <div class="pill-card">Fast report access</div>
+            <div class="pill-card">Secure portal pathway</div>
+            <div class="pill-card">Role-based navigation</div>
+            <div class="pill-card">Service follow-up clarity</div>
+          </div>
+        </div>
+
+        <aside class="preview-card" aria-label="Experience summary">
+          <div class="preview-card__inner">
+            <div class="preview-top">
+              <div>
+                <div class="preview-label">Experience</div>
+                <div class="preview-title">Landing to Action</div>
+              </div>
+              <div class="preview-tag">Production-ready</div>
+            </div>
+
+            <div class="status-card">
+              <div class="preview-label">Pathway</div>
+              <div class="status-head">
+                <div>
+                  <div style="font-size:1.06rem;font-weight:700;">Customer, Technician, or Admin</div>
+                  <div style="margin-top:4px;color:var(--muted);font-size:0.92rem;">Each role has a clear next step</div>
+                </div>
+                <div class="status-badge">Guided</div>
+              </div>
+            </div>
+
+            <div class="mini-grid">
+              <div class="mini-card">
+                <div class="mini-card__eyebrow">Public access</div>
+                <div class="mini-card__title">View current reports</div>
+                <div class="mini-card__text">Simple route to report pages</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-card__eyebrow">Secure access</div>
+                <div class="mini-card__title">Use portal sign in</div>
+                <div class="mini-card__text">For enrolled customer users</div>
+              </div>
+            </div>
+
+            <div class="proof">
+              Clean first impression, predictable next step, and no interference with existing report or admin worker behavior.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="block" id="pathways">
+      <div class="container panel" style="padding:30px;">
+        <div class="section-intro">
+          <div class="section-kicker">Role pathways</div>
+          <h2 class="section-title">Equal priority pathways for customers, technicians, and administrators.</h2>
+          <p class="section-copy">
+            Choose the path that matches who you are and what you need to do right now.
+          </p>
+        </div>
+
+        <div class="cards-3">
+          <article class="role-card">
+            <h3>For Customers</h3>
+            <p>Review report outcomes quickly and get directed to the right follow-up path without hunting through technical pages.</p>
+            <a class="btn btn--primary" href="/reports">Open Reports</a>
+          </article>
+
+          <article class="role-card">
+            <h3>For Technicians</h3>
+            <p>Use the same report-facing pathway your customers see, so handoff expectations stay aligned from field to facility teams.</p>
+            <a class="btn" href="/reports">Verify Report Access</a>
+          </article>
+
+          <article class="role-card">
+            <h3>For Administrators</h3>
+            <p>Use secure portal entry for management-level visibility, role-aware controls, and coordinated customer communication.</p>
+            <a class="btn" href="/portal/login">Portal Sign In</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="security">
+      <div class="container split-grid">
+        <article class="panel info-card" style="padding:28px;">
+          <div class="section-kicker">Public and secure access</div>
+          <h2 class="section-title" style="font-size:2rem;">Built for both open report viewing and customer-specific secure access.</h2>
+          <p class="section-copy" style="max-width:none;">
+            Some visitors just need fast report visibility. Others need authenticated access through the customer portal.
+            This landing experience supports both without confusion.
+          </p>
+          <div class="list">
+            <div class="list-item">Public pathways prioritize speed and clarity.</div>
+            <div class="list-item">Secure pathways direct enrolled users into portal sign in.</div>
+            <div class="list-item">No technical setup is required from first-time visitors.</div>
+          </div>
+          <div style="margin-top:16px;">
+            <a class="btn" href="/portal/login">Go to Secure Portal Sign In</a>
+          </div>
+        </article>
+
+        <article class="panel info-card" style="padding:28px;background:linear-gradient(160deg, rgba(59,130,246,0.14), rgba(17,24,39,0.95) 48%);">
+          <div class="section-kicker">Admin reassignment messaging</div>
+          <h2 class="section-title" style="font-size:2rem;">Facilities evolve. Access and organization can evolve with them.</h2>
+          <p class="section-copy" style="max-width:none;">
+            Teams can communicate ownership, building context, and responsibility changes clearly over time,
+            while preserving continuity for customers and field users.
+          </p>
+          <div class="list">
+            <div class="list-item">Keep report history understandable over time.</div>
+            <div class="list-item">Support changing business contexts without confusing end users.</div>
+            <div class="list-item">Guide admins toward the secure portal for management tasks.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="block" id="service">
+      <div class="container panel" style="padding:30px;">
+        <div class="section-intro">
+          <div class="section-kicker">Service requests</div>
+          <h2 class="section-title">From report review to service request without losing momentum.</h2>
+          <p class="section-copy">
+            Service requests are part of the report-driven experience. This page sets expectations clearly,
+            then routes visitors into report and portal paths where follow-up actions are handled.
+          </p>
+        </div>
+
+        <div class="cards-3">
+          <article class="info-card">
+            <h3>1) Start from report visibility</h3>
+            <p>Open reports first to identify status and context before requesting service support.</p>
+          </article>
+          <article class="info-card">
+            <h3>2) Route through secure access when needed</h3>
+            <p>When account-level actions are required, portal sign-in keeps requests tied to the right customer context.</p>
+          </article>
+          <article class="info-card">
+            <h3>3) Keep actions reviewable</h3>
+            <p>Use consistent pathways so request tracking and follow-through remain understandable for all stakeholders.</p>
+          </article>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:18px;">
+          <a class="btn btn--primary" href="/reports">Open Reports First</a>
+          <a class="btn" href="/portal/login">Portal Sign In</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="contact">
+      <div class="container panel contact-panel">
+        <div class="contact-row">
+          <div>
+            <div class="section-kicker">Contact</div>
+            <h2 class="section-title">Need help choosing the right path for your team?</h2>
+            <p class="section-copy" style="max-width:58ch;">
+              Reach out to Castle Door &amp; Hardware for support with report access, customer onboarding, and service coordination planning.
+            </p>
+          </div>
+
+          <div class="contact-actions">
+            <a class="btn btn--primary" href="mailto:info@castledoorict.com">Email Castle Door</a>
+            <a class="btn" href="/reports">Go to Reports</a>
+            <a class="btn" href="/portal/login">Portal Sign In</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <div>© <span id="year"></span> Castle Door &amp; Hardware</div>
+    <div class="footer-links">
+      <a href="#pathways">Role Pathways</a>
+      <a href="#security">Security &amp; Access</a>
+      <a href="#service">Service Requests</a>
+      <a href="#top">Back to top ↑</a>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
