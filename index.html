@@ -244,6 +244,9 @@
       padding: 0 6px;
     }
     .formActions{display:flex; gap: 10px; align-items:center; margin-top: 12px; flex-wrap:wrap}
+    .inlineCheck{display:flex; align-items:center; gap:10px; color: var(--text); font-size:14px}
+    .inlineCheck input[type="checkbox"]{width:auto; accent-color: var(--brand);}
+    .hidden{display:none}
     .fine{font-size: 12px; color: rgba(255,255,255,.6)}
     .contactList{display:grid; gap:8px; margin: 10px 0 0; color: var(--muted); font-size: 14px}
     .contactList strong{color: var(--text)}
@@ -496,7 +499,7 @@
           - This form will still work visually even without a backend.
         -->
         <div class="card">
-          <form method="post" action="#" onsubmit="return fakeSubmit(event)">
+          <form id="quoteForm" method="post" action="/api/quote">
             <div class="row">
               <div>
                 <label for="name">Name</label>
@@ -538,7 +541,6 @@
                     <option value="">Select frame type</option>
                     <option>Hollow Metal Welded</option>
                     <option>Hollow Metal Knockdown</option>
-                    <option>Aluminum Storefront Frame</option>
                     <option>Wood Frame</option>
                   </select>
                 </div>
@@ -548,7 +550,6 @@
                     <option value="">Select door type</option>
                     <option>Hollow Metal Door</option>
                     <option>Wood Door</option>
-                    <option>Aluminum/Glass Door</option>
                     <option>Fire-Rated Door</option>
                   </select>
                 </div>
@@ -560,13 +561,29 @@
                   <input id="doorSize" name="doorSize" placeholder="e.g. 3'-0\" x 7'-0\"" />
                 </div>
                 <div>
-                  <label for="windowOption">Door window / vision lite</label>
-                  <select id="windowOption" name="windowOption">
-                    <option value="">Select option</option>
-                    <option>Without Window</option>
-                    <option>With Window / Vision Lite</option>
+                  <label>Vision lite</label>
+                  <label class="inlineCheck" for="visionLite">
+                    <input id="visionLite" name="visionLite" type="checkbox" value="Yes" />
+                    Include vision lite
+                  </label>
+                </div>
+              </div>
+
+              <div id="visionLiteSizeWrap" class="row hidden" style="margin-top:12px;">
+                <div>
+                  <label for="visionLiteSize">Vision lite size</label>
+                  <select id="visionLiteSize" name="visionLiteSize" disabled>
+                    <option value="">Select size</option>
+                    <option>10" x 10"</option>
+                    <option>12" x 12"</option>
+                    <option>5" x 20"</option>
+                    <option>6" x 27"</option>
+                    <option>24" x 24"</option>
+                    <option>24" x 30"</option>
+                    <option>Custom (add in notes)</option>
                   </select>
                 </div>
+                <div></div>
               </div>
 
               <div class="row" style="margin-top:12px;">
@@ -622,7 +639,7 @@
             </div>
 
             <div class="formActions">
-              <button class="btn primary lift" type="submit">
+              <button class="btn primary lift" id="submitBtn" type="submit">
                 <span class="icon" aria-hidden="true">➜</span>
                 Send Request
               </button>
@@ -648,12 +665,57 @@
     // Year
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // Demo-only submit: replace with real backend endpoint.
-    function fakeSubmit(e){
-      e.preventDefault();
-      const status = document.getElementById("formStatus");
-      status.textContent = "Thanks! This demo form isn’t wired yet. Connect it to a Pages Function or form service.";
-      return false;
+    const quoteForm = document.getElementById("quoteForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const formStatus = document.getElementById("formStatus");
+    const visionLite = document.getElementById("visionLite");
+    const visionLiteSizeWrap = document.getElementById("visionLiteSizeWrap");
+    const visionLiteSize = document.getElementById("visionLiteSize");
+
+    function syncVisionLiteUI() {
+      const checked = Boolean(visionLite && visionLite.checked);
+      if (visionLiteSizeWrap) visionLiteSizeWrap.classList.toggle("hidden", !checked);
+      if (visionLiteSize) {
+        visionLiteSize.disabled = !checked;
+        if (!checked) visionLiteSize.value = "";
+      }
+    }
+
+    if (visionLite) {
+      visionLite.addEventListener("change", syncVisionLiteUI);
+      syncVisionLiteUI();
+    }
+
+    if (quoteForm) {
+      quoteForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        if (submitBtn) submitBtn.disabled = true;
+        formStatus.textContent = "Sending your quote request...";
+
+        try {
+          const payload = Object.fromEntries(new FormData(quoteForm).entries());
+
+          const res = await fetch("/api/quote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            throw new Error(data.error || "Unable to send quote request.");
+          }
+
+          formStatus.textContent = "Thanks — your quote request was sent. We’ll reach out shortly.";
+          quoteForm.reset();
+        } catch (err) {
+          formStatus.textContent = err.message || "Something went wrong. Please call us at (316) 832-0300.";
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
     }
   </script>
 </body>
