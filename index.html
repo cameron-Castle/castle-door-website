@@ -264,6 +264,22 @@
       font-size: 12px;
       color: #32445d;
     }
+    .testRenderWrap{
+      display:grid;
+      gap:12px;
+    }
+    .testRenderBox{
+      min-height: 280px;
+      border: 1px dashed #b9c8de;
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 16px;
+    }
+    .testStatus{
+      font-size: 13px;
+      color: #4f5d72;
+      margin: 0;
+    }
     footer{
       margin-top: 54px;
       padding-top: 22px;
@@ -300,6 +316,7 @@
         <a href="#services">Services</a>
         <a href="#build">Build Support</a>
         <a href="#brands">Brands</a>
+        <a href="#testwebsite">Test Website</a>
         <a href="#contact">Contact</a>
       </nav>
 
@@ -654,12 +671,31 @@
         </div>
       </div>
 
+      <div class="wrap section" id="testwebsite">
+        <div class="sectionHead">
+          <div>
+            <h2>Test Website Preview</h2>
+            <p>This preview loads <code>TESTWEBSITE.jsx</code> and renders it inside this page for quick visual testing.</p>
+          </div>
+        </div>
+
+        <div class="card feature testRenderWrap">
+          <div class="formActions">
+            <button class="btn primary lift" id="renderTestWebsiteBtn" type="button">Render TESTWEBSITE.jsx</button>
+            <span class="fine">Use this after you save changes to TESTWEBSITE.jsx.</span>
+          </div>
+          <p class="testStatus" id="testWebsiteStatus">Ready to render test content.</p>
+          <div id="testWebsiteRoot" class="testRenderBox">Preview area</div>
+        </div>
+      </div>
+
       <footer>
         <div>© <span id="year"></span> Castle Door &amp; Hardware. All rights reserved.</div>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
           <a href="#services">Services</a>
           <a href="#build">Build Support</a>
           <a href="#brands">Brands</a>
+          <a href="#testwebsite">Test Website</a>
           <a href="#top">Back to top ↑</a>
         </div>
       </footer>
@@ -676,6 +712,9 @@
     const visionLite = document.getElementById("visionLite");
     const visionLiteSizeWrap = document.getElementById("visionLiteSizeWrap");
     const visionLiteSize = document.getElementById("visionLiteSize");
+    const renderTestWebsiteBtn = document.getElementById("renderTestWebsiteBtn");
+    const testWebsiteRoot = document.getElementById("testWebsiteRoot");
+    const testWebsiteStatus = document.getElementById("testWebsiteStatus");
 
     function syncVisionLiteUI() {
       const checked = Boolean(visionLite && visionLite.checked);
@@ -721,6 +760,61 @@
           if (submitBtn) submitBtn.disabled = false;
         }
       });
+    }
+
+    async function ensureReactRuntime() {
+      if (window.React && window.ReactDOM && window.Babel) return;
+
+      const loadScript = (src) => new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+
+      if (!window.React) await loadScript("https://unpkg.com/react@18/umd/react.production.min.js");
+      if (!window.ReactDOM) await loadScript("https://unpkg.com/react-dom@18/umd/react-dom.production.min.js");
+      if (!window.Babel) await loadScript("https://unpkg.com/@babel/standalone/babel.min.js");
+    }
+
+    async function renderTestWebsite() {
+      if (!testWebsiteRoot || !testWebsiteStatus) return;
+      testWebsiteStatus.textContent = "Loading TESTWEBSITE.jsx...";
+
+      try {
+        await ensureReactRuntime();
+
+        const res = await fetch("./TESTWEBSITE.jsx?ts=" + Date.now());
+        const source = await res.text();
+
+        if (!res.ok) throw new Error("Could not load TESTWEBSITE.jsx");
+        if (!source || !source.trim()) throw new Error("TESTWEBSITE.jsx is empty. Add a component first.");
+
+        const transformed = window.Babel.transform(source, {
+          presets: [["react", { runtime: "classic" }]],
+          sourceType: "script"
+        }).code;
+
+        const mount = window.ReactDOM.createRoot(testWebsiteRoot);
+        const runner = new Function(
+          "React",
+          "ReactDOM",
+          "root",
+          `${transformed}\n\nconst Comp = typeof TestWebsite === 'function' ? TestWebsite : (typeof App === 'function' ? App : null);\nif (!Comp) throw new Error('Define function TestWebsite() or function App() in TESTWEBSITE.jsx');\nroot.render(React.createElement(Comp));`
+        );
+
+        runner(window.React, window.ReactDOM, mount);
+        testWebsiteStatus.textContent = "Rendered TESTWEBSITE.jsx successfully.";
+      } catch (err) {
+        testWebsiteRoot.textContent = "Preview unavailable.";
+        testWebsiteStatus.textContent = (err && err.message) ? err.message : "Unable to render TESTWEBSITE.jsx.";
+      }
+    }
+
+    if (renderTestWebsiteBtn) {
+      renderTestWebsiteBtn.addEventListener("click", renderTestWebsite);
     }
   </script>
 </body>
