@@ -7,8 +7,14 @@
 
 ## Cloudflare route ownership required (production)
 
+Critical:
+
+- If `castledoorict.com/*` is unowned, [`GET /`](Workers/castle-portal.js:730) never reaches a worker, so there is no landing page by definition.
+
 Set these routes to **portal worker**:
 
+- `castledoorict.com/*`
+- `www.castledoorict.com/*`
 - `castledoorict.com/portal*`
 - `www.castledoorict.com/portal*`
 - `castledoorict.com/api/portal*`
@@ -41,11 +47,21 @@ Email/login and CTA support:
 ## Post-deploy smoke tests
 
 1. `GET /portal/login` on `https://castledoorict.com` returns login HTML (not homepage, not 404).
-2. Submit login form (`POST /api/portal/auth/start`) returns JSON 200.
+2. Submit login form (`POST /api/portal/auth/start`) returns JSON 200 with `traceId` (from [`/api/portal/auth/start`](Workers/castle-portal.js:433)).
 3. Magic link callback sets `castle_portal` cookie with secure flags and lands on `/portal`.
 4. `/portal` renders dashboard and calls `/api/portal/dashboard` successfully.
 5. `https://r.castledoorict.com/r/<UID>` still resolves as before.
 6. Reports URLs and historical PDF access are unchanged.
+
+## Login diagnostics now available
+
+[`/api/portal/auth/start`](Workers/castle-portal.js:433) now emits a `traceId` in JSON and logs one of:
+
+- `member-missing-or-inactive`
+- `magic-created`
+- `email-provider-not-configured`
+
+Use `traceId` to correlate user report -> worker log line quickly.
 
 ## Rollback safety
 
