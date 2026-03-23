@@ -3,28 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Castle Door &amp; Hardware | Inspection Access and Service Coordination</title>
+  <title>Castle Door &amp; Hardware | Commercial Door Inspections and Service</title>
   <meta
     name="description"
-    content="Castle Door & Hardware provides clear fire door inspection access for customers, technicians, and administrators with simple pathways for reports, secure portal sign-in, and service coordination."
+    content="Castle Door & Hardware provides commercial door inspection access, report pathways, and service coordination for facilities and project teams in Wichita and surrounding areas."
   />
 
   <style>
     :root {
-      --bg: #0b1220;
-      --panel: #111827;
-      --panel-soft: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.1);
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --blue: #3b82f6;
-      --blue-strong: #2563eb;
-      --blue-soft: rgba(59,130,246,0.12);
-      --green-soft: rgba(16,185,129,0.14);
-      --green: #6ee7b7;
-      --amber-soft: rgba(245,158,11,0.14);
-      --amber: #fbbf24;
-      --shadow: 0 20px 60px rgba(0,0,0,0.28);
+      --bg: #f3f5f8;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --border: #d7dee8;
+      --text: #111827;
+      --muted: #4b5563;
+      --blue: #1d4ed8;
+      --blue-strong: #1e40af;
+      --blue-soft: #eef4ff;
+      --green-soft: #ecfdf3;
+      --green: #166534;
+      --amber-soft: #fff8e6;
+      --amber: #92400e;
+      --shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
       --radius-xl: 28px;
       --radius-lg: 20px;
       --radius-md: 14px;
@@ -36,10 +36,7 @@
     body {
       margin: 0;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 32%),
-        radial-gradient(circle at 80% 10%, rgba(148,163,184,0.12), transparent 22%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       line-height: 1.5;
     }
@@ -56,8 +53,8 @@
       position: sticky;
       top: 0;
       z-index: 40;
-      backdrop-filter: blur(14px);
-      background: rgba(11,18,32,0.78);
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.94);
       border-bottom: 1px solid var(--border);
     }
 
@@ -110,11 +107,11 @@
       display: flex;
       align-items: center;
       gap: 20px;
-      color: #cbd5e1;
+      color: #374151;
       font-size: 0.92rem;
     }
 
-    .nav a:hover { color: #fff; }
+    .nav a:hover { color: #111827; }
 
     .actions {
       display: flex;
@@ -131,7 +128,7 @@
       padding: 0 18px;
       border-radius: 999px;
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
+      background: #ffffff;
       color: var(--text);
       font-weight: 600;
       transition: 180ms ease;
@@ -142,17 +139,18 @@
 
     .btn:hover {
       transform: translateY(-1px);
-      background: rgba(255,255,255,0.06);
+      background: #f3f4f6;
     }
 
     .btn--primary {
-      background: linear-gradient(180deg, #3b82f6, #2563eb);
-      border-color: rgba(96,165,250,0.45);
-      box-shadow: 0 12px 30px rgba(37,99,235,0.28);
+      background: var(--blue);
+      color: #ffffff;
+      border-color: var(--blue);
+      box-shadow: 0 6px 14px rgba(29, 78, 216, 0.2);
     }
 
     .btn--primary:hover {
-      background: linear-gradient(180deg, #60a5fa, #2563eb);
+      background: var(--blue-strong);
     }
 
     .hero {
@@ -170,9 +168,9 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      border: 1px solid rgba(96,165,250,0.24);
-      background: rgba(255,255,255,0.04);
-      color: #dbeafe;
+      border: 1px solid #c8d5e8;
+      background: #ffffff;
+      color: #1f2937;
       border-radius: 999px;
       padding: 10px 16px;
       font-size: 0.9rem;
@@ -190,7 +188,7 @@
       margin-top: 18px;
       max-width: 62ch;
       font-size: 1.05rem;
-      color: #cbd5e1;
+      color: var(--muted);
       line-height: 1.8;
     }
 
@@ -210,17 +208,17 @@
 
     .pill-card {
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
+      background: #ffffff;
       border-radius: var(--radius-md);
       padding: 14px 16px;
-      color: #e2e8f0;
+      color: #1f2937;
       font-size: 0.93rem;
       box-shadow: var(--shadow);
     }
 
     .preview-card {
       border: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(17,24,39,0.94), rgba(10,15,28,0.96));
+      background: #ffffff;
       border-radius: var(--radius-xl);
       padding: 20px;
       box-shadow: var(--shadow);
@@ -229,7 +227,7 @@
     .preview-card__inner {
       border: 1px solid var(--border);
       border-radius: 22px;
-      background: rgba(255,255,255,0.03);
+      background: var(--panel-soft);
       padding: 22px;
     }
 
@@ -268,7 +266,7 @@
 
     .status-card {
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
+      background: #ffffff;
       border-radius: var(--radius-lg);
       padding: 16px;
       margin-top: 16px;
@@ -301,7 +299,7 @@
 
     .mini-card {
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
+      background: #ffffff;
       border-radius: var(--radius-lg);
       padding: 14px;
     }
@@ -327,11 +325,11 @@
 
     .proof {
       margin-top: 14px;
-      border: 1px solid rgba(59,130,246,0.2);
+      border: 1px solid #c8d5e8;
       background: var(--blue-soft);
       border-radius: var(--radius-lg);
       padding: 14px;
-      color: #dbeafe;
+      color: #1f2937;
       font-size: 0.93rem;
       line-height: 1.7;
     }
@@ -340,7 +338,7 @@
 
     .panel {
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.035);
+      background: var(--panel);
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow);
     }
@@ -352,7 +350,7 @@
 
     .section-kicker {
       font-size: 0.8rem;
-      color: #93c5fd;
+      color: #1f2937;
       text-transform: uppercase;
       letter-spacing: 0.22em;
       font-weight: 700;
@@ -368,7 +366,7 @@
     .section-copy {
       margin-top: 12px;
       font-size: 1rem;
-      color: #cbd5e1;
+      color: var(--muted);
       line-height: 1.75;
       max-width: 65ch;
     }
@@ -384,7 +382,7 @@
       padding: 22px;
       border-radius: var(--radius-xl);
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
+      background: #ffffff;
     }
 
     .role-card h3,
@@ -422,7 +420,7 @@
       display: flex;
       gap: 12px;
       align-items: flex-start;
-      color: #e2e8f0;
+      color: #1f2937;
       line-height: 1.65;
       font-size: 0.95rem;
     }
@@ -434,13 +432,13 @@
       border-radius: 999px;
       margin-top: 9px;
       flex-shrink: 0;
-      background: linear-gradient(180deg, #60a5fa, #2563eb);
-      box-shadow: 0 0 0 5px rgba(59,130,246,0.12);
+      background: var(--blue);
+      box-shadow: none;
     }
 
     .contact-panel {
       padding: 32px;
-      background: linear-gradient(135deg, rgba(59,130,246,0.14), rgba(17,24,39,0.9) 40%, rgba(17,24,39,0.98));
+      background: #ffffff;
     }
 
     .contact-row {
@@ -537,11 +535,11 @@
     <section class="hero" id="overview">
       <div class="container hero__grid">
         <div>
-          <div class="eyebrow">Simple pathways for customers, field teams, and administrators</div>
-          <h1>A clear front door for inspection reporting and follow-up action.</h1>
+          <div class="eyebrow">Commercial door inspection access and service coordination</div>
+          <h1>Clear report pathways for customers, field teams, and administrators.</h1>
           <p class="hero__lead">
-            This landing page is designed for fast orientation: customers can access reports, enrolled users can enter the secure portal,
-            and teams can move directly from report review to service coordination.
+            Castle Door &amp; Hardware provides a straightforward path to report access, portal sign-in, and service follow-up.
+            Based in Wichita, we support local and regional customers with direct contact and predictable response.
           </p>
 
           <div class="hero__cta">
@@ -550,10 +548,10 @@
           </div>
 
           <div class="hero__highlights" aria-label="Platform highlights">
-            <div class="pill-card">Fast report access</div>
-            <div class="pill-card">Secure portal pathway</div>
-            <div class="pill-card">Role-based navigation</div>
-            <div class="pill-card">Service follow-up clarity</div>
+            <div class="pill-card">Wichita-based service team</div>
+            <div class="pill-card">Direct phone and email support</div>
+            <div class="pill-card">Clear report navigation</div>
+            <div class="pill-card">Secure portal access when needed</div>
           </div>
         </div>
 
@@ -561,20 +559,20 @@
           <div class="preview-card__inner">
             <div class="preview-top">
               <div>
-                <div class="preview-label">Experience</div>
-                <div class="preview-title">Landing to Action</div>
+                <div class="preview-label">Access flow</div>
+                <div class="preview-title">Find the right next step quickly</div>
               </div>
-              <div class="preview-tag">Production-ready</div>
+              <div class="preview-tag">Live support available</div>
             </div>
 
             <div class="status-card">
-              <div class="preview-label">Pathway</div>
+              <div class="preview-label">Who this is for</div>
               <div class="status-head">
                 <div>
-                  <div style="font-size:1.06rem;font-weight:700;">Customer, Technician, or Admin</div>
-                  <div style="margin-top:4px;color:var(--muted);font-size:0.92rem;">Each role has a clear next step</div>
+                  <div style="font-size:1.06rem;font-weight:700;">Customer, technician, and admin users</div>
+                  <div style="margin-top:4px;color:var(--muted);font-size:0.92rem;">Report access and secure portal entry are clearly separated</div>
                 </div>
-                <div class="status-badge">Guided</div>
+                <div class="status-badge">Clear</div>
               </div>
             </div>
 
@@ -582,17 +580,17 @@
               <div class="mini-card">
                 <div class="mini-card__eyebrow">Public access</div>
                 <div class="mini-card__title">View current reports</div>
-                <div class="mini-card__text">Simple route to report pages</div>
+                <div class="mini-card__text">Use report pages for inspection visibility</div>
               </div>
               <div class="mini-card">
                 <div class="mini-card__eyebrow">Secure access</div>
                 <div class="mini-card__title">Use portal sign in</div>
-                <div class="mini-card__text">For enrolled customer users</div>
+                <div class="mini-card__text">For customer-specific access controls</div>
               </div>
             </div>
 
             <div class="proof">
-              Clean first impression, predictable next step, and no interference with existing report or admin worker behavior.
+              Contact information, service area, and report pathways are visible up front for a more trustworthy first impression.
             </div>
           </div>
         </aside>
@@ -650,12 +648,11 @@
           </div>
         </article>
 
-        <article class="panel info-card" style="padding:28px;background:linear-gradient(160deg, rgba(59,130,246,0.14), rgba(17,24,39,0.95) 48%);">
-          <div class="section-kicker">Admin reassignment messaging</div>
-          <h2 class="section-title" style="font-size:2rem;">Facilities evolve. Access and organization can evolve with them.</h2>
+        <article class="panel info-card" style="padding:28px;">
+          <div class="section-kicker">Operational continuity</div>
+          <h2 class="section-title" style="font-size:2rem;">As facilities evolve, report access stays consistent.</h2>
           <p class="section-copy" style="max-width:none;">
-            Teams can communicate ownership, building context, and responsibility changes clearly over time,
-            while preserving continuity for customers and field users.
+            Teams can manage assignment and responsibility changes without disrupting customer-facing access pathways.
           </p>
           <div class="list">
             <div class="list-item">Keep report history understandable over time.</div>
@@ -704,11 +701,12 @@
         <div class="contact-row">
           <div>
             <div class="section-kicker">Contact</div>
-            <h2 class="section-title">Need help choosing the right path for your team?</h2>
+            <h2 class="section-title">Need report or service support?</h2>
             <p class="section-copy" style="max-width:58ch;">
-              Reach out to Castle Door &amp; Hardware for support with report access, customer onboarding, and service coordination planning.
+              Reach out to Castle Door &amp; Hardware for support with report access, customer onboarding, and service coordination.
               Service area: Wichita and surrounding area.<br />
-              Address: 3515 N Santa Fe, Wichita, KS 67219
+              Address: 3515 N Santa Fe, Wichita, KS 67219.<br />
+              Business hours: Monday-Friday, 8:00 AM-5:00 PM.
             </p>
           </div>
 
