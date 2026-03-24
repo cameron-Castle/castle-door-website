@@ -1024,9 +1024,11 @@
               </div>
             </div>
 
+            <input id="qQuoteRep" name="quoteRep" type="hidden" value="" />
+
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
               <button class="btn btn--primary" id="qSubmit" type="submit">Send Quote Request</button>
-              <span class="btn" style="cursor:default;">Delivered directly to Cameron</span>
+              <span class="btn" id="qRepBadge" style="cursor:default;">Delivered directly to Cameron</span>
             </div>
             <div id="qMessage" class="form-message" aria-live="polite"></div>
           </form>
@@ -1119,6 +1121,21 @@
     const wallTypeField = document.getElementById("wallTypeField");
     const qNeedsVisionKit = document.getElementById("qNeedsVisionKit");
     const visionReferenceImage = document.getElementById("visionReferenceImage");
+    const qRepBadge = document.getElementById("qRepBadge");
+    const qQuoteRep = document.getElementById("qQuoteRep");
+
+    const quoteReps = [
+      { key: "kale", name: "Kale" },
+      { key: "brad", name: "Brad" },
+      { key: "cameron", name: "Cameron" },
+    ];
+
+    function pickQuoteRep() {
+      const idx = Math.floor(Math.random() * quoteReps.length);
+      const rep = quoteReps[idx];
+      if (qRepBadge) qRepBadge.textContent = `Delivered directly to ${rep.name}`;
+      if (qQuoteRep) qQuoteRep.value = rep.key;
+    }
 
     function updateWoodSpeciesVisibility() {
       const isWood = String(qDoorType?.value || "").toLowerCase() === "wood";
@@ -1167,6 +1184,7 @@
     updateWoodSpeciesVisibility();
     updateWallTypeVisibility();
     updateVisionReferenceVisibility();
+    pickQuoteRep();
 
     quoteForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1188,6 +1206,7 @@
         frameDepth: String(formData.get("frameDepth") || "").trim(),
         wallTypeDetails: String(formData.get("wallTypeDetails") || "").trim(),
         needsVisionKitReference: formData.get("needsVisionKitReference") === "on",
+        quoteRep: String(formData.get("quoteRep") || "").trim().toLowerCase(),
         timeline: String(formData.get("timeline") || "").trim(),
         guidedNotes: String(formData.get("guidedNotes") || "").trim(),
         customScope: String(formData.get("customScope") || "").trim(),
@@ -1243,6 +1262,7 @@
         const defaultMode = document.querySelector('input[name="quoteMode"][value="guided"]');
         if (defaultMode) defaultMode.checked = true;
         setQuoteMode("guided");
+        pickQuoteRep();
       } catch {
         qMessage.textContent = "Network error while sending quote request.";
         qMessage.classList.add("err");

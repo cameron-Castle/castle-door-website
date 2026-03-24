@@ -26,6 +26,7 @@ export async function onRequestPost(context) {
   const frameDepth = String(body?.frameDepth || "").trim();
   const wallTypeDetails = String(body?.wallTypeDetails || "").trim();
   const needsVisionKitReference = Boolean(body?.needsVisionKitReference);
+  const quoteRep = String(body?.quoteRep || "").trim().toLowerCase();
   const timeline = String(body?.timeline || "").trim();
   const guidedNotes = String(body?.guidedNotes || "").trim();
   const customScope = String(body?.customScope || "").trim();
@@ -41,7 +42,13 @@ export async function onRequestPost(context) {
 
   const resendApiKey = String(env?.RESEND_API_KEY || "").trim();
   const resendFrom = String(env?.RESEND_FROM || "").trim();
-  const quoteTo = String(env?.QUOTE_TO_EMAIL || "Cameron@castledoorandhardware.com").trim();
+  const quoteRepMap = {
+    kale: "Kale@castledoorandhardware.com",
+    brad: "Brad@castledoorandhardware.com",
+    cameron: "Cameron@castledoorandhardware.com",
+  };
+  const quoteTo = quoteRepMap[quoteRep] || String(env?.QUOTE_TO_EMAIL || "Cameron@castledoorandhardware.com").trim();
+  const quoteRepName = quoteRep === "kale" ? "Kale" : quoteRep === "brad" ? "Brad" : "Cameron";
 
   if (!resendApiKey || !resendFrom || !quoteTo) {
     return json({ error: "Quote email service is not configured" }, 500);
@@ -65,8 +72,8 @@ export async function onRequestPost(context) {
 
   const subject =
     mode === "guided"
-      ? `[Quote Request] Guided build - ${name}${company ? ` (${company})` : ""}`
-      : `[Quote Request] Custom request - ${name}${company ? ` (${company})` : ""}`;
+      ? `[Quote Request] Guided build - ${name}${company ? ` (${company})` : ""} [Rep: ${quoteRepName}]`
+      : `[Quote Request] Custom request - ${name}${company ? ` (${company})` : ""} [Rep: ${quoteRepName}]`;
 
   const guidedHtml = `
     <h3>Guided Build Selections</h3>
@@ -79,6 +86,7 @@ export async function onRequestPost(context) {
       <li><strong>Wall Type / Opening Details:</strong> ${esc(wallTypeDetails || "(not specified)")}</li>
       <li><strong>Vision Kit Chart Requested:</strong> ${esc(needsVisionKitReference ? "Yes" : "No")}</li>
       <li><strong>Timeline:</strong> ${esc(timeline || "(not specified)")}</li>
+      <li><strong>Assigned Rep:</strong> ${esc(quoteRepName)}</li>
     </ul>
     <p><strong>Project Notes:</strong><br/>${esc(guidedNotes || "(none)")}</p>
   `;
@@ -126,6 +134,7 @@ export async function onRequestPost(context) {
           `Wall Type / Opening Details: ${wallTypeDetails || "(not specified)"}`,
           `Vision Kit Chart Requested: ${needsVisionKitReference ? "Yes" : "No"}`,
           `Timeline: ${timeline || "(not specified)"}`,
+          `Assigned Rep: ${quoteRepName}`,
           `Project Notes: ${guidedNotes || "(none)"}`,
         ].join("\n")
       : `Scope: ${customScope || "(none)"}`,
