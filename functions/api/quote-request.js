@@ -70,6 +70,16 @@ export async function onRequestPost(context) {
     }
   })();
 
+  const sourceOrigin = (() => {
+    try {
+      return new URL(request.url).origin;
+    } catch {
+      return "";
+    }
+  })();
+
+  const visionKitImageUrl = sourceOrigin ? `${sourceOrigin}/assets/vision-kit-reference.png` : "";
+
   const subject =
     mode === "guided"
       ? `[Quote Request] Guided build - ${name}${company ? ` (${company})` : ""} [Rep: ${quoteRepName}]`
@@ -89,6 +99,13 @@ export async function onRequestPost(context) {
       <li><strong>Assigned Rep:</strong> ${esc(quoteRepName)}</li>
     </ul>
     <p><strong>Project Notes:</strong><br/>${esc(guidedNotes || "(none)")}</p>
+    ${
+      needsVisionKitReference && visionKitImageUrl
+        ? `<p><strong>Vision Kit Reference:</strong></p>
+           <p><img src="${esc(visionKitImageUrl)}" alt="Vision kit style chart A-H" style="max-width:100%;height:auto;border:1px solid #dbe5f1;border-radius:8px;" /></p>
+           <p><a href="${esc(visionKitImageUrl)}" target="_blank" rel="noopener noreferrer">Open full-size vision kit image</a></p>`
+        : ""
+    }
   `;
 
   const customHtml = `
@@ -133,6 +150,9 @@ export async function onRequestPost(context) {
           `Frame Depth: ${frameDepth || "(not specified)"}`,
           `Wall Type / Opening Details: ${wallTypeDetails || "(not specified)"}`,
           `Vision Kit Chart Requested: ${needsVisionKitReference ? "Yes" : "No"}`,
+          ...(needsVisionKitReference && visionKitImageUrl
+            ? [`Vision Kit Image URL: ${visionKitImageUrl}`]
+            : []),
           `Timeline: ${timeline || "(not specified)"}`,
           `Assigned Rep: ${quoteRepName}`,
           `Project Notes: ${guidedNotes || "(none)"}`,
