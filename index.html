@@ -1011,7 +1011,6 @@
                 <img
                   src="assets/vision-kit-reference.png"
                   alt="Vision kit reference chart with options A through H"
-                  onerror="this.onerror=null;this.src='assets/vision-kit-reference.svg';"
                 />
               </div>
               <div class="vision-note">Check the box to open the standard vision kit chart image.</div>
@@ -1121,6 +1120,7 @@
     const wallTypeField = document.getElementById("wallTypeField");
     const qNeedsVisionKit = document.getElementById("qNeedsVisionKit");
     const visionReferenceImage = document.getElementById("visionReferenceImage");
+    const visionReferenceImgEl = document.querySelector("#visionReferenceImage img");
     const qRepBadge = document.getElementById("qRepBadge");
     const qQuoteRep = document.getElementById("qQuoteRep");
 
@@ -1157,6 +1157,32 @@
     function updateVisionReferenceVisibility() {
       if (!visionReferenceImage || !qNeedsVisionKit) return;
       visionReferenceImage.classList.toggle("hidden", !qNeedsVisionKit.checked);
+      if (qNeedsVisionKit.checked && visionReferenceImgEl) {
+        console.info("[quote-form] vision chart visible", {
+          src: visionReferenceImgEl.currentSrc || visionReferenceImgEl.getAttribute("src"),
+          naturalWidth: visionReferenceImgEl.naturalWidth,
+          naturalHeight: visionReferenceImgEl.naturalHeight,
+          renderedWidth: visionReferenceImgEl.clientWidth,
+          renderedHeight: visionReferenceImgEl.clientHeight,
+        });
+      }
+    }
+
+    function setupVisionReferenceDebug() {
+      if (!visionReferenceImgEl) return;
+
+      visionReferenceImgEl.addEventListener("load", () => {
+        console.info("[quote-form] vision chart loaded", {
+          src: visionReferenceImgEl.currentSrc || visionReferenceImgEl.getAttribute("src"),
+          naturalWidth: visionReferenceImgEl.naturalWidth,
+          naturalHeight: visionReferenceImgEl.naturalHeight,
+        });
+      });
+
+      visionReferenceImgEl.addEventListener("error", () => {
+        const current = visionReferenceImgEl.getAttribute("src") || "";
+        console.warn("[quote-form] vision chart failed to load", { src: current });
+      });
     }
 
     function setQuoteMode(mode) {
@@ -1183,6 +1209,7 @@
     setQuoteMode(document.querySelector('input[name="quoteMode"]:checked')?.value || "guided");
     updateWoodSpeciesVisibility();
     updateWallTypeVisibility();
+    setupVisionReferenceDebug();
     updateVisionReferenceVisibility();
     pickQuoteRep();
 
