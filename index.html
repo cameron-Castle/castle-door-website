@@ -660,6 +660,55 @@
       gap: 10px;
     }
 
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.55);
+    }
+
+    .modal[aria-hidden="false"] { display: flex; }
+
+    .modal__card {
+      width: min(640px, calc(100vw - 24px));
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      border: 1px solid #dbe8ff;
+      border-radius: var(--radius-lg);
+      background: #fff;
+      box-shadow: var(--shadow-md);
+      padding: 18px;
+    }
+
+    .modal__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .modal__title {
+      font-size: 1.08rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .icon-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      width: 36px;
+      height: 36px;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+
     .footer {
       padding: 26px 0 40px;
       color: #64748b;
@@ -1082,7 +1131,7 @@
           <article class="contact-card">
             <div class="section-kicker" style="letter-spacing:.14em;">Quick actions</div>
             <div class="contact-actions" style="margin-top:12px;">
-              <a class="btn btn--primary" href="mailto:Cameron@castledoorandhardware.com">Email Cameron</a>
+              <button class="btn btn--primary" id="openContactModal" type="button">Email the Experts</button>
               <a class="btn" href="tel:+13168320300">Call (316) 832-0300</a>
               <a class="btn" href="/reports">Go to Reports</a>
               <a class="btn" href="https://castledoorict.com/portal/login">Portal Sign In</a>
@@ -1092,6 +1141,50 @@
       </div>
     </section>
   </main>
+
+  <div id="contactModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
+    <div class="modal__card">
+      <div class="modal__head">
+        <div id="contactModalTitle" class="modal__title">Email the Experts</div>
+        <button id="closeContactModal" class="icon-btn" type="button" aria-label="Close contact form">×</button>
+      </div>
+
+      <p style="margin: 0 0 12px; color: var(--muted); font-size: .92rem; line-height: 1.7;">
+        Send your contact details and message here. We will email you back directly.
+      </p>
+
+      <form id="contactModalForm" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="cName">Name</label>
+            <input id="cName" name="name" required />
+          </div>
+          <div class="field">
+            <label for="cEmail">Email</label>
+            <input id="cEmail" name="email" type="email" required />
+          </div>
+          <div class="field">
+            <label for="cPhone">Phone</label>
+            <input id="cPhone" name="phone" type="tel" />
+          </div>
+          <div class="field">
+            <label for="cCompany">Company</label>
+            <input id="cCompany" name="company" />
+          </div>
+          <div class="field full">
+            <label for="cMessage">How can we help?</label>
+            <textarea id="cMessage" name="message" required placeholder="Tell us what you need help with..."></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+          <button class="btn btn--primary" id="cSubmit" type="submit">Send Message</button>
+          <button class="btn" id="cCancel" type="button">Cancel</button>
+        </div>
+        <div id="cMessageStatus" class="form-message" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
 
   <footer class="footer container">
     <div>© <span id="year"></span> Castle Door &amp; Hardware</div>
@@ -1123,6 +1216,13 @@
     const visionReferenceImgEl = document.querySelector("#visionReferenceImage img");
     const qRepBadge = document.getElementById("qRepBadge");
     const qQuoteRep = document.getElementById("qQuoteRep");
+    const openContactModal = document.getElementById("openContactModal");
+    const closeContactModal = document.getElementById("closeContactModal");
+    const contactModal = document.getElementById("contactModal");
+    const contactModalForm = document.getElementById("contactModalForm");
+    const cSubmit = document.getElementById("cSubmit");
+    const cCancel = document.getElementById("cCancel");
+    const cMessageStatus = document.getElementById("cMessageStatus");
 
     const quoteReps = [
       { key: "kale", name: "Kale" },
@@ -1185,6 +1285,17 @@
       });
     }
 
+    function setModalOpen(open) {
+      if (!contactModal) return;
+      contactModal.setAttribute("aria-hidden", open ? "false" : "true");
+      if (open) {
+        const firstInput = document.getElementById("cName");
+        if (firstInput) firstInput.focus();
+      } else if (openContactModal) {
+        openContactModal.focus();
+      }
+    }
+
     function setQuoteMode(mode) {
       const guided = mode !== "custom";
       guidedFields.style.display = guided ? "grid" : "none";
@@ -1212,6 +1323,26 @@
     setupVisionReferenceDebug();
     updateVisionReferenceVisibility();
     pickQuoteRep();
+
+    if (openContactModal) {
+      openContactModal.addEventListener("click", () => setModalOpen(true));
+    }
+    if (closeContactModal) {
+      closeContactModal.addEventListener("click", () => setModalOpen(false));
+    }
+    if (cCancel) {
+      cCancel.addEventListener("click", () => setModalOpen(false));
+    }
+    if (contactModal) {
+      contactModal.addEventListener("click", (e) => {
+        if (e.target === contactModal) setModalOpen(false);
+      });
+    }
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && contactModal?.getAttribute("aria-hidden") === "false") {
+        setModalOpen(false);
+      }
+    });
 
     quoteForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1298,6 +1429,60 @@
         qSubmit.textContent = "Send Quote Request";
       }
     });
+
+    if (contactModalForm) {
+      contactModalForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!cMessageStatus || !cSubmit) return;
+
+        cMessageStatus.textContent = "";
+        cMessageStatus.className = "form-message";
+
+        const fd = new FormData(contactModalForm);
+        const payload = {
+          name: String(fd.get("name") || "").trim(),
+          email: String(fd.get("email") || "").trim(),
+          phone: String(fd.get("phone") || "").trim(),
+          company: String(fd.get("company") || "").trim(),
+          message: String(fd.get("message") || "").trim(),
+        };
+
+        if (!payload.name || !payload.email || !payload.message) {
+          cMessageStatus.textContent = "Name, email, and message are required.";
+          cMessageStatus.classList.add("err");
+          return;
+        }
+
+        cSubmit.disabled = true;
+        cSubmit.textContent = "Sending...";
+
+        try {
+          const res = await fetch("/api/contact-request", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            cMessageStatus.textContent = out.error || "Unable to send message right now.";
+            cMessageStatus.classList.add("err");
+            return;
+          }
+
+          cMessageStatus.textContent = "Message sent. We will reply to your email shortly.";
+          cMessageStatus.classList.add("ok");
+          contactModalForm.reset();
+          setTimeout(() => setModalOpen(false), 700);
+        } catch {
+          cMessageStatus.textContent = "Network error while sending message.";
+          cMessageStatus.classList.add("err");
+        } finally {
+          cSubmit.disabled = false;
+          cSubmit.textContent = "Send Message";
+        }
+      });
+    }
   </script>
 </body>
 </html>
