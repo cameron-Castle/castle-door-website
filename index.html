@@ -416,6 +416,112 @@
       gap: 12px;
     }
 
+    .quote-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .quote-form {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: #fff;
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .quote-form__modes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .mode-pill {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #f8fbff;
+      font-size: .9rem;
+      color: #334155;
+      cursor: pointer;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mode-pill input { margin: 0; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: .83rem;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px 11px;
+      font: inherit;
+      color: var(--text);
+    }
+
+    .field textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    .quote-panel {
+      border: 1px solid #dbe8ff;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, #f8fbff, #ffffff);
+      padding: 18px;
+    }
+
+    .quote-checklist {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+      font-size: .92rem;
+      color: #334155;
+    }
+
+    .quote-checklist div::before {
+      content: "✓";
+      color: #166534;
+      margin-right: 8px;
+      font-weight: 700;
+    }
+
+    .form-message {
+      margin-top: 10px;
+      font-size: .9rem;
+      color: #334155;
+      min-height: 1.2em;
+    }
+
+    .form-message.ok { color: #166534; }
+    .form-message.err { color: #b91c1c; }
+
     .step {
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -471,6 +577,23 @@
       padding: 18px;
     }
 
+    .map-card {
+      border: 1px solid #dbe8ff;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: #fff;
+      min-height: 280px;
+      box-shadow: var(--shadow-sm);
+      margin-top: 14px;
+    }
+
+    .map-card iframe {
+      width: 100%;
+      min-height: 280px;
+      border: 0;
+      display: block;
+    }
+
     .contact-meta {
       margin-top: 14px;
       display: grid;
@@ -508,7 +631,8 @@
       .hero__grid,
       .cards-3,
       .split,
-      .contact-grid {
+      .contact-grid,
+      .quote-grid {
         grid-template-columns: 1fr;
       }
 
@@ -521,6 +645,8 @@
       .hero__points,
       .hero-grid { grid-template-columns: 1fr; }
       .actions .btn:last-child { display: none; }
+      .quote-form__modes,
+      .form-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 560px) {
@@ -547,6 +673,7 @@
         <a href="#pathways">Role Pathways</a>
         <a href="#access">Access &amp; Security</a>
         <a href="#service">Service Flow</a>
+        <a href="#quote">Request Quote</a>
         <a href="#contact">Contact</a>
       </nav>
 
@@ -723,6 +850,134 @@
       </div>
     </section>
 
+    <section class="block" id="quote">
+      <div class="container panel">
+        <div class="section-kicker">Request quote</div>
+        <h2 class="section-title">Build your quote your way: guided selections or free-form details.</h2>
+        <p class="section-copy">
+          Send a quote request directly to our team. Choose a guided step-by-step builder for door and frame specs,
+          or use the free-form option if you already have a custom scope.
+        </p>
+
+        <div class="quote-grid">
+          <form id="quoteForm" class="quote-form" novalidate>
+            <div class="quote-form__modes" role="radiogroup" aria-label="Quote request type">
+              <label class="mode-pill">
+                <input type="radio" name="quoteMode" value="guided" checked />
+                <span>Guided build (door/frame selections)</span>
+              </label>
+              <label class="mode-pill">
+                <input type="radio" name="quoteMode" value="custom" />
+                <span>Free-form custom request</span>
+              </label>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="qName">Name</label>
+                <input id="qName" name="name" required />
+              </div>
+              <div class="field">
+                <label for="qEmail">Email</label>
+                <input id="qEmail" name="email" type="email" required />
+              </div>
+              <div class="field">
+                <label for="qPhone">Phone</label>
+                <input id="qPhone" name="phone" type="tel" />
+              </div>
+              <div class="field">
+                <label for="qCompany">Company</label>
+                <input id="qCompany" name="company" />
+              </div>
+            </div>
+
+            <div id="guidedFields" class="form-grid" style="margin-top:10px;">
+              <div class="field">
+                <label for="qDoorType">Door type</label>
+                <select id="qDoorType" name="doorType">
+                  <option value="">Select...</option>
+                  <option>Hollow metal</option>
+                  <option>Wood</option>
+                  <option>Aluminum storefront</option>
+                  <option>Fire-rated assembly</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qFrameType">Frame type</label>
+                <select id="qFrameType" name="frameType">
+                  <option value="">Select...</option>
+                  <option>Welded frame</option>
+                  <option>Knock-down frame</option>
+                  <option>Existing frame reuse</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qHardware">Hardware package</label>
+                <select id="qHardware" name="hardwareSet">
+                  <option value="">Select...</option>
+                  <option>Basic commercial</option>
+                  <option>Heavy-duty high traffic</option>
+                  <option>Panic / egress hardware</option>
+                  <option>Electrified / access control</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qRating">Fire rating</label>
+                <select id="qRating" name="fireRating">
+                  <option value="">Select...</option>
+                  <option>None</option>
+                  <option>20-minute</option>
+                  <option>45-minute</option>
+                  <option>60-minute</option>
+                  <option>90-minute</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qQty">Quantity</label>
+                <input id="qQty" name="quantity" type="number" min="1" step="1" placeholder="e.g. 4" />
+              </div>
+              <div class="field">
+                <label for="qTimeline">Target timeline</label>
+                <input id="qTimeline" name="timeline" placeholder="e.g. Need installed in 4-6 weeks" />
+              </div>
+              <div class="field full">
+                <label for="qGuidedNotes">Project notes</label>
+                <textarea id="qGuidedNotes" name="guidedNotes" placeholder="Opening details, site notes, priorities..."></textarea>
+              </div>
+            </div>
+
+            <div id="customFields" class="form-grid" style="display:none; margin-top:10px;">
+              <div class="field full">
+                <label for="qCustomScope">Describe your quote request</label>
+                <textarea id="qCustomScope" name="customScope" placeholder="Type your scope, counts, materials, and timing."></textarea>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+              <button class="btn btn--primary" id="qSubmit" type="submit">Send Quote Request</button>
+              <span class="btn" style="cursor:default;">Delivered directly to Cameron</span>
+            </div>
+            <div id="qMessage" class="form-message" aria-live="polite"></div>
+          </form>
+
+          <aside class="quote-panel" aria-label="Quote request help">
+            <div class="section-kicker" style="letter-spacing:.14em;">What to include</div>
+            <h3 style="margin-top:8px; font-size:1.1rem;">Faster quotes come from clearer inputs.</h3>
+            <div class="quote-checklist">
+              <div>Door and frame type</div>
+              <div>Hardware level and any access control needs</div>
+              <div>Fire rating requirements</div>
+              <div>Quantity and project timeline</div>
+              <div>Site notes or known field constraints</div>
+            </div>
+            <p style="margin-top:12px; color:var(--muted); font-size:.92rem; line-height:1.7;">
+              Quote emails are sent through secure email delivery with Resend and routed straight to your sales inbox.
+            </p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
     <section class="block" id="contact">
       <div class="container panel contact-panel">
         <div class="contact-grid">
@@ -740,6 +995,14 @@
               <div><strong>Address:</strong> 3515 N Santa Fe, Wichita, KS 67219</div>
               <div><strong>Hours:</strong> Monday-Friday, 8:00 AM-5:00 PM</div>
               <div><strong>Service Area:</strong> Wichita and surrounding area</div>
+            </div>
+
+            <div class="map-card">
+              <iframe
+                title="Castle Door and Hardware location map"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                src="https://www.google.com/maps?q=3515+N+Santa+Fe,+Wichita,+KS+67219&output=embed"></iframe>
             </div>
           </article>
 
@@ -763,12 +1026,98 @@
       <a href="#pathways">Role Pathways</a>
       <a href="#access">Access &amp; Security</a>
       <a href="#service">Service Flow</a>
+      <a href="#quote">Request Quote</a>
       <a href="#top">Back to top ↑</a>
     </div>
   </footer>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    const quoteForm = document.getElementById("quoteForm");
+    const guidedFields = document.getElementById("guidedFields");
+    const customFields = document.getElementById("customFields");
+    const qMessage = document.getElementById("qMessage");
+    const qSubmit = document.getElementById("qSubmit");
+
+    function setQuoteMode(mode) {
+      const guided = mode !== "custom";
+      guidedFields.style.display = guided ? "grid" : "none";
+      customFields.style.display = guided ? "none" : "grid";
+    }
+
+    document.querySelectorAll('input[name="quoteMode"]').forEach((el) => {
+      el.addEventListener("change", () => setQuoteMode(el.value));
+    });
+
+    setQuoteMode(document.querySelector('input[name="quoteMode"]:checked')?.value || "guided");
+
+    quoteForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      qMessage.textContent = "";
+      qMessage.className = "form-message";
+
+      const formData = new FormData(quoteForm);
+      const mode = String(formData.get("quoteMode") || "guided");
+      const payload = {
+        mode,
+        name: String(formData.get("name") || "").trim(),
+        email: String(formData.get("email") || "").trim(),
+        phone: String(formData.get("phone") || "").trim(),
+        company: String(formData.get("company") || "").trim(),
+        doorType: String(formData.get("doorType") || "").trim(),
+        frameType: String(formData.get("frameType") || "").trim(),
+        hardwareSet: String(formData.get("hardwareSet") || "").trim(),
+        fireRating: String(formData.get("fireRating") || "").trim(),
+        quantity: String(formData.get("quantity") || "").trim(),
+        timeline: String(formData.get("timeline") || "").trim(),
+        guidedNotes: String(formData.get("guidedNotes") || "").trim(),
+        customScope: String(formData.get("customScope") || "").trim(),
+      };
+
+      if (!payload.name || !payload.email) {
+        qMessage.textContent = "Name and email are required.";
+        qMessage.classList.add("err");
+        return;
+      }
+
+      if (mode === "custom" && !payload.customScope) {
+        qMessage.textContent = "Please describe your request in the custom scope field.";
+        qMessage.classList.add("err");
+        return;
+      }
+
+      qSubmit.disabled = true;
+      qSubmit.textContent = "Sending...";
+
+      try {
+        const res = await fetch("/api/quote-request", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          qMessage.textContent = out.error || "Unable to send quote request right now.";
+          qMessage.classList.add("err");
+          return;
+        }
+
+        qMessage.textContent = "Quote request sent. We will follow up shortly.";
+        qMessage.classList.add("ok");
+        quoteForm.reset();
+        const defaultMode = document.querySelector('input[name="quoteMode"][value="guided"]');
+        if (defaultMode) defaultMode.checked = true;
+        setQuoteMode("guided");
+      } catch {
+        qMessage.textContent = "Network error while sending quote request.";
+        qMessage.classList.add("err");
+      } finally {
+        qSubmit.disabled = false;
+        qSubmit.textContent = "Send Quote Request";
+      }
+    });
   </script>
 </body>
 </html>
