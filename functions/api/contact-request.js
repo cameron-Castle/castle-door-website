@@ -26,14 +26,14 @@ export async function onRequestPost(context) {
   }
 
   const resendApiKey = String(env?.CONTACT_RESEND_API_KEY || env?.RESEND_API_KEY || "").trim();
-  const resendFrom = String(env?.RESEND_FROM || "").trim();
+  const resendFrom = String(env?.CONTACT_RESEND_FROM || env?.RESEND_FROM || "").trim();
   const contactTo = String(env?.CONTACT_TO_EMAIL || env?.QUOTE_TO_EMAIL || "Cameron@castledoorandhardware.com").trim();
 
   if (!resendApiKey || !resendFrom || !contactTo) {
     return json(
       {
         error:
-          "Contact email service is not configured (requires CONTACT_RESEND_API_KEY or RESEND_API_KEY, RESEND_FROM, and CONTACT_TO_EMAIL/QUOTE_TO_EMAIL)",
+          "Contact email service is not configured (requires CONTACT_RESEND_API_KEY or RESEND_API_KEY, CONTACT_RESEND_FROM or RESEND_FROM, and CONTACT_TO_EMAIL/QUOTE_TO_EMAIL)",
       },
       500,
     );
