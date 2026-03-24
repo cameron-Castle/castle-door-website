@@ -488,6 +488,144 @@
       resize: vertical;
     }
 
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: #fff;
+      color: #334155;
+      font-size: .92rem;
+    }
+
+    .check-row input { margin: 0; }
+
+    .vision-wrap {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #f8fbff;
+      padding: 12px;
+    }
+
+    .vision-kicker {
+      font-size: .82rem;
+      color: #334155;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .vision-groups {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .vision-group {
+      border: 1px solid #d8e4ff;
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px;
+    }
+
+    .vision-group__title {
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #475569;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .vision-items {
+      display: grid;
+      gap: 8px;
+    }
+
+    .vision-option {
+      border: 1px solid #dbe5f1;
+      border-radius: 10px;
+      background: #f8fbff;
+      padding: 8px;
+      display: grid;
+      gap: 7px;
+      cursor: pointer;
+    }
+
+    .vision-option__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: .82rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .vision-preview {
+      height: 74px;
+      border-radius: 8px;
+      border: 1px solid #e3ebf8;
+      background: linear-gradient(180deg, #eceff4, #e3e7ef);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px;
+    }
+
+    .door {
+      width: 32px;
+      height: 60px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #d6d9de;
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass {
+      border: 2px solid #6b7280;
+      background: #f6f7f9;
+    }
+
+    .glass--narrow {
+      width: 12px;
+      height: 34px;
+    }
+
+    .glass--half {
+      width: 22px;
+      height: 34px;
+    }
+
+    .glass--full {
+      width: 22px;
+      height: 50px;
+    }
+
+    .glass--square {
+      width: 20px;
+      height: 20px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 3px;
+    }
+
+    .vision-note {
+      margin-top: 8px;
+      color: #475569;
+      font-size: .83rem;
+      line-height: 1.6;
+    }
+
     .full { grid-column: 1 / -1; }
 
     .quote-panel {
@@ -647,6 +785,7 @@
       .actions .btn:last-child { display: none; }
       .quote-form__modes,
       .form-grid { grid-template-columns: 1fr; }
+      .vision-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @media (max-width: 560px) {
@@ -654,6 +793,7 @@
       .brand__name { font-size: .82rem; }
       .panel { padding: 20px; }
       .hero h1 { max-width: none; }
+      .vision-groups { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -898,12 +1038,10 @@
                   <option value="">Select...</option>
                   <option>Hollow metal</option>
                   <option>Wood</option>
-                  <option>Aluminum storefront</option>
-                  <option>Fire-rated assembly</option>
                 </select>
               </div>
               <div class="field">
-                <label for="qFrameType">Frame type</label>
+                <label for="qFrameType">Frame type (optional)</label>
                 <select id="qFrameType" name="frameType">
                   <option value="">Select...</option>
                   <option>Welded frame</option>
@@ -912,29 +1050,25 @@
                 </select>
               </div>
               <div class="field">
-                <label for="qHardware">Hardware package</label>
-                <select id="qHardware" name="hardwareSet">
+                <label for="qFrameDepth">Frame depth</label>
+                <select id="qFrameDepth" name="frameDepth">
                   <option value="">Select...</option>
-                  <option>Basic commercial</option>
-                  <option>Heavy-duty high traffic</option>
-                  <option>Panic / egress hardware</option>
-                  <option>Electrified / access control</option>
+                  <option>5-3/4</option>
+                  <option>8-1/4</option>
+                  <option>Other</option>
+                  <option>Unknown</option>
                 </select>
               </div>
               <div class="field">
-                <label for="qRating">Fire rating</label>
-                <select id="qRating" name="fireRating">
-                  <option value="">Select...</option>
-                  <option>None</option>
-                  <option>20-minute</option>
-                  <option>45-minute</option>
-                  <option>60-minute</option>
-                  <option>90-minute</option>
-                </select>
+                <label for="qFireRated">Fire rated</label>
+                <label class="check-row" for="qFireRated">
+                  <input id="qFireRated" name="fireRated" type="checkbox" />
+                  <span>This opening requires a fire-rated assembly</span>
+                </label>
               </div>
               <div class="field">
-                <label for="qQty">Quantity</label>
-                <input id="qQty" name="quantity" type="number" min="1" step="1" placeholder="e.g. 4" />
+                <label for="qWallType">Wall type / opening details</label>
+                <input id="qWallType" name="wallTypeDetails" placeholder="e.g. Metal stud, 5/8 sheetrock both sides" />
               </div>
               <div class="field">
                 <label for="qTimeline">Target timeline</label>
@@ -944,6 +1078,108 @@
                 <label for="qGuidedNotes">Project notes</label>
                 <textarea id="qGuidedNotes" name="guidedNotes" placeholder="Opening details, site notes, priorities..."></textarea>
               </div>
+            </div>
+
+            <div class="vision-wrap" id="visionKitWrap">
+              <div class="vision-kicker">Vision kit style reference (select one if known)</div>
+              <div class="vision-groups" role="radiogroup" aria-label="Vision kit options">
+                <div class="vision-group">
+                  <div class="vision-group__title">Narrow</div>
+                  <div class="vision-items">
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>A</span>
+                        <input type="radio" name="visionKit" value="A" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="glass glass--narrow"></div></div>
+                      </div>
+                    </label>
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>B</span>
+                        <input type="radio" name="visionKit" value="B" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="stack"><div class="glass glass--narrow"></div><div class="glass glass--narrow"></div></div></div>
+                      </div>
+                    </label>
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>C</span>
+                        <input type="radio" name="visionKit" value="C" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="glass glass--full"></div></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="vision-group">
+                  <div class="vision-group__title">Square</div>
+                  <div class="vision-items">
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>D</span>
+                        <input type="radio" name="visionKit" value="D" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="stack"><div class="glass glass--square"></div><div class="glass glass--square"></div><div class="glass glass--square"></div></div></div>
+                      </div>
+                    </label>
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>E</span>
+                        <input type="radio" name="visionKit" value="E" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="glass glass--square"></div></div>
+                      </div>
+                    </label>
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>F</span>
+                        <input type="radio" name="visionKit" value="F" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="glass glass--half"></div></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="vision-group">
+                  <div class="vision-group__title">Half</div>
+                  <div class="vision-items">
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>G</span>
+                        <input type="radio" name="visionKit" value="G" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="glass glass--half"></div></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="vision-group">
+                  <div class="vision-group__title">Full</div>
+                  <div class="vision-items">
+                    <label class="vision-option">
+                      <div class="vision-option__head">
+                        <span>H</span>
+                        <input type="radio" name="visionKit" value="H" />
+                      </div>
+                      <div class="vision-preview">
+                        <div class="door"><div class="glass glass--full"></div></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="vision-note">If you are unsure, leave this blank and describe your opening in wall type or project notes.</div>
             </div>
 
             <div id="customFields" class="form-grid" style="display:none; margin-top:10px;">
@@ -965,9 +1201,9 @@
             <h3 style="margin-top:8px; font-size:1.1rem;">Faster quotes come from clearer inputs.</h3>
             <div class="quote-checklist">
               <div>Door and frame type</div>
-              <div>Hardware level and any access control needs</div>
-              <div>Fire rating requirements</div>
-              <div>Quantity and project timeline</div>
+              <div>Frame depth and wall type details</div>
+              <div>Whether fire-rated construction is needed</div>
+              <div>Vision kit style (A-H) and target timeline</div>
               <div>Site notes or known field constraints</div>
             </div>
             <p style="margin-top:12px; color:var(--muted); font-size:.92rem; line-height:1.7;">
@@ -1044,6 +1280,8 @@
       const guided = mode !== "custom";
       guidedFields.style.display = guided ? "grid" : "none";
       customFields.style.display = guided ? "none" : "grid";
+      const visionKitWrap = document.getElementById("visionKitWrap");
+      if (visionKitWrap) visionKitWrap.style.display = guided ? "block" : "none";
     }
 
     document.querySelectorAll('input[name="quoteMode"]').forEach((el) => {
@@ -1067,9 +1305,10 @@
         company: String(formData.get("company") || "").trim(),
         doorType: String(formData.get("doorType") || "").trim(),
         frameType: String(formData.get("frameType") || "").trim(),
-        hardwareSet: String(formData.get("hardwareSet") || "").trim(),
-        fireRating: String(formData.get("fireRating") || "").trim(),
-        quantity: String(formData.get("quantity") || "").trim(),
+        fireRated: formData.get("fireRated") === "on",
+        frameDepth: String(formData.get("frameDepth") || "").trim(),
+        wallTypeDetails: String(formData.get("wallTypeDetails") || "").trim(),
+        visionKit: String(formData.get("visionKit") || "").trim(),
         timeline: String(formData.get("timeline") || "").trim(),
         guidedNotes: String(formData.get("guidedNotes") || "").trim(),
         customScope: String(formData.get("customScope") || "").trim(),

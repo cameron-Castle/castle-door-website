@@ -21,9 +21,10 @@ export async function onRequestPost(context) {
   const company = String(body?.company || "").trim();
   const doorType = String(body?.doorType || "").trim();
   const frameType = String(body?.frameType || "").trim();
-  const hardwareSet = String(body?.hardwareSet || "").trim();
-  const fireRating = String(body?.fireRating || "").trim();
-  const quantity = String(body?.quantity || "").trim();
+  const fireRated = Boolean(body?.fireRated);
+  const frameDepth = String(body?.frameDepth || "").trim();
+  const wallTypeDetails = String(body?.wallTypeDetails || "").trim();
+  const visionKit = String(body?.visionKit || "").trim().toUpperCase();
   const timeline = String(body?.timeline || "").trim();
   const guidedNotes = String(body?.guidedNotes || "").trim();
   const customScope = String(body?.customScope || "").trim();
@@ -71,9 +72,10 @@ export async function onRequestPost(context) {
     <ul>
       <li><strong>Door Type:</strong> ${esc(doorType || "(not specified)")}</li>
       <li><strong>Frame Type:</strong> ${esc(frameType || "(not specified)")}</li>
-      <li><strong>Hardware Set:</strong> ${esc(hardwareSet || "(not specified)")}</li>
-      <li><strong>Fire Rating:</strong> ${esc(fireRating || "(not specified)")}</li>
-      <li><strong>Quantity:</strong> ${esc(quantity || "(not specified)")}</li>
+      <li><strong>Fire Rated:</strong> ${esc(fireRated ? "Yes" : "No / not specified")}</li>
+      <li><strong>Frame Depth:</strong> ${esc(frameDepth || "(not specified)")}</li>
+      <li><strong>Wall Type / Opening Details:</strong> ${esc(wallTypeDetails || "(not specified)")}</li>
+      <li><strong>Vision Kit:</strong> ${esc(visionKit || "(not specified)")}</li>
       <li><strong>Timeline:</strong> ${esc(timeline || "(not specified)")}</li>
     </ul>
     <p><strong>Project Notes:</strong><br/>${esc(guidedNotes || "(none)")}</p>
@@ -116,9 +118,10 @@ export async function onRequestPost(context) {
       ? [
           `Door Type: ${doorType || "(not specified)"}`,
           `Frame Type: ${frameType || "(not specified)"}`,
-          `Hardware Set: ${hardwareSet || "(not specified)"}`,
-          `Fire Rating: ${fireRating || "(not specified)"}`,
-          `Quantity: ${quantity || "(not specified)"}`,
+          `Fire Rated: ${fireRated ? "Yes" : "No / not specified"}`,
+          `Frame Depth: ${frameDepth || "(not specified)"}`,
+          `Wall Type / Opening Details: ${wallTypeDetails || "(not specified)"}`,
+          `Vision Kit: ${visionKit || "(not specified)"}`,
           `Timeline: ${timeline || "(not specified)"}`,
           `Project Notes: ${guidedNotes || "(none)"}`,
         ].join("\n")
