@@ -500,6 +500,12 @@
 
     .check-row input { margin: 0; }
 
+    .check-row--tight {
+      gap: 0;
+      min-height: auto;
+      font-weight: 500;
+    }
+
     .vision-wrap {
       margin-top: 10px;
       border: 1px solid var(--line);
@@ -517,10 +523,6 @@
 
     .vision-image {
       margin-top: 8px;
-      border: 1px solid #d9e3f5;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #fff;
     }
 
     .vision-image img {
@@ -980,9 +982,9 @@
               </div>
               <div class="field">
                 <label for="qFireRated">Fire rated</label>
-                <label class="check-row" for="qFireRated" aria-label="Fire rated opening">
+                <label class="check-row check-row--tight" for="qFireRated" aria-label="Fire rated opening">
                   <input id="qFireRated" name="fireRated" type="checkbox" />
-                  <span>Required</span>
+                  Fire-rated opening
                 </label>
               </div>
               <div class="field hidden" id="wallTypeField">
@@ -1006,7 +1008,11 @@
                 <span>Show vision kit style chart (A-H)</span>
               </label>
               <div class="vision-image hidden" id="visionReferenceImage">
-                <img src="assets/vision-kit-reference.svg" alt="Vision kit reference chart with options A through H" />
+                <img
+                  src="assets/vision-kit-reference.png"
+                  alt="Vision kit reference chart with options A through H"
+                  onerror="this.onerror=null;this.src='assets/vision-kit-reference.svg';"
+                />
               </div>
               <div class="vision-note">Check the box to open the standard vision kit chart image.</div>
             </div>
