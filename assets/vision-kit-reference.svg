@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-label="Vision kit reference A through H">
+  <rect width="1200" height="360" fill="#ececec"/>
+
+  <g transform="translate(24,32)">
+    <text x="8" y="30" font-family="Arial, sans-serif" font-size="52" fill="#606060">Narrow</text>
+    <g transform="translate(0,52)">
+      <rect x="0" y="0" width="390" height="270" rx="8" fill="#f4f4f4"/>
+
+      <g transform="translate(14,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="59" y="42" width="33" height="72" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="53" y="235" font-family="Arial, sans-serif" font-size="44">A</text>
+      </g>
+
+      <g transform="translate(136,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="59" y="42" width="33" height="72" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <rect x="59" y="132" width="33" height="72" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="53" y="235" font-family="Arial, sans-serif" font-size="44">B</text>
+      </g>
+
+      <g transform="translate(258,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="59" y="42" width="33" height="162" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="53" y="235" font-family="Arial, sans-serif" font-size="44">C</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(442,32)">
+    <text x="8" y="30" font-family="Arial, sans-serif" font-size="52" fill="#606060">Square</text>
+    <g transform="translate(0,52)">
+      <rect x="0" y="0" width="390" height="270" rx="8" fill="#f4f4f4"/>
+
+      <g transform="translate(14,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="33" y="42" width="46" height="46" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <rect x="33" y="116" width="46" height="46" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <rect x="33" y="190" width="46" height="46" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="53" y="235" font-family="Arial, sans-serif" font-size="44">D</text>
+      </g>
+
+      <g transform="translate(136,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="21" y="42" width="70" height="54" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="53" y="235" font-family="Arial, sans-serif" font-size="44">E</text>
+      </g>
+
+      <g transform="translate(258,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="16" y="42" width="78" height="70" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="53" y="235" font-family="Arial, sans-serif" font-size="44">F</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(860,32)">
+    <text x="8" y="30" font-family="Arial, sans-serif" font-size="52" fill="#606060">Half</text>
+    <g transform="translate(0,52)">
+      <rect x="0" y="0" width="136" height="270" rx="8" fill="#f4f4f4"/>
+      <g transform="translate(16,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="17" y="42" width="70" height="98" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="40" y="240" font-family="Arial, sans-serif" font-size="44">G</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(1038,32)">
+    <text x="8" y="30" font-family="Arial, sans-serif" font-size="52" fill="#606060">Full</text>
+    <g transform="translate(0,52)">
+      <rect x="0" y="0" width="136" height="270" rx="8" fill="#f4f4f4"/>
+      <g transform="translate(16,12)">
+        <rect x="0" y="0" width="106" height="244" fill="#c7c7c7"/>
+        <rect x="24" y="42" width="62" height="162" fill="#efefef" stroke="#6b6b6b" stroke-width="5"/>
+        <text x="40" y="240" font-family="Arial, sans-serif" font-size="44">H</text>
+      </g>
+    </g>
+  </g>
+</svg>

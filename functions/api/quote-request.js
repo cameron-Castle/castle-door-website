@@ -20,11 +20,12 @@ export async function onRequestPost(context) {
   const phone = String(body?.phone || "").trim();
   const company = String(body?.company || "").trim();
   const doorType = String(body?.doorType || "").trim();
+  const woodSpecies = String(body?.woodSpecies || "").trim();
   const frameType = String(body?.frameType || "").trim();
   const fireRated = Boolean(body?.fireRated);
   const frameDepth = String(body?.frameDepth || "").trim();
   const wallTypeDetails = String(body?.wallTypeDetails || "").trim();
-  const visionKit = String(body?.visionKit || "").trim().toUpperCase();
+  const needsVisionKitReference = Boolean(body?.needsVisionKitReference);
   const timeline = String(body?.timeline || "").trim();
   const guidedNotes = String(body?.guidedNotes || "").trim();
   const customScope = String(body?.customScope || "").trim();
@@ -71,11 +72,12 @@ export async function onRequestPost(context) {
     <h3>Guided Build Selections</h3>
     <ul>
       <li><strong>Door Type:</strong> ${esc(doorType || "(not specified)")}</li>
+      <li><strong>Wood Species:</strong> ${esc(woodSpecies || "(not specified)")}</li>
       <li><strong>Frame Type:</strong> ${esc(frameType || "(not specified)")}</li>
       <li><strong>Fire Rated:</strong> ${esc(fireRated ? "Yes" : "No / not specified")}</li>
       <li><strong>Frame Depth:</strong> ${esc(frameDepth || "(not specified)")}</li>
       <li><strong>Wall Type / Opening Details:</strong> ${esc(wallTypeDetails || "(not specified)")}</li>
-      <li><strong>Vision Kit:</strong> ${esc(visionKit || "(not specified)")}</li>
+      <li><strong>Vision Kit Chart Requested:</strong> ${esc(needsVisionKitReference ? "Yes" : "No")}</li>
       <li><strong>Timeline:</strong> ${esc(timeline || "(not specified)")}</li>
     </ul>
     <p><strong>Project Notes:</strong><br/>${esc(guidedNotes || "(none)")}</p>
@@ -117,11 +119,12 @@ export async function onRequestPost(context) {
     mode === "guided"
       ? [
           `Door Type: ${doorType || "(not specified)"}`,
+          `Wood Species: ${woodSpecies || "(not specified)"}`,
           `Frame Type: ${frameType || "(not specified)"}`,
           `Fire Rated: ${fireRated ? "Yes" : "No / not specified"}`,
           `Frame Depth: ${frameDepth || "(not specified)"}`,
           `Wall Type / Opening Details: ${wallTypeDetails || "(not specified)"}`,
-          `Vision Kit: ${visionKit || "(not specified)"}`,
+          `Vision Kit Chart Requested: ${needsVisionKitReference ? "Yes" : "No"}`,
           `Timeline: ${timeline || "(not specified)"}`,
           `Project Notes: ${guidedNotes || "(none)"}`,
         ].join("\n")
