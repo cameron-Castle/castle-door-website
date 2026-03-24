@@ -79,6 +79,47 @@ export async function onRequestPost(context) {
   })();
 
   const visionKitImageUrl = sourceOrigin ? `${sourceOrigin}/assets/vision-kit-reference.png` : "";
+  let visionKitHtmlSection = "";
+  let visionKitTextLine = "";
+  let attachments = [];
+
+  if (mode === "guided" && needsVisionKitReference && visionKitImageUrl) {
+    try {
+      const imgRes = await fetch(visionKitImageUrl);
+      if (imgRes.ok) {
+        const bytes = new Uint8Array(await imgRes.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+
+        attachments.push({
+          filename: "vision-kit-reference.png",
+          content: base64,
+          contentType: "image/png",
+          content_id: "vision-kit-reference",
+        });
+
+        visionKitHtmlSection = `
+          <p><strong>Vision Kit Reference:</strong></p>
+          <p><img src="cid:vision-kit-reference" alt="Vision kit style chart A-H" style="max-width:100%;height:auto;border:1px solid #dbe5f1;border-radius:8px;" /></p>
+          <p><a href="${esc(visionKitImageUrl)}">Open full-size vision kit image</a></p>
+        `;
+        visionKitTextLine = `Vision Kit Image URL: ${visionKitImageUrl}`;
+      } else {
+        visionKitHtmlSection = `
+          <p><strong>Vision Kit Reference:</strong></p>
+          <p><a href="${esc(visionKitImageUrl)}">Open full-size vision kit image</a></p>
+        `;
+        visionKitTextLine = `Vision Kit Image URL: ${visionKitImageUrl}`;
+      }
+    } catch {
+      visionKitHtmlSection = `
+        <p><strong>Vision Kit Reference:</strong></p>
+        <p><a href="${esc(visionKitImageUrl)}">Open full-size vision kit image</a></p>
+      `;
+      visionKitTextLine = `Vision Kit Image URL: ${visionKitImageUrl}`;
+    }
+  }
 
   const subject =
     mode === "guided"
@@ -99,13 +140,7 @@ export async function onRequestPost(context) {
       <li><strong>Assigned Rep:</strong> ${esc(quoteRepName)}</li>
     </ul>
     <p><strong>Project Notes:</strong><br/>${esc(guidedNotes || "(none)")}</p>
-    ${
-      needsVisionKitReference && visionKitImageUrl
-        ? `<p><strong>Vision Kit Reference:</strong></p>
-           <p><img src="${esc(visionKitImageUrl)}" alt="Vision kit style chart A-H" style="max-width:100%;height:auto;border:1px solid #dbe5f1;border-radius:8px;" /></p>
-           <p><a href="${esc(visionKitImageUrl)}" target="_blank" rel="noopener noreferrer">Open full-size vision kit image</a></p>`
-        : ""
-    }
+    ${visionKitHtmlSection}
   `;
 
   const customHtml = `
@@ -150,9 +185,7 @@ export async function onRequestPost(context) {
           `Frame Depth: ${frameDepth || "(not specified)"}`,
           `Wall Type / Opening Details: ${wallTypeDetails || "(not specified)"}`,
           `Vision Kit Chart Requested: ${needsVisionKitReference ? "Yes" : "No"}`,
-          ...(needsVisionKitReference && visionKitImageUrl
-            ? [`Vision Kit Image URL: ${visionKitImageUrl}`]
-            : []),
+          ...(visionKitTextLine ? [visionKitTextLine] : []),
           `Timeline: ${timeline || "(not specified)"}`,
           `Assigned Rep: ${quoteRepName}`,
           `Project Notes: ${guidedNotes || "(none)"}`,
@@ -176,6 +209,7 @@ export async function onRequestPost(context) {
         subject,
         html,
         text,
+        ...(attachments.length ? { attachments } : {}),
       }),
     });
 
