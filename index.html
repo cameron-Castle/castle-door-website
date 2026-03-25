@@ -574,6 +574,54 @@
     .form-message.ok { color: #166534; }
     .form-message.err { color: #b91c1c; }
 
+    .chatbot-box {
+      margin-bottom: 12px;
+      border: 1px solid #cfe1ff;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fbff, #ffffff);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .chatbot-log {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      max-height: 220px;
+      overflow: auto;
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .chatbot-msg {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #fff;
+      font-size: .88rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .chatbot-msg.user {
+      background: #eef4ff;
+      border-color: #c7d9ff;
+    }
+
+    .chatbot-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chatbot-note {
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.5;
+    }
+
     .step {
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -962,6 +1010,20 @@
 
         <div class="quote-grid">
           <form id="quoteForm" class="quote-form" novalidate>
+            <div class="chatbot-box" id="chatbotBox" aria-label="Quote assistant chatbot">
+              <div class="section-kicker" style="letter-spacing:.12em;">Quote assistant</div>
+              <div class="chatbot-note">
+                Not sure what you need? Use this assistant and then submit directly from chat.
+              </div>
+              <div id="chatbotLog" class="chatbot-log" aria-live="polite"></div>
+              <textarea id="chatbotInput" placeholder="Type your project details or answer the assistant question..."></textarea>
+              <div class="chatbot-actions">
+                <button class="btn" id="chatbotSend" type="button">Send to Assistant</button>
+                <button class="btn btn--primary" id="chatbotSubmit" type="button" disabled>Submit Assistant Quote</button>
+              </div>
+              <div id="chatbotStatus" class="form-message" aria-live="polite"></div>
+            </div>
+
             <div class="quote-form__modes" role="radiogroup" aria-label="Quote request type">
               <label class="mode-pill">
                 <input type="radio" name="quoteMode" value="guided" checked />
@@ -1223,6 +1285,11 @@
     const cSubmit = document.getElementById("cSubmit");
     const cCancel = document.getElementById("cCancel");
     const cMessageStatus = document.getElementById("cMessageStatus");
+    const chatbotLog = document.getElementById("chatbotLog");
+    const chatbotInput = document.getElementById("chatbotInput");
+    const chatbotSend = document.getElementById("chatbotSend");
+    const chatbotSubmit = document.getElementById("chatbotSubmit");
+    const chatbotStatus = document.getElementById("chatbotStatus");
 
     const quoteReps = [
       { key: "kale", name: "Kale" },
@@ -1230,11 +1297,88 @@
       { key: "cameron", name: "Cameron" },
     ];
 
+    const CHATBOT_SESSION_KEY = "castle_chatbot_session_id";
+    const CHATBOT_STATE_KEY = "castle_chatbot_state";
+    let chatbotSessionId = localStorage.getItem(CHATBOT_SESSION_KEY) || `chat-${Date.now()}-${Math.floor(Math.random() * 99999)}`;
+    localStorage.setItem(CHATBOT_SESSION_KEY, chatbotSessionId);
+    let chatbotState = safeParse(localStorage.getItem(CHATBOT_STATE_KEY), {
+      mode: "guided",
+      currentStep: "requestType",
+      quoteDraft: {},
+    });
+
     function pickQuoteRep() {
       const idx = Math.floor(Math.random() * quoteReps.length);
       const rep = quoteReps[idx];
       if (qRepBadge) qRepBadge.textContent = `Delivered directly to ${rep.name}`;
       if (qQuoteRep) qQuoteRep.value = rep.key;
+    }
+
+    function safeParse(raw, fallback) {
+      try {
+        const p = JSON.parse(raw || "");
+        return p && typeof p === "object" ? p : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function setChatbotStatus(text, cls = "") {
+      if (!chatbotStatus) return;
+      chatbotStatus.textContent = text;
+      chatbotStatus.className = `form-message ${cls}`.trim();
+    }
+
+    function appendChatbotMessage(role, text) {
+      if (!chatbotLog) return;
+      const div = document.createElement("div");
+      div.className = role === "user" ? "chatbot-msg user" : "chatbot-msg";
+      div.textContent = `${role === "user" ? "You" : "Assistant"}: ${text}`;
+      chatbotLog.appendChild(div);
+      chatbotLog.scrollTop = chatbotLog.scrollHeight;
+    }
+
+    function buildQuotePayloadFromChatbotDraft() {
+      const d = chatbotState?.quoteDraft || {};
+      const frameDepth = String(d.frameDepth || "").trim();
+      const wallTypeDetails = String(d.wallTypeDetails || "").trim() || (d.wallThicknessIn ? `Wall thickness approx: ${d.wallThicknessIn} in` : "");
+      const guidedNotesExtra = [];
+      if (Array.isArray(d.unknownsToVerify) && d.unknownsToVerify.length) guidedNotesExtra.push(`Unknowns: ${d.unknownsToVerify.join("; ")}`);
+      if (Array.isArray(d.assumptionsUsed) && d.assumptionsUsed.length) guidedNotesExtra.push(`Assumptions: ${d.assumptionsUsed.join("; ")}`);
+
+      const material = String(d.doorMaterial || "").toLowerCase();
+      const doorType = material === "wood" ? "Wood" : material === "hollow-metal" ? "Hollow metal" : String(d.doorType || "").trim();
+      const fireRated = String(d.fireRatedStatus || "").toLowerCase() === "yes" || d.fireRated === true;
+      const needsVisionKitReference = d.visionKitRequired === true || d.needsVisionKitReference === true;
+
+      return {
+        mode: "guided",
+        name: String(d.name || "").trim(),
+        email: String(d.email || "").trim(),
+        phone: String(d.phone || "").trim(),
+        company: String(d.company || "").trim(),
+        doorType,
+        woodSpecies: String(d.woodSpecies || "").trim(),
+        frameType: String(d.frameType || "").trim(),
+        fireRated,
+        frameDepth,
+        wallTypeDetails,
+        needsVisionKitReference,
+        quoteRep: String(qQuoteRep?.value || "").trim().toLowerCase(),
+        timeline: String(d.timeline || "").trim(),
+        guidedNotes: [String(d.guidedNotes || "").trim(), guidedNotesExtra.join("\n")].filter(Boolean).join("\n\n"),
+        customScope: "",
+      };
+    }
+
+    async function postQuoteRequest(payload) {
+      const res = await fetch("/api/quote-request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const out = await res.json().catch(() => ({}));
+      return { res, out };
     }
 
     function updateWoodSpeciesVisibility() {
@@ -1324,6 +1468,101 @@
     updateVisionReferenceVisibility();
     pickQuoteRep();
 
+    if (chatbotLog) {
+      appendChatbotMessage("assistant", "I can help build your quote request. Do you want a budget estimate or full quote?");
+    }
+
+    if (chatbotSend) {
+      chatbotSend.addEventListener("click", async () => {
+        const text = String(chatbotInput?.value || "").trim();
+        if (!text) return;
+        appendChatbotMessage("user", text);
+        if (chatbotInput) chatbotInput.value = "";
+        setChatbotStatus("Sending...", "");
+        chatbotSend.disabled = true;
+
+        try {
+          const res = await fetch("/api/chatbot-quote", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              sessionId: chatbotSessionId,
+              userMessage: text,
+              state: chatbotState,
+            }),
+          });
+
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const msg = out.error || "Chatbot is unavailable right now.";
+            appendChatbotMessage("assistant", msg);
+            setChatbotStatus(msg, "err");
+            return;
+          }
+
+          chatbotState = {
+            mode: "guided",
+            currentStep: out.currentStep || "requestType",
+            quoteDraft: out.quoteDraft || {},
+          };
+
+          if (Array.isArray(out.unknownsToVerify)) chatbotState.quoteDraft.unknownsToVerify = out.unknownsToVerify;
+          if (Array.isArray(out.assumptionsUsed)) chatbotState.quoteDraft.assumptionsUsed = out.assumptionsUsed;
+
+          localStorage.setItem(CHATBOT_STATE_KEY, JSON.stringify(chatbotState));
+          appendChatbotMessage("assistant", String(out.assistantMessage || "What should we capture next?"));
+
+          const ready = Boolean(out.readyToSubmit);
+          if (chatbotSubmit) chatbotSubmit.disabled = !ready;
+          setChatbotStatus(ready ? "Assistant has enough data. You can submit now." : "Continue answering to complete quote details.", ready ? "ok" : "");
+        } catch {
+          appendChatbotMessage("assistant", "Network error while contacting chatbot.");
+          setChatbotStatus("Network error while contacting chatbot.", "err");
+        } finally {
+          chatbotSend.disabled = false;
+        }
+      });
+    }
+
+    if (chatbotInput) {
+      chatbotInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          chatbotSend?.click();
+        }
+      });
+    }
+
+    if (chatbotSubmit) {
+      chatbotSubmit.addEventListener("click", async () => {
+        const payload = buildQuotePayloadFromChatbotDraft();
+        if (!payload.name || !payload.email) {
+          setChatbotStatus("Name and email are still required before submission.", "err");
+          return;
+        }
+
+        chatbotSubmit.disabled = true;
+        const originalText = chatbotSubmit.textContent;
+        chatbotSubmit.textContent = "Submitting...";
+
+        try {
+          const { res, out } = await postQuoteRequest(payload);
+          if (!res.ok) {
+            setChatbotStatus(out.error || "Unable to submit chatbot quote right now.", "err");
+            return;
+          }
+
+          appendChatbotMessage("assistant", "Quote request sent successfully. Our team will follow up shortly.");
+          setChatbotStatus("Quote request sent.", "ok");
+        } catch {
+          setChatbotStatus("Network error while submitting chatbot quote.", "err");
+        } finally {
+          chatbotSubmit.disabled = false;
+          chatbotSubmit.textContent = originalText;
+        }
+      });
+    }
+
     if (openContactModal) {
       openContactModal.addEventListener("click", () => setModalOpen(true));
     }
@@ -1401,13 +1640,7 @@
       qSubmit.textContent = "Sending...";
 
       try {
-        const res = await fetch("/api/quote-request", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        const out = await res.json().catch(() => ({}));
+        const { res, out } = await postQuoteRequest(payload);
         if (!res.ok) {
           qMessage.textContent = out.error || "Unable to send quote request right now.";
           qMessage.classList.add("err");

@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Castle Door Chatbot Preview (Non-Production)</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --line: #dbe5f1;
+      --text: #0f172a;
+      --muted: #475569;
+      --brand: #1d4ed8;
+      --ok: #166534;
+      --warn: #92400e;
+      --err: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .wrap {
+      width: min(1080px, calc(100% - 24px));
+      margin: 24px auto;
+      display: grid;
+      gap: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 14px;
+    }
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .kicker {
+      font-size: .8rem;
+      letter-spacing: .14em;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .title { font-size: 1.2rem; font-weight: 700; }
+    .note { color: var(--muted); font-size: .9rem; line-height: 1.6; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .chat {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 10px;
+      min-height: 480px;
+    }
+    .log {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8fbff;
+      padding: 10px;
+      overflow: auto;
+      max-height: 520px;
+      display: grid;
+      gap: 8px;
+    }
+    .bubble {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: #fff;
+      font-size: .92rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .bubble.user {
+      border-color: #c7d9ff;
+      background: #eef4ff;
+    }
+    .controls {
+      display: grid;
+      gap: 8px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    input, textarea, button, select {
+      font: inherit;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: #fff;
+      color: var(--text);
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      min-height: 40px;
+      padding: 0 14px;
+      cursor: pointer;
+      background: #fff;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .btn-primary {
+      border-color: transparent;
+      color: #fff;
+      background: linear-gradient(145deg, #1d4ed8, #0ea5e9);
+    }
+    .status {
+      font-size: .87rem;
+      color: var(--muted);
+      min-height: 1.2em;
+    }
+    .status.ok { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .status.err { color: var(--err); }
+    pre {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #0f172a;
+      color: #dbeafe;
+      padding: 12px;
+      overflow: auto;
+      max-height: 520px;
+      font-size: .82rem;
+      line-height: 1.5;
+    }
+    .pill {
+      border: 1px solid #c7d9ff;
+      background: #eef4ff;
+      color: #1e3a8a;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card">
+      <div class="head">
+        <div>
+          <div class="kicker">Preview build</div>
+          <div class="title">Quote Chatbot Preview (Safe Duplicate)</div>
+        </div>
+        <div class="pill">No production wiring</div>
+      </div>
+      <p class="note" style="margin-top:8px;">
+        This page calls <code>/api/chatbot-quote-preview</code> only. It does not touch the live quote path.
+        Use this to tune probing behavior before go-live.
+      </p>
+    </section>
+
+    <section class="grid">
+      <article class="card chat">
+        <div id="chatLog" class="log" aria-live="polite"></div>
+        <div class="controls">
+          <textarea id="userMessage" placeholder="Type customer message for preview..."></textarea>
+          <div class="row">
+            <button id="sendBtn" class="btn-primary" type="button">Send</button>
+            <button id="resetBtn" type="button">Reset Session</button>
+            <select id="seedSelect" aria-label="Seed sample transcript">
+              <option value="">Seed sample...</option>
+              <option value="budget">Budget unsure customer</option>
+              <option value="full">Full quote customer</option>
+            </select>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="kicker">Server state</div>
+        <p class="note" style="margin:6px 0 10px;">Live view of quote draft from preview endpoint.</p>
+        <pre id="stateView">{}</pre>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    // PREVIEW-ONLY SCRIPT
+    // Intentionally isolated from production index page.
+
+    const chatLog = document.getElementById("chatLog");
+    const userMessage = document.getElementById("userMessage");
+    const sendBtn = document.getElementById("sendBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusEl = document.getElementById("status");
+    const stateView = document.getElementById("stateView");
+    const seedSelect = document.getElementById("seedSelect");
+
+    const SESSION_KEY = "chatbot_preview_session_id";
+    const STATE_KEY = "chatbot_preview_state";
+
+    let sessionId = localStorage.getItem(SESSION_KEY) || `preview-${Date.now()}-${Math.floor(Math.random() * 99999)}`;
+    localStorage.setItem(SESSION_KEY, sessionId);
+
+    let state = safeParse(localStorage.getItem(STATE_KEY), {
+      mode: "guided",
+      currentStep: "requestType",
+      quoteDraft: {},
+    });
+
+    addBot("Preview ready. Start with the customer's first message.");
+    renderState();
+
+    sendBtn.addEventListener("click", sendTurn);
+    userMessage.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendTurn();
+      }
+    });
+
+    resetBtn.addEventListener("click", () => {
+      sessionId = `preview-${Date.now()}-${Math.floor(Math.random() * 99999)}`;
+      state = { mode: "guided", currentStep: "requestType", quoteDraft: {} };
+      localStorage.setItem(SESSION_KEY, sessionId);
+      localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      chatLog.innerHTML = "";
+      addBot("Session reset. Start a new customer conversation.");
+      setStatus("Session reset.", "ok");
+      renderState();
+    });
+
+    seedSelect.addEventListener("change", () => {
+      if (seedSelect.value === "budget") {
+        userMessage.value = "Hi, I need a ballpark quote for about 18 to 22 interior classroom doors. I am not sure on handing or hinge locations yet.";
+      } else if (seedSelect.value === "full") {
+        userMessage.value = "We need a full quote for 12 exterior openings, hollow metal doors and frames, keyed entry hardware, and closers.";
+      }
+    });
+
+    async function sendTurn() {
+      const text = String(userMessage.value || "").trim();
+      if (!text) return;
+
+      addUser(text);
+      userMessage.value = "";
+      setStatus("Sending...", "warn");
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch("/api/chatbot-quote-preview", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            userMessage: text,
+            state,
+          }),
+        });
+
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = out?.error || "Preview endpoint error";
+          addBot(`Error: ${msg}`);
+          setStatus(msg, "err");
+          return;
+        }
+
+        state = {
+          mode: "guided",
+          currentStep: out.currentStep || "requestType",
+          quoteDraft: out.quoteDraft || {},
+        };
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+
+        const assistantMessage = String(out.assistantMessage || "No assistant message returned.");
+        addBot(assistantMessage);
+
+        if (out.readyToSubmit) {
+          setStatus(out.fallbackMode ? "Ready to submit (deterministic mode)." : "Ready to submit.", "ok");
+        } else {
+          setStatus(out.fallbackMode ? "Fallback deterministic mode active." : "OpenAI preview mode active.", "warn");
+        }
+
+        renderState(out);
+      } catch (err) {
+        const message = `Network error: ${String(err?.message || err)}`;
+        addBot(message);
+        setStatus(message, "err");
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    function renderState(extra) {
+      const merged = {
+        sessionId,
+        state,
+        ...(extra && typeof extra === "object" ? { responseMeta: {
+          currentStep: extra.currentStep,
+          readyToSubmit: extra.readyToSubmit,
+          fallbackMode: extra.fallbackMode,
+          unknownsToVerify: extra.unknownsToVerify || [],
+          assumptionsUsed: extra.assumptionsUsed || [],
+        } } : {}),
+      };
+      stateView.textContent = JSON.stringify(merged, null, 2);
+    }
+
+    function addUser(text) {
+      const div = document.createElement("div");
+      div.className = "bubble user";
+      div.textContent = `Customer: ${text}`;
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function addBot(text) {
+      const div = document.createElement("div");
+      div.className = "bubble";
+      div.textContent = `Assistant: ${text}`;
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function setStatus(text, cls) {
+      statusEl.textContent = text;
+      statusEl.className = `status ${cls || ""}`.trim();
+    }
+
+    function safeParse(raw, fallback) {
+      try {
+        const parsed = JSON.parse(raw || "");
+        return parsed && typeof parsed === "object" ? parsed : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+  </script>
+</body>
+</html>
+
