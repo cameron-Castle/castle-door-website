@@ -30,51 +30,20 @@ export async function onRequestPost(context) {
     return json({ error: "sessionId and userMessage are required" }, 400);
   }
 
-  const incomingDraft = state?.quoteDraft && typeof state.quoteDraft === "object" ? state.quoteDraft : {};
-  const draft = {
-    requestType: normalizeEnum(incomingDraft.requestType, ["budget", "full"], "budget"),
-    openingType: normalizeEnum(incomingDraft.openingType, ["single", "double", "mixed", "unknown"], "unknown"),
-    application: normalizeEnum(incomingDraft.application, ["interior", "exterior", "both", "unknown"], "unknown"),
-    jobType: normalizeEnum(incomingDraft.jobType, ["new", "replacement", "unknown"], "unknown"),
-    openingCountEstimate: str(incomingDraft.openingCountEstimate),
-    projectName: str(incomingDraft.projectName),
-    name: str(incomingDraft.name),
-    email: str(incomingDraft.email),
-    phone: str(incomingDraft.phone),
-    company: str(incomingDraft.company),
-    sizeWidthIn: numOrNull(incomingDraft.sizeWidthIn),
-    sizeHeightIn: numOrNull(incomingDraft.sizeHeightIn),
-    sizeAssumed: Boolean(incomingDraft.sizeAssumed),
-    doorType: str(incomingDraft.doorType),
-    doorMaterial: normalizeEnum(incomingDraft.doorMaterial, ["wood", "hollow-metal", "aluminum", "unknown"], "unknown"),
-    woodSpecies: str(incomingDraft.woodSpecies),
-    replaceFrame: toTriBool(incomingDraft.replaceFrame),
-    frameType: str(incomingDraft.frameType),
-    frameDepth: str(incomingDraft.frameDepth),
-    wallThicknessIn: numOrNull(incomingDraft.wallThicknessIn),
-    frameDepthDerivedFromWall: Boolean(incomingDraft.frameDepthDerivedFromWall),
-    wallTypeDetails: str(incomingDraft.wallTypeDetails),
-    handing: normalizeEnum(incomingDraft.handing, ["lh", "rh", "lhr", "rhr", "unknown"], "unknown"),
-    handingNeedsSiteVerify: Boolean(incomingDraft.handingNeedsSiteVerify),
-    hingeLocationRequirement: normalizeEnum(incomingDraft.hingeLocationRequirement, ["standard", "match-existing", "custom", "unknown"], "unknown"),
-    hingeLocationsProvided: Boolean(incomingDraft.hingeLocationsProvided),
-    hardwareScope: normalizeEnum(incomingDraft.hardwareScope, ["door-only", "door-frame", "door-frame-hardware", "unknown"], "unknown"),
-    hardwareNeeds: str(incomingDraft.hardwareNeeds),
-    lockFunction: normalizeEnum(incomingDraft.lockFunction, ["entry-keyed", "privacy", "passage", "storeroom", "unknown"], "unknown"),
-    closerRequired: toTriBool(incomingDraft.closerRequired),
-    finishPreference: str(incomingDraft.finishPreference),
-    fireRatedStatus: normalizeEnum(incomingDraft.fireRatedStatus, ["yes", "no", "unknown"], "unknown"),
-    fireRated: Boolean(incomingDraft.fireRated),
-    visionKitRequired: toTriBool(incomingDraft.visionKitRequired),
-    visionKitSize: str(incomingDraft.visionKitSize),
-    needsVisionKitReference: Boolean(incomingDraft.needsVisionKitReference),
-    timeline: str(incomingDraft.timeline),
-    guidedNotes: str(incomingDraft.guidedNotes),
-  };
+  const ip = String(request.headers.get("CF-Connecting-IP") || "unknown");
+  const limited = checkRateLimit(ip);
+  if (limited) {
+    return json({ error: "Too many chatbot requests. Please wait a moment and try again." }, 429);
+  }
 
+  const incomingDraft = state?.quoteDraft && typeof state.quoteDraft === "object" ? state.quoteDraft : {};
+  const draft = sanitizeDraft(incomingDraft);
+
+  const serverStepHint = getNextField(draft);
+  const extractionStep = currentStep && currentStep === serverStepHint ? currentStep : serverStepHint;
   const confusedReply = isConfusedReply(userMessage);
   if (!confusedReply) {
-    applyDeterministicExtraction(draft, userMessage, currentStep);
+    applyDeterministicExtraction(draft, userMessage, extractionStep);
   }
 
   const useOpenAI =
@@ -88,21 +57,29 @@ export async function onRequestPost(context) {
     try {
       const aiResult = await getOpenAIUpdates({ env, userMessage, draft, currentStep, nextField: preAiNextField });
       if (aiResult?.updates && typeof aiResult.updates === "object") mergeSafeUpdates(draft, aiResult.updates);
+      Object.assign(draft, sanitizeDraft(draft));
       if (typeof aiResult?.assistantMessage === "string") aiAssistantMessage = aiResult.assistantMessage.trim().slice(0, 420);
-    } catch {
-      // fallback mode
+    } catch (err) {
+      console.warn("[chatbot-quote] OpenAI update failed", {
+        message: String(err?.message || err),
+        nextField: preAiNextField,
+      });
     }
   }
 
   const unknownsToVerify = buildUnknowns(draft);
   const assumptionsUsed = buildAssumptions(draft);
+  const validationErrors = validateDraft(draft);
   const nextField = getNextField(draft);
   const readyToSubmit = nextField === "done";
+  const canSubmit = readyToSubmit && validationErrors.length === 0;
 
   const assistantMessage = confusedReply
     ? buildClarifyingQuestion(currentStep && currentStep !== "done" ? currentStep : nextField)
-    : readyToSubmit
+    : canSubmit
       ? buildSummaryMessage(draft, unknownsToVerify, assumptionsUsed)
+      : readyToSubmit
+        ? buildReviewRequiredMessage(validationErrors)
       : (aiAssistantMessage && aiAssistantMessage.includes("?"))
         ? aiAssistantMessage
         : aiAssistantMessage
@@ -115,10 +92,102 @@ export async function onRequestPost(context) {
     assistantMessage,
     currentStep: nextField,
     readyToSubmit,
+    canSubmit,
+    validationErrors,
     unknownsToVerify,
     assumptionsUsed,
     quoteDraft: draft,
   });
+}
+
+function sanitizeDraft(input) {
+  const d = input && typeof input === "object" ? input : {};
+  return {
+    requestType: normalizeEnum(d.requestType, ["budget", "full", "unknown"], "unknown"),
+    openingType: normalizeEnum(d.openingType, ["single", "double", "mixed", "unknown"], "unknown"),
+    application: normalizeEnum(d.application, ["interior", "exterior", "both", "unknown"], "unknown"),
+    jobType: normalizeEnum(d.jobType, ["new", "replacement", "unknown"], "unknown"),
+    openingCountEstimate: str(d.openingCountEstimate),
+    projectName: str(d.projectName),
+    name: str(d.name),
+    email: str(d.email),
+    phone: str(d.phone),
+    company: str(d.company),
+    sizeWidthIn: numOrNull(d.sizeWidthIn),
+    sizeHeightIn: numOrNull(d.sizeHeightIn),
+    sizeAssumed: Boolean(d.sizeAssumed),
+    doorType: str(d.doorType),
+    doorMaterial: normalizeEnum(d.doorMaterial, ["wood", "hollow-metal", "aluminum", "unknown"], "unknown"),
+    woodSpecies: str(d.woodSpecies),
+    replaceFrame: toTriBool(d.replaceFrame),
+    frameType: str(d.frameType),
+    frameDepth: str(d.frameDepth),
+    wallThicknessIn: numOrNull(d.wallThicknessIn),
+    frameDepthDerivedFromWall: Boolean(d.frameDepthDerivedFromWall),
+    wallTypeDetails: str(d.wallTypeDetails),
+    handing: normalizeEnum(d.handing, ["lh", "rh", "lhr", "rhr", "unknown"], "unknown"),
+    handingNeedsSiteVerify: Boolean(d.handingNeedsSiteVerify),
+    hingeLocationRequirement: normalizeEnum(d.hingeLocationRequirement, ["standard", "match-existing", "custom", "unknown"], "unknown"),
+    hingeLocationsProvided: Boolean(d.hingeLocationsProvided),
+    hardwareScope: normalizeEnum(d.hardwareScope, ["door-only", "door-frame", "door-frame-hardware", "unknown"], "unknown"),
+    hardwareNeeds: str(d.hardwareNeeds),
+    lockFunction: normalizeEnum(d.lockFunction, ["entry-keyed", "privacy", "passage", "storeroom", "unknown"], "unknown"),
+    closerRequired: toTriBool(d.closerRequired),
+    finishPreference: str(d.finishPreference),
+    fireRatedStatus: normalizeEnum(d.fireRatedStatus, ["yes", "no", "unknown"], "unknown"),
+    fireRated: toTriBool(d.fireRated),
+    visionKitRequired: toTriBool(d.visionKitRequired),
+    visionKitSize: str(d.visionKitSize),
+    needsVisionKitReference: Boolean(d.needsVisionKitReference),
+    timeline: str(d.timeline),
+    guidedNotes: str(d.guidedNotes),
+  };
+}
+
+function validateDraft(draft) {
+  const errors = [];
+
+  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) {
+    errors.push("Email format looks invalid");
+  }
+
+  if (draft.phone && !/^[0-9+().\-\s]{7,20}$/.test(draft.phone)) {
+    errors.push("Phone format looks invalid");
+  }
+
+  if (draft.openingCountEstimate && !/^\d{1,3}(?:-\d{1,3})?$/.test(draft.openingCountEstimate)) {
+    errors.push("Opening count should be a number or range like 12 or 16-22");
+  }
+
+  if (draft.sizeWidthIn !== null && (draft.sizeWidthIn < 12 || draft.sizeWidthIn > 72)) {
+    errors.push("Door width looks out of range");
+  }
+
+  if (draft.sizeHeightIn !== null && (draft.sizeHeightIn < 48 || draft.sizeHeightIn > 120)) {
+    errors.push("Door height looks out of range");
+  }
+
+  if (draft.wallThicknessIn !== null && (draft.wallThicknessIn < 2 || draft.wallThicknessIn > 24)) {
+    errors.push("Wall thickness looks out of range");
+  }
+
+  if (draft.fireRatedStatus === "no" && draft.fireRated === true) {
+    errors.push("Fire rating fields conflict");
+  }
+
+  if (draft.frameDepthDerivedFromWall && draft.wallThicknessIn === null) {
+    errors.push("Frame depth is marked derived from wall but wall thickness is missing");
+  }
+
+  if (draft.hardwareScope === "door-only" && draft.replaceFrame === true) {
+    errors.push("Hardware scope says door-only but frame replacement is set to true");
+  }
+
+  if (draft.doorMaterial === "aluminum" && /hollow\s*metal/i.test(draft.doorType || "")) {
+    errors.push("Door material and door type conflict (aluminum vs hollow metal)");
+  }
+
+  return errors;
 }
 
 function str(v) {
@@ -190,6 +259,11 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
   if (m.includes("closer")) draft.closerRequired = true;
   if (m.includes("black")) draft.finishPreference = "black";
 
+  if (/\bentry\b|\bentrance\b/.test(m)) draft.lockFunction = "entry-keyed";
+  if (/\blever\b/.test(m)) {
+    draft.hardwareNeeds = [draft.hardwareNeeds, "lever hardware"].filter(Boolean).join(", ");
+  }
+
   const emailMatch = message.match(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/);
   if (emailMatch) draft.email = emailMatch[0];
 
@@ -206,9 +280,31 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     draft.sizeAssumed = true;
   }
 
-  const wallMatch = message.match(/\b(3\.5|4|4\.5|5|5\.5|5\.75|6|7\.25|8|8\.25)\s*(?:"|in|inch|inches)?\b/i);
-  if (wallMatch && m.includes("wall")) {
-    draft.wallThicknessIn = Number(wallMatch[1]);
+  const nominalMatch = m.match(/\b(\d)\s*\/\s*0\s*[x×]\s*(\d)\s*\/\s*0\b/i);
+  if (nominalMatch && !draft.sizeWidthIn && !draft.sizeHeightIn) {
+    draft.sizeWidthIn = Number(nominalMatch[1]) * 12;
+    draft.sizeHeightIn = Number(nominalMatch[2]) * 12;
+    draft.sizeAssumed = true;
+  }
+
+  const fourDigitSize = m.match(/\b(3[0-9])\s*(6[8]|7[0]|8[0])\b/i);
+  if (fourDigitSize && !draft.sizeWidthIn && !draft.sizeHeightIn) {
+    draft.sizeWidthIn = Number(fourDigitSize[1]);
+    draft.sizeHeightIn = Number(fourDigitSize[2]);
+    draft.sizeAssumed = true;
+  }
+
+  const wallFrac = message.match(/\b(\d{1,2})\s*[- ]\s*(\d)\s*\/\s*(\d)\s*(?:"|in|inch|inches)?\b/i);
+  const wallDec = message.match(/\b(3\.5|4|4\.5|5|5\.5|5\.75|6|7\.25|8|8\.25)\s*(?:"|in|inch|inches)?\b/i);
+  let parsedWall = null;
+  if (wallFrac) {
+    parsedWall = Number(wallFrac[1]) + Number(wallFrac[2]) / Number(wallFrac[3]);
+  } else if (wallDec) {
+    parsedWall = Number(wallDec[1]);
+  }
+
+  if (parsedWall !== null && m.includes("wall")) {
+    draft.wallThicknessIn = parsedWall;
     if (!draft.frameDepth) {
       draft.frameDepth = suggestFrameDepth(draft.wallThicknessIn);
       draft.frameDepthDerivedFromWall = true;
@@ -283,7 +379,7 @@ function isConfusedReply(message) {
   if (m.length > 40) return false;
   if (/^(what|what\?|huh|idk|i don't know|not sure|what do you mean|which one)\b/.test(m)) return true;
   if (/\bwhat\b/.test(m) && /\?$/.test(m)) return true;
-  if (/\?$/.test(m) && /\bwood\b|\bmetal\b|\bnew\b|\breplace\b/.test(m)) return true;
+  if (/\?$/.test(m) && /\b(wood|metal|new|replace)\b/.test(m)) return true;
   return false;
 }
 
@@ -298,7 +394,7 @@ function suggestFrameDepth(wallThicknessIn) {
 function getNextField(draft) {
   const required = ["requestType", "openingCountEstimate", "application", "jobType", "doorMaterial", "hardwareScope", "name", "email"];
   for (const f of required) {
-    if (["doorMaterial", "application", "jobType", "hardwareScope"].includes(f) && draft[f] === "unknown") return f;
+    if (["requestType", "doorMaterial", "application", "jobType", "hardwareScope"].includes(f) && draft[f] === "unknown") return f;
     if (!draft[f]) return f;
   }
   if ((draft.frameDepth === "" || /unknown|other/i.test(draft.frameDepth)) && !draft.wallThicknessIn) return "wallThicknessIn";
@@ -375,19 +471,78 @@ function buildSummaryMessage(draft, unknowns, assumptions) {
   return lines.join("\n");
 }
 
+function buildReviewRequiredMessage(validationErrors) {
+  const lines = [
+    "I have most of your details, but a few items need review before submission:",
+    ...validationErrors.map((x) => `- ${x}`),
+    "",
+    "Reply with updates and I will fix these before submit.",
+  ];
+  return lines.join("\n");
+}
+
 function mergeSafeUpdates(draft, updates) {
   if (!updates || typeof updates !== "object") return;
+
+  const FIELD_TYPES = {
+    requestType: "string",
+    openingType: "string",
+    application: "string",
+    jobType: "string",
+    openingCountEstimate: "string",
+    projectName: "string",
+    name: "string",
+    email: "string",
+    phone: "string",
+    company: "string",
+    sizeWidthIn: "number",
+    sizeHeightIn: "number",
+    sizeAssumed: "boolean",
+    doorType: "string",
+    doorMaterial: "string",
+    woodSpecies: "string",
+    replaceFrame: "tri",
+    frameType: "string",
+    frameDepth: "string",
+    wallThicknessIn: "number",
+    frameDepthDerivedFromWall: "boolean",
+    wallTypeDetails: "string",
+    handing: "string",
+    handingNeedsSiteVerify: "boolean",
+    hingeLocationRequirement: "string",
+    hingeLocationsProvided: "boolean",
+    hardwareScope: "string",
+    hardwareNeeds: "string",
+    lockFunction: "string",
+    closerRequired: "tri",
+    finishPreference: "string",
+    fireRatedStatus: "string",
+    fireRated: "boolean",
+    visionKitRequired: "tri",
+    visionKitSize: "string",
+    needsVisionKitReference: "boolean",
+    timeline: "string",
+    guidedNotes: "string",
+  };
+
   for (const [k, v] of Object.entries(updates)) {
     if (!(k in draft)) continue;
-    if (typeof draft[k] === "boolean" || draft[k] === null) {
-      if (typeof v === "boolean" || v === null) draft[k] = v;
-      continue;
-    }
-    if (typeof draft[k] === "number") {
+
+    const type = FIELD_TYPES[k] || "string";
+    if (type === "number") {
       const n = Number(v);
       if (Number.isFinite(n)) draft[k] = n;
       continue;
     }
+    if (type === "boolean") {
+      if (typeof v === "boolean") draft[k] = v;
+      continue;
+    }
+    if (type === "tri") {
+      if (typeof v === "boolean" || v === null) draft[k] = v;
+      continue;
+    }
+
     draft[k] = typeof v === "string" ? v.trim().slice(0, 240) : draft[k];
   }
 }
@@ -396,7 +551,7 @@ async function getOpenAIUpdates({ env, userMessage, draft, currentStep, nextFiel
   const apiKey = String(env?.OPENAI_API_KEY || "").trim();
   if (!apiKey) return null;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -426,17 +581,52 @@ async function getOpenAIUpdates({ env, userMessage, draft, currentStep, nextFiel
       ],
       response_format: { type: "json_object" },
     }),
-  });
+  }, Number(env?.CHATBOT_OPENAI_TIMEOUT_MS || 8000));
 
   if (!response.ok) return null;
-  const out = await response.json();
+  let out;
+  try {
+    out = await response.json();
+  } catch (err) {
+    console.warn("[chatbot-quote] OpenAI non-JSON response", { message: String(err?.message || err) });
+    return null;
+  }
   const content = out?.choices?.[0]?.message?.content;
   if (!content) return null;
-  const parsed = JSON.parse(content);
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch (err) {
+    console.warn("[chatbot-quote] OpenAI returned invalid JSON content", { message: String(err?.message || err) });
+    return null;
+  }
   if (!parsed || typeof parsed !== "object") return null;
   return {
     updates: parsed?.updates && typeof parsed.updates === "object" ? parsed.updates : null,
     assistantMessage: typeof parsed?.assistantMessage === "string" ? parsed.assistantMessage : "",
   };
+}
+
+const RATE_LIMIT = new Map();
+function checkRateLimit(ip) {
+  const key = String(ip || "unknown");
+  const now = Date.now();
+  const windowMs = 60_000;
+  const maxHits = 30;
+  const entry = RATE_LIMIT.get(key) || { hits: [] };
+  entry.hits = entry.hits.filter((t) => now - t < windowMs);
+  entry.hits.push(now);
+  RATE_LIMIT.set(key, entry);
+  return entry.hits.length > maxHits;
+}
+
+async function fetchWithTimeout(url, options, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
 }
 
