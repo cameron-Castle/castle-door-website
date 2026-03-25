@@ -622,6 +622,36 @@
       line-height: 1.5;
     }
 
+    .quote-entry {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .quote-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .quote-option {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      color: #334155;
+      font-size: .9rem;
+      line-height: 1.5;
+    }
+
+    .quote-option.active {
+      border-color: #b8d8ff;
+      background: #eef4ff;
+      color: #1e3a8a;
+    }
+
     .step {
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -795,7 +825,8 @@
       .hero-grid { grid-template-columns: 1fr; }
       .actions .btn:last-child { display: none; }
       .quote-form__modes,
-      .form-grid { grid-template-columns: 1fr; }
+      .form-grid,
+      .quote-options { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 560px) {
@@ -1008,9 +1039,27 @@
           or use the free-form option if you already have a custom scope.
         </p>
 
-        <div class="quote-grid">
+        <div class="quote-entry" id="quoteEntry">
+          <button class="btn btn--primary" id="quoteStartBtn" type="button">Request a Quote</button>
+          <div class="quote-options hidden" id="quoteEntryOptions" aria-label="Quote request options">
+            <button class="quote-option" type="button" data-quote-experience="freeform">
+              <strong>1) I know what I want</strong><br/>
+              Free-form request. You type your scope and send.
+            </button>
+            <button class="quote-option" type="button" data-quote-experience="guided">
+              <strong>2) I kinda know what I want</strong><br/>
+              Guided form with practical questions and drop-downs.
+            </button>
+            <button class="quote-option" type="button" data-quote-experience="assistant">
+              <strong>3) Try our AI assistant</strong><br/>
+              Chat assistant helps you discover what you need.
+            </button>
+          </div>
+        </div>
+
+        <div class="quote-grid hidden" id="quoteBodyWrap">
           <form id="quoteForm" class="quote-form" novalidate>
-            <div class="chatbot-box" id="chatbotBox" aria-label="Quote assistant chatbot">
+            <div class="chatbot-box hidden" id="chatbotBox" aria-label="Quote assistant chatbot">
               <div class="section-kicker" style="letter-spacing:.12em;">Quote assistant</div>
               <div class="chatbot-note">
                 Not sure what you need? Use this assistant and then submit directly from chat.
@@ -1024,7 +1073,7 @@
               <div id="chatbotStatus" class="form-message" aria-live="polite"></div>
             </div>
 
-            <div class="quote-form__modes" role="radiogroup" aria-label="Quote request type">
+            <div class="quote-form__modes" id="quoteModePills" role="radiogroup" aria-label="Quote request type">
               <label class="mode-pill">
                 <input type="radio" name="quoteMode" value="guided" checked />
                 <span>Guided build (door/frame selections)</span>
@@ -1035,7 +1084,7 @@
               </label>
             </div>
 
-            <div class="form-grid">
+            <div class="form-grid" id="manualContactFields">
               <div class="field">
                 <label for="qName">Name</label>
                 <input id="qName" name="name" required />
@@ -1136,7 +1185,7 @@
 
             <input id="qQuoteRep" name="quoteRep" type="hidden" value="" />
 
-            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <div id="qManualSubmitRow" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
               <button class="btn btn--primary" id="qSubmit" type="submit">Send Quote Request</button>
               <span class="btn" id="qRepBadge" style="cursor:default;">Delivered directly to Cameron</span>
             </div>
@@ -1285,11 +1334,19 @@
     const cSubmit = document.getElementById("cSubmit");
     const cCancel = document.getElementById("cCancel");
     const cMessageStatus = document.getElementById("cMessageStatus");
+    const quoteStartBtn = document.getElementById("quoteStartBtn");
+    const quoteEntryOptions = document.getElementById("quoteEntryOptions");
+    const quoteBodyWrap = document.getElementById("quoteBodyWrap");
+    const quoteModePills = document.getElementById("quoteModePills");
+    const manualContactFields = document.getElementById("manualContactFields");
+    const qManualSubmitRow = document.getElementById("qManualSubmitRow");
+    const quoteOptionButtons = Array.from(document.querySelectorAll("[data-quote-experience]"));
     const chatbotLog = document.getElementById("chatbotLog");
     const chatbotInput = document.getElementById("chatbotInput");
     const chatbotSend = document.getElementById("chatbotSend");
     const chatbotSubmit = document.getElementById("chatbotSubmit");
     const chatbotStatus = document.getElementById("chatbotStatus");
+    const visionKitWrap = document.getElementById("visionKitWrap");
 
     const quoteReps = [
       { key: "kale", name: "Kale" },
@@ -1440,11 +1497,42 @@
       }
     }
 
+    function setQuoteExperience(experience) {
+      quoteOptionButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-quote-experience") === experience);
+      });
+
+      if (quoteBodyWrap) quoteBodyWrap.classList.remove("hidden");
+
+      const isAssistant = experience === "assistant";
+      const isFreeform = experience === "freeform";
+      const isGuided = experience === "guided";
+
+      if (chatbotBox) chatbotBox.classList.toggle("hidden", !isAssistant);
+      if (quoteModePills) quoteModePills.classList.toggle("hidden", isAssistant);
+      if (manualContactFields) manualContactFields.classList.toggle("hidden", isAssistant);
+      if (qManualSubmitRow) qManualSubmitRow.classList.toggle("hidden", isAssistant);
+      if (qMessage) qMessage.classList.toggle("hidden", isAssistant);
+
+      if (isFreeform) {
+        const customMode = document.querySelector('input[name="quoteMode"][value="custom"]');
+        if (customMode) customMode.checked = true;
+        setQuoteMode("custom");
+      } else if (isGuided) {
+        const guidedMode = document.querySelector('input[name="quoteMode"][value="guided"]');
+        if (guidedMode) guidedMode.checked = true;
+        setQuoteMode("guided");
+      } else if (isAssistant) {
+        guidedFields.style.display = "none";
+        customFields.style.display = "none";
+        if (visionKitWrap) visionKitWrap.style.display = "none";
+      }
+    }
+
     function setQuoteMode(mode) {
       const guided = mode !== "custom";
       guidedFields.style.display = guided ? "grid" : "none";
       customFields.style.display = guided ? "none" : "grid";
-      const visionKitWrap = document.getElementById("visionKitWrap");
       if (visionKitWrap) visionKitWrap.style.display = guided ? "block" : "none";
       if (guided) {
         updateWoodSpeciesVisibility();
@@ -1467,6 +1555,19 @@
     setupVisionReferenceDebug();
     updateVisionReferenceVisibility();
     pickQuoteRep();
+
+    if (quoteStartBtn) {
+      quoteStartBtn.addEventListener("click", () => {
+        if (quoteEntryOptions) quoteEntryOptions.classList.remove("hidden");
+      });
+    }
+
+    quoteOptionButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const experience = btn.getAttribute("data-quote-experience") || "guided";
+        setQuoteExperience(experience);
+      });
+    });
 
     if (chatbotLog) {
       appendChatbotMessage("assistant", "I can help build your quote request. Do you want a budget estimate or full quote?");

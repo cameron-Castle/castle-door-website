@@ -24,6 +24,7 @@ export async function onRequestPost(context) {
   const sessionId = String(body?.sessionId || "").trim();
   const userMessage = String(body?.userMessage || "").trim().slice(0, 1200);
   const state = body?.state && typeof body.state === "object" ? body.state : {};
+  const currentStep = String(state?.currentStep || "").trim();
 
   if (!sessionId || !userMessage) {
     return json({ error: "sessionId and userMessage are required" }, 400);
@@ -71,7 +72,10 @@ export async function onRequestPost(context) {
     guidedNotes: str(incomingDraft.guidedNotes),
   };
 
-  applyDeterministicExtraction(draft, userMessage);
+  const confusedReply = isConfusedReply(userMessage);
+  if (!confusedReply) {
+    applyDeterministicExtraction(draft, userMessage, currentStep);
+  }
 
   const useOpenAI =
     String(env?.CHATBOT_USE_OPENAI || "true").toLowerCase() === "true" &&
@@ -91,9 +95,11 @@ export async function onRequestPost(context) {
   const nextField = getNextField(draft);
   const readyToSubmit = nextField === "done";
 
-  const assistantMessage = readyToSubmit
-    ? buildSummaryMessage(draft, unknownsToVerify, assumptionsUsed)
-    : buildNextQuestion(nextField);
+  const assistantMessage = confusedReply
+    ? buildClarifyingQuestion(currentStep && currentStep !== "done" ? currentStep : nextField)
+    : readyToSubmit
+      ? buildSummaryMessage(draft, unknownsToVerify, assumptionsUsed)
+      : buildNextQuestion(nextField);
 
   return json({
     ok: true,
@@ -127,8 +133,11 @@ function normalizeEnum(value, allowed, fallback) {
   return allowed.includes(v) ? v : fallback;
 }
 
-function applyDeterministicExtraction(draft, message) {
+function applyDeterministicExtraction(draft, message, currentStep = "") {
   const m = message.toLowerCase();
+  const step = String(currentStep || "").trim();
+
+  mapShortAnswerByStep(draft, m, step);
 
   if (m.includes("ballpark") || m.includes("budget")) draft.requestType = "budget";
   if (m.includes("full quote")) draft.requestType = "full";
@@ -137,8 +146,8 @@ function applyDeterministicExtraction(draft, message) {
   else if (m.includes("interior")) draft.application = "interior";
   else if (m.includes("exterior")) draft.application = "exterior";
 
-  if (m.includes("replace") || m.includes("replacing")) draft.jobType = "replacement";
-  if (m.includes("new opening") || m.includes("new construction")) draft.jobType = "new";
+  if (m.includes("replace") || m.includes("replacing") || /\breplacement\b/.test(m)) draft.jobType = "replacement";
+  if (m.includes("new opening") || m.includes("new construction") || /^\s*new\s*$/.test(m)) draft.jobType = "new";
 
   if (m.includes("single")) draft.openingType = "single";
   if (m.includes("double")) draft.openingType = draft.openingType === "single" ? "mixed" : "double";
@@ -176,7 +185,9 @@ function applyDeterministicExtraction(draft, message) {
   const emailMatch = message.match(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/);
   if (emailMatch) draft.email = emailMatch[0];
 
-  const countMatch = message.match(/\b(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*(?:doors?|openings?)\b/i);
+  const countMatchLabeled = message.match(/\b(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*(?:doors?|openings?)\b/i);
+  const countMatchBare = message.match(/^\s*(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*$/i);
+  const countMatch = countMatchLabeled || countMatchBare;
   if (countMatch) {
     draft.openingCountEstimate = countMatch[2] ? `${countMatch[1]}-${countMatch[2]}` : countMatch[1];
   }
@@ -208,6 +219,66 @@ function applyDeterministicExtraction(draft, message) {
   if (m.includes("unknown") || m.includes("not sure") || m.includes("no idea")) draft.handingNeedsSiteVerify = true;
 }
 
+function mapShortAnswerByStep(draft, m, step) {
+  if (!step) return;
+
+  if (step === "requestType") {
+    if (/\bbudget|ballpark|rough\b/.test(m)) draft.requestType = "budget";
+    if (/\bfull\b/.test(m)) draft.requestType = "full";
+  }
+
+  if (step === "application") {
+    if (/\bboth\b/.test(m) || (m.includes("interior") && m.includes("exterior"))) draft.application = "both";
+    else if (/\binterior\b/.test(m)) draft.application = "interior";
+    else if (/\bexterior\b/.test(m)) draft.application = "exterior";
+  }
+
+  if (step === "jobType") {
+    if (/^\s*new\s*$/.test(m) || /\bnew construction\b/.test(m)) draft.jobType = "new";
+    if (/^\s*replace(?:ment)?\s*$/.test(m) || /\breplacing\b/.test(m)) draft.jobType = "replacement";
+  }
+
+  if (step === "doorMaterial") {
+    if (/\bwood\b/.test(m)) {
+      draft.doorMaterial = "wood";
+      if (!draft.doorType) draft.doorType = "Wood";
+    }
+    if (/\bhollow\s*metal\b|\bhm\b|\bsteel\b/.test(m)) {
+      draft.doorMaterial = "hollow-metal";
+      if (!draft.doorType) draft.doorType = "Hollow metal";
+    }
+    if (/\baluminum\b|\baluminium\b/.test(m)) draft.doorMaterial = "aluminum";
+  }
+
+  if (step === "hardwareScope") {
+    if (/\bdoor\s*only\b/.test(m)) draft.hardwareScope = "door-only";
+    if (/\bdoor\s*(\+|and)\s*frame\b/.test(m) || /\bdoor frame\b/.test(m)) draft.hardwareScope = "door-frame";
+    if (/\bcomplete\b|\bfull\b|\bhardware\b/.test(m)) draft.hardwareScope = "door-frame-hardware";
+  }
+
+  if (step === "fireRatedStatus") {
+    if (/\byes\b|\bfire rated\b/.test(m)) {
+      draft.fireRatedStatus = "yes";
+      draft.fireRated = true;
+    }
+    if (/\bno\b|\bnot fire\b/.test(m)) {
+      draft.fireRatedStatus = "no";
+      draft.fireRated = false;
+    }
+    if (/\bunknown\b|\bnot sure\b/.test(m)) draft.fireRatedStatus = "unknown";
+  }
+}
+
+function isConfusedReply(message) {
+  const m = String(message || "").trim().toLowerCase();
+  if (!m) return false;
+  if (m.length > 40) return false;
+  if (/^(what|what\?|huh|idk|i don't know|not sure|what do you mean|which one)\b/.test(m)) return true;
+  if (/\bwhat\b/.test(m) && /\?$/.test(m)) return true;
+  if (/\?$/.test(m) && /\bwood\b|\bmetal\b|\bnew\b|\breplace\b/.test(m)) return true;
+  return false;
+}
+
 function suggestFrameDepth(wallThicknessIn) {
   if (!Number.isFinite(wallThicknessIn)) return "Unknown";
   if (wallThicknessIn <= 4) return "4-5/8";
@@ -235,7 +306,7 @@ function buildNextQuestion(field) {
     openingCountEstimate: "About how many openings should we quote? A range is fine (example: 16-22).",
     application: "Is this interior, exterior, or both?",
     jobType: "Is this replacement work or new construction?",
-    doorMaterial: "Do you expect wood, hollow metal, aluminum, or unknown for now?",
+    doorMaterial: "For the door itself, what material should we assume: wood, hollow metal, aluminum, or unknown?",
     hardwareScope: "Should we quote door only, door + frame, or complete opening with hardware?",
     wallThicknessIn: "If frame depth is unknown, what is wall thickness (finished face to finished face), even a rough inches value?",
     hingeLocationRequirement: "For hinge locations, should we use standard prep, match existing, or custom?",
@@ -245,6 +316,22 @@ function buildNextQuestion(field) {
     email: "What is the best email for the quote?",
   };
   return map[field] || "What detail would you like to add next for this quote request?";
+}
+
+function buildClarifyingQuestion(field) {
+  const map = {
+    requestType: "No problem — choose one: budget estimate (fast) or full quote (detailed).",
+    openingCountEstimate: "No worries — just give a rough opening count, like 12 or 16-22.",
+    application: "Quick check: are these interior doors, exterior doors, or both?",
+    jobType: "Quick check: is this new construction, or replacing existing doors?",
+    doorMaterial: "I mean the door leaf material. Should we assume wood, hollow metal, aluminum, or unknown for now?",
+    hardwareScope: "No problem — pick one: door only, door + frame, or complete opening with hardware.",
+    wallThicknessIn: "If frame depth is unknown, a rough wall thickness in inches helps (example: 4, 5-3/4, or 8-1/4).",
+    hingeLocationRequirement: "For hinge prep, should we use standard locations, match existing, or custom locations?",
+    handing: "Do you know handing (LH/RH/LHR/RHR), or should we mark site verify?",
+    fireRatedStatus: "Do any openings need fire rating? yes, no, or unknown is fine.",
+  };
+  return map[field] || "No problem — tell me whichever detail you know, and I will guide the rest.";
 }
 
 function buildUnknowns(draft) {
