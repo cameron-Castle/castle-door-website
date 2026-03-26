@@ -324,6 +324,12 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
   if (/\b7\s*['-]\s*0\b|\b7\s*0\b/.test(m)) draft.doorHeightIn = 84;
   if (/\b8\s*['-]\s*0\b|\b8\s*0\b/.test(m)) draft.doorHeightIn = 96;
 
+  const frameDepthProvided = extractFrameDepthFromMessage(message);
+  if (frameDepthProvided) {
+    draft.frameDepth = frameDepthProvided;
+    draft.frameDepthDerivedFromWall = false;
+  }
+
   const wallFrac = message.match(/\b(\d{1,2})\s*[- ]\s*(\d)\s*\/\s*(\d)\s*(?:"|in|inch|inches)?\b/i);
   const wallDec = message.match(/\b(3\.5|4|4\.5|5|5\.5|5\.75|6|7\.25|8|8\.25)\s*(?:"|in|inch|inches)?\b/i);
   let parsedWall = null;
@@ -482,7 +488,9 @@ function buildUnknowns(draft) {
   if (draft.handing === "unknown") out.push("Handing to verify on site");
   if (draft.hingeLocationRequirement === "unknown") out.push("Hinge location requirement not confirmed");
   if (draft.fireRatedStatus === "unknown") out.push("Fire-rating requirement pending plan review");
-  if (!draft.wallThicknessIn) out.push("Wall thickness needed to confirm frame depth");
+  if (!draft.wallThicknessIn && (draft.frameDepth === "" || /unknown|other/i.test(draft.frameDepth))) {
+    out.push("Wall thickness needed to confirm frame depth");
+  }
   if (!draft.sizeWidthIn || !draft.sizeHeightIn) out.push("Door size to confirm");
   return out;
 }
@@ -580,6 +588,45 @@ function parseInchesValue(v) {
   if (frac) return Number(frac[1]) + Number(frac[2]) / Number(frac[3]);
   const intVal = Number(s);
   return Number.isFinite(intVal) ? intVal : NaN;
+}
+
+function extractFrameDepthFromMessage(message) {
+  const text = String(message || "").toLowerCase();
+  if (!/\b(frame|jamb|depth)\b/.test(text)) return "";
+
+  const valuePattern = "(\\d{1,2}(?:\\s*-\\s*\\d\\s*\\/\\s*\\d|\\.\\d{1,3})?)";
+  const afterKeyword = new RegExp(`\\b(?:frame|jamb|depth)(?:\\s+depth)?\\s*(?:is|=|at|of)?\\s*${valuePattern}(?:\\s*(?:\"|in|inch|inches))?\\b`, "i");
+  const beforeKeyword = new RegExp(`${valuePattern}(?:\\s*(?:\"|in|inch|inches))?\\s*(?:frame|jamb|depth)\\b`, "i");
+
+  const m1 = text.match(afterKeyword);
+  const m2 = text.match(beforeKeyword);
+  const raw = (m1 && m1[1]) || (m2 && m2[1]) || "";
+  return normalizeFrameDepthValue(raw);
+}
+
+function normalizeFrameDepthValue(raw) {
+  const s = String(raw || "").trim().replace(/\s+/g, "");
+  if (!s) return "";
+
+  if (/^\d{1,2}-\d\/\d$/.test(s)) return s;
+
+  const n = Number(s);
+  if (!Number.isFinite(n)) return "";
+
+  const known = [
+    [4.625, "4-5/8"],
+    [4.875, "4-7/8"],
+    [5.75, "5-3/4"],
+    [5.875, "5-7/8"],
+    [6.125, "6-1/8"],
+    [6.25, "6-1/4"],
+    [7.75, "7-3/4"],
+    [8.25, "8-1/4"],
+  ];
+  for (const [k, label] of known) {
+    if (Math.abs(n - k) < 0.02) return label;
+  }
+  return String(n);
 }
 
 const MANUFACTURER_ALIASES = {
@@ -684,11 +731,12 @@ function buildReviewRequiredMessage(validationErrors) {
 function classifyTurnType({ userMessage, confusedReply, draftBefore, draftAfter, readyToSubmit, canSubmit }) {
   const m = String(userMessage || "").toLowerCase();
   if (canSubmit || readyToSubmit) return "submission_ready";
+  if (/\btoo chatty\b|\bshorter\b|\bbe brief\b|\bless chatty\b/.test(m)) return "style_feedback";
   if (/\bi said\b|\byou already asked\b|\bread what i wrote\b|\bi just told you\b/.test(m)) return "pushback";
   if (/\bactually\b|\bchange that\b|\bno,? not\b|\bkeep frame\b|\bcorrection\b/.test(m)) return "correction";
   if (confusedReply || /\bwhat does that mean\b|\bwhich one\b|\bclarify\b/.test(m)) return "clarification_request";
   if (/\bwhat should i do\b|\brecommend\b|\bhelp me choose\b|\bwhat do you need\b/.test(m)) return "recommendation_request";
-  if (/\bi don't know\b|\bnot sure\b|\bunknown\b|\bwhatever is standard\b/.test(m)) return "uncertain";
+  if (/\bi don't know\b|\bnot sure\b|\bunknown\b|\bwhatever is standard\b|\bkinda know\b|\bkind of know\b|\bsort of know\b/.test(m)) return "uncertain";
 
   const changed = diffDraftFields(draftBefore, draftAfter);
   if (changed.length >= 3) return "spec_burst";
@@ -763,6 +811,10 @@ function buildConversationalFollowup({ turnType, draftBefore, draftAfter, nextFi
   const nextQ = buildNextQuestion(nextField);
   const ai = String(aiAssistantMessage || "").trim();
 
+  if (turnType === "style_feedback") {
+    return `Understood. Short version: ${nextQ}`;
+  }
+
   if (turnType === "pushback") {
     const line = captured ? `You're right — captured ${captured}.` : "You're right — I see your last detail now.";
     return `${line} ${nextQ}`.trim();
@@ -794,12 +846,19 @@ function buildConversationalFollowup({ turnType, draftBefore, draftAfter, nextFi
     return nextQ;
   }
 
+  if (fieldChanged(draftBefore, draftAfter, "frameDepth")) {
+    return `Got it — frame depth ${draftAfter.frameDepth}. ${nextQ}`;
+  }
   if (captured) return `Got it — ${captured}. ${nextQ}`;
   if (ai) return ai.includes("?") ? ai : `${ai}\n\n${nextQ}`;
   if (/\bquote\b/i.test(String(userMessage || "")) && nextField === "requestType") {
     return "Got it. I can do budget (fast) or full quote (detailed). Which do you want?";
   }
   return nextQ;
+}
+
+function fieldChanged(before, after, field) {
+  return (before || {})[field] !== (after || {})[field];
 }
 
 function buildProvisionalSuggestion(nextField, draft) {
