@@ -68,6 +68,9 @@ export async function onRequestPost(context) {
     }
   }
 
+  applyMessageAnchors(draft, userMessage);
+  Object.assign(draft, sanitizeDraft(draft));
+
   const unknownsToVerify = buildUnknowns(draft);
   applyReferenceGuideInsights(draft, userMessage);
   const assumptionsUsed = buildAssumptions(draft);
@@ -333,10 +336,11 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     }
   }
 
-  if (m.includes("left hand reverse") || m.includes("lhr")) draft.handing = "lhr";
-  else if (m.includes("right hand reverse") || m.includes("rhr")) draft.handing = "rhr";
-  else if (m.includes("left hand") || m.includes("hinges on left")) draft.handing = "lh";
-  else if (m.includes("right hand") || m.includes("hinges on right")) draft.handing = "rh";
+  const handing = extractHanding(message);
+  if (handing) {
+    draft.handing = handing;
+    draft.handingNeedsSiteVerify = false;
+  }
 
   if (m.includes("hinge") && m.includes("match")) draft.hingeLocationRequirement = "match-existing";
   else if (m.includes("hinge") && m.includes("custom")) draft.hingeLocationRequirement = "custom";
@@ -399,6 +403,14 @@ function mapShortAnswerByStep(draft, m, step) {
     if (/\bdoor\s*only\b/.test(m)) draft.hardwareScope = "door-only";
     if (/\bdoor\s*(\+|and)\s*frame\b/.test(m) || /\bdoor frame\b/.test(m)) draft.hardwareScope = "door-frame";
     if (/\bcomplete\b|\bfull\b|\bhardware\b/.test(m)) draft.hardwareScope = "door-frame-hardware";
+  }
+
+  if (step === "handing") {
+    const handing = extractHanding(m);
+    if (handing) {
+      draft.handing = handing;
+      draft.handingNeedsSiteVerify = false;
+    }
   }
 
   if (step === "fireRatedStatus") {
@@ -880,6 +892,22 @@ function buildProvisionalSuggestion(nextField, draft) {
   return "";
 }
 
+function applyMessageAnchors(draft, userMessage) {
+  const size = extractOpeningSize(userMessage);
+  if (size) {
+    draft.sizeWidthIn = size.widthIn;
+    draft.sizeHeightIn = size.heightIn;
+    draft.doorHeightIn = size.heightIn;
+    draft.sizeAssumed = size.assumed;
+  }
+
+  const handing = extractHanding(userMessage);
+  if (handing) {
+    draft.handing = handing;
+    draft.handingNeedsSiteVerify = false;
+  }
+}
+
 function buildDomainInsight({ draftBefore, draftAfter, userMessage }) {
   const width = draftAfter?.sizeWidthIn;
   const height = draftAfter?.sizeHeightIn;
@@ -941,6 +969,18 @@ function extractOpeningSize(message) {
   }
 
   return null;
+}
+
+function extractHanding(message) {
+  const text = String(message || "").toLowerCase();
+  const tokenOnly = text.match(/^\s*(lhr|rhr|lh|rh)\s*$/i);
+  if (tokenOnly) return String(tokenOnly[1]).toLowerCase();
+
+  if (/\bleft\s*hand\s*reverse\b|\blhr\b/i.test(text)) return "lhr";
+  if (/\bright\s*hand\s*reverse\b|\brhr\b/i.test(text)) return "rhr";
+  if (/\bleft\s*hand\b|\bhinges?\s+on\s+left\b/i.test(text)) return "lh";
+  if (/\bright\s*hand\b|\bhinges?\s+on\s+right\b/i.test(text)) return "rh";
+  return "";
 }
 
 function mergeSafeUpdates(draft, updates) {
