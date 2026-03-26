@@ -56,9 +56,21 @@ export async function onRequestPost(context) {
 
   if (useOpenAI) {
     try {
+      const draftBeforeAi = sanitizeDraft(draft);
       const aiResult = await getOpenAIUpdates({ env, userMessage, draft, currentStep: extractionStep, nextField: preAiNextField });
       if (aiResult?.updates && typeof aiResult.updates === "object") mergeSafeUpdates(draft, aiResult.updates);
       Object.assign(draft, sanitizeDraft(draft));
+      const revertedUngroundedAiFields = guardAiUpdatesAgainstLowSignal({
+        draftBeforeAi,
+        draftAfterAi: draft,
+        userMessage,
+      });
+      if (revertedUngroundedAiFields.length) {
+        console.warn("[chatbot-quote] Reverted ungrounded AI updates", {
+          revertedFields: revertedUngroundedAiFields,
+          nextField: preAiNextField,
+        });
+      }
       if (typeof aiResult?.assistantMessage === "string") aiAssistantMessage = aiResult.assistantMessage.trim().slice(0, 420);
     } catch (err) {
       console.warn("[chatbot-quote] OpenAI update failed", {
@@ -1049,6 +1061,57 @@ function mergeSafeUpdates(draft, updates) {
   }
 }
 
+function guardAiUpdatesAgainstLowSignal({ draftBeforeAi, draftAfterAi, userMessage }) {
+  const before = draftBeforeAi && typeof draftBeforeAi === "object" ? draftBeforeAi : {};
+  const after = draftAfterAi && typeof draftAfterAi === "object" ? draftAfterAi : {};
+  const message = String(userMessage || "");
+  const m = message.toLowerCase();
+  const reverted = [];
+
+  const openingCountMentioned = /\b(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*(?:doors?|openings?)\b/i.test(message)
+    || /^\s*(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*$/i.test(message);
+  const sizeMentioned = Boolean(extractOpeningSize(message));
+  const handingMentioned = Boolean(extractHanding(message));
+  const frameDepthMentioned = Boolean(extractFrameDepthFromMessage(message));
+  const wallMentioned = /\bwall\b/i.test(message);
+  const nameMentioned = /\b(my name is|name is|i am|this is)\b/i.test(message);
+  const emailMentioned = /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/.test(message);
+
+  const guardRules = [
+    { field: "requestType", allowed: /\bballpark\b|\bbudget\b|\bfull quote\b/.test(m) },
+    { field: "application", allowed: /\binterior\b|\bexterior\b|\bboth\b/.test(m) },
+    { field: "jobType", allowed: /\breplace\b|\breplacing\b|\breplacement\b|\bnew opening\b|\bnew construction\b|^\s*new\s*$/i.test(message) },
+    { field: "doorMaterial", allowed: /\bwood\b|\bhollow\s*metal\b|\bhm\b|\bsteel\b|\baluminum\b|\baluminium\b/.test(m) },
+    { field: "hardwareScope", allowed: /\bdoor\s*only\b|\bdoor\s*(\+|and)\s*frame\b|\bdoor frame\b|\bcomplete opening\b|\bhardware\b/.test(m) },
+    { field: "openingCountEstimate", allowed: openingCountMentioned },
+    { field: "hingeLocationRequirement", allowed: /\bhinge\b/.test(m) },
+    { field: "handing", allowed: handingMentioned },
+    { field: "fireRatedStatus", allowed: /\bfire\s*-?\s*rated\b|\bfire\b/.test(m) },
+    { field: "frameDepth", allowed: frameDepthMentioned || wallMentioned },
+    { field: "wallThicknessIn", allowed: wallMentioned },
+    { field: "name", allowed: nameMentioned },
+    { field: "email", allowed: emailMentioned },
+  ];
+
+  for (const rule of guardRules) {
+    if (before[rule.field] !== after[rule.field] && !rule.allowed) {
+      after[rule.field] = before[rule.field];
+      reverted.push(rule.field);
+    }
+  }
+
+  const sizeChanged = before.sizeWidthIn !== after.sizeWidthIn || before.sizeHeightIn !== after.sizeHeightIn;
+  if (sizeChanged && !sizeMentioned) {
+    after.sizeWidthIn = before.sizeWidthIn;
+    after.sizeHeightIn = before.sizeHeightIn;
+    after.doorHeightIn = before.doorHeightIn;
+    after.sizeAssumed = before.sizeAssumed;
+    reverted.push("sizeWidthIn", "sizeHeightIn", "doorHeightIn", "sizeAssumed");
+  }
+
+  return [...new Set(reverted)];
+}
+
 async function getOpenAIUpdates({ env, userMessage, draft, currentStep, nextField }) {
   const apiKey = String(env?.OPENAI_API_KEY || "").trim();
   if (!apiKey) return null;
@@ -1060,7 +1123,7 @@ async function getOpenAIUpdates({ env, userMessage, draft, currentStep, nextFiel
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: String(env?.OPENAI_CHATBOT_MODEL || "gpt-4.1-nano"),
+      model: String(env?.OPENAI_CHATBOT_MODEL || "gpt-5.4-nano"),
       temperature: 0,
       max_tokens: 180,
       messages: [
