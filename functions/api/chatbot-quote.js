@@ -90,27 +90,52 @@ export async function onRequestPost(context) {
   const nextField = getNextField(draft);
   const readyToSubmit = nextField === "done";
   const canSubmit = readyToSubmit && validationErrors.length === 0;
+  const priorNextField = getNextField(priorDraft);
+  const priorCanSubmit = priorNextField === "done" && validateDraft(priorDraft).length === 0;
+  const changedFields = diffDraftFields(priorDraft, draft).filter((field) => field !== "guidedNotes");
+  const lowSignalNoEvidence = isLowSignalNoEvidenceTurn(userMessage);
+  const blockedUngroundedReadyState =
+    canSubmit &&
+    priorCanSubmit &&
+    changedFields.length === 0 &&
+    lowSignalNoEvidence;
+
+  if (blockedUngroundedReadyState) {
+    console.warn("[chatbot-quote] Blocked ungrounded ready state on low-signal turn", {
+      sessionId,
+      currentStep,
+      nextField,
+      changedFields,
+      userMessagePreview: userMessage.slice(0, 120),
+    });
+  }
+
+  const effectiveNextField = blockedUngroundedReadyState ? "application" : nextField;
+  const effectiveReadyToSubmit = blockedUngroundedReadyState ? false : readyToSubmit;
+  const effectiveCanSubmit = blockedUngroundedReadyState ? false : canSubmit;
   const turnType = classifyTurnType({
     userMessage,
     confusedReply,
     draftBefore: priorDraft,
     draftAfter: draft,
-    readyToSubmit,
-    canSubmit,
+    readyToSubmit: effectiveReadyToSubmit,
+    canSubmit: effectiveCanSubmit,
   });
 
   const assistantMessage = confusedReply
     ? buildClarifyingQuestion(currentStep && currentStep !== "done" ? currentStep : nextField)
-    : canSubmit
+    : blockedUngroundedReadyState
+      ? buildLowSignalReadyGuardMessage(effectiveNextField)
+      : effectiveCanSubmit
       ? buildSummaryMessage(draft, unknownsToVerify, assumptionsUsed)
-      : readyToSubmit
+      : effectiveReadyToSubmit
         ? buildReviewRequiredMessage(validationErrors)
         : buildConversationalFollowup({
           turnType,
           userMessage,
           draftBefore: priorDraft,
           draftAfter: draft,
-          nextField,
+          nextField: effectiveNextField,
           aiAssistantMessage,
         });
 
@@ -118,9 +143,9 @@ export async function onRequestPost(context) {
     ok: true,
     fallbackMode: !useOpenAI,
     assistantMessage,
-    currentStep: nextField,
-    readyToSubmit,
-    canSubmit,
+    currentStep: effectiveNextField,
+    readyToSubmit: effectiveReadyToSubmit,
+    canSubmit: effectiveCanSubmit,
     validationErrors,
     unknownsToVerify,
     assumptionsUsed,
@@ -511,6 +536,11 @@ function buildClarifyingQuestion(field) {
     fireRatedStatus: "Any fire-rated openings? yes, no, or unknown is fine.",
   };
   return map[field] || "No problem — tell me whichever detail you know, and I will guide the rest.";
+}
+
+function buildLowSignalReadyGuardMessage(field) {
+  const nextQ = buildNextQuestion(field || "application");
+  return `I cannot mark this ready from that message alone. ${nextQ}`;
 }
 
 function buildUnknowns(draft) {
@@ -939,6 +969,45 @@ function buildDomainInsight({ draftBefore, draftAfter, userMessage }) {
 
   if (/\b3070\b/i.test(String(userMessage || ""))) return "3070 usually means a 36x84 opening.";
   return "";
+}
+
+function isLowSignalNoEvidenceTurn(userMessage) {
+  const message = String(userMessage || "");
+  const m = message.toLowerCase();
+
+  const openingCountMentioned = /\b(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*(?:doors?|openings?)\b/i.test(message)
+    || /^\s*(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*$/i.test(message);
+  const sizeMentioned = Boolean(extractOpeningSize(message));
+  const handingMentioned = Boolean(extractHanding(message));
+  const frameDepthMentioned = Boolean(extractFrameDepthFromMessage(message));
+  const wallMentioned = /\bwall\b/i.test(message);
+  const nameMentioned = /\b(my name is|name is|i am|this is)\b/i.test(message);
+  const emailMentioned = /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/.test(message);
+  const applicationMentioned = /\binterior\b|\bexterior\b|\bboth\b/.test(m);
+  const jobTypeMentioned = /\breplace\b|\breplacing\b|\breplacement\b|\bnew opening\b|\bnew construction\b|^\s*new\s*$/i.test(message);
+  const requestTypeMentioned = /\bballpark\b|\bbudget\b|\bfull quote\b/.test(m);
+  const doorMaterialMentioned = /\bwood\b|\bhollow\s*metal\b|\bhm\b|\bsteel\b|\baluminum\b|\baluminium\b/.test(m);
+  const hardwareScopeMentioned = /\bdoor\s*only\b|\bdoor\s*(\+|and)\s*frame\b|\bdoor frame\b|\bcomplete opening\b|\bhardware\b/.test(m);
+  const fireRatedMentioned = /\bfire\s*-?\s*rated\b|\bfire\b/.test(m);
+  const hingeMentioned = /\bhinge\b/.test(m);
+
+  const hasSupportedEvidence =
+    openingCountMentioned ||
+    sizeMentioned ||
+    handingMentioned ||
+    frameDepthMentioned ||
+    wallMentioned ||
+    nameMentioned ||
+    emailMentioned ||
+    applicationMentioned ||
+    jobTypeMentioned ||
+    requestTypeMentioned ||
+    doorMaterialMentioned ||
+    hardwareScopeMentioned ||
+    fireRatedMentioned ||
+    hingeMentioned;
+
+  return !hasSupportedEvidence;
 }
 
 function toNominalLabel(widthIn, heightIn) {
