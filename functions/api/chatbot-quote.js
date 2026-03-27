@@ -372,6 +372,9 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
   const emailMatch = message.match(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/);
   if (emailMatch) draft.email = emailMatch[0];
 
+  const phoneMatch = message.match(/\b\d{3}-?\d{3}-?\d{4}\b/);
+  if (phoneMatch) draft.phone = phoneMatch[0].trim();
+
   const countMatchLabeled = message.match(/\b(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*(?:doors?|openings?)\b/i);
   const countMatchBare = message.match(/^\s*(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*$/i);
   const countMatch = countMatchLabeled || countMatchBare;
@@ -1144,6 +1147,7 @@ function recordEvidenceFromTurn({ draft, priorDraft, userMessage }) {
     fireRatedStatus: /\bfire\s*-?\s*rated\b|\bfire\b/i,
     name: /\b(my name is|name is|i am|this is)\b/i,
     email: /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/i,
+    phone: /\b\d{3}-?\d{3}-?\d{4}\b/i,
   };
 
   for (const field of changed) {
