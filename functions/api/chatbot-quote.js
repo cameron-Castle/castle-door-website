@@ -323,16 +323,16 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     draft.doorMaterial = "wood";
     if (!draft.doorType) draft.doorType = "Wood";
   }
-  if (m.includes("hollow metal") || m.includes("hm")) {
+  if (m.includes("hollow metal") || m.includes("hm") || /\bsteel\b/.test(m)) {
     draft.doorMaterial = "hollow-metal";
     if (!draft.doorType) draft.doorType = "Hollow metal";
   }
 
-  if (/\bdoor and frame\b|\bframe too\b|\bboth\b.*\bframe\b|\bframe\b.*\bboth\b/.test(m)) draft.replaceFrame = true;
+  if (/\bdoor and frame\b|\bframe too\b|\bboth\b.*\bframe\b|\bframe\b.*\bboth\b|\bdoor\b.*\bframe\b|\bframe\b.*\bdoor\b/.test(m)) draft.replaceFrame = true;
   if (m.includes("door slab only") || m.includes("door only")) draft.replaceFrame = false;
 
   if (/\bjust need a door\b|\bdoor only\b/.test(m)) draft.hardwareScope = "door-only";
-  if (/\bdoor\s*(\+|and)\s*frame\b|\bdoor frame\b/.test(m)) draft.hardwareScope = "door-frame";
+  if (/\bdoor\s*(\+|and)\s*frame\b|\bdoor frame\b|\bdoor\b.*\bframe\b|\bframe\b.*\bdoor\b/.test(m)) draft.hardwareScope = "door-frame";
   if (/\bcomplete opening\b|\bdoor\s*(\+|and)\s*frame\s*(\+|and)\s*hardware\b/.test(m)) {
     draft.hardwareScope = "door-frame-hardware";
   }
@@ -358,6 +358,14 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
   if (/\bentry\b|\bentrance\b/.test(m)) draft.lockFunction = "entry-keyed";
   if (/\blever\b/.test(m)) {
     draft.hardwareNeeds = [draft.hardwareNeeds, "lever hardware"].filter(Boolean).join(", ");
+  }
+  if (/\bmortise\b/.test(m)) {
+    draft.hardwareNeeds = [draft.hardwareNeeds, "mortise prep"].filter(Boolean).join(", ");
+  }
+
+  const faceMatch = message.match(/\b(\d(?:\.\d+)?)\s*(?:"|in|inch|inches)?\s*face\b/i);
+  if (faceMatch) {
+    draft.guidedNotes = appendUniqueNote(draft.guidedNotes, `Frame face: ${faceMatch[1]} in`);
   }
 
   const emailMatch = message.match(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/);
@@ -514,6 +522,13 @@ function suggestFrameDepth(wallThicknessIn) {
 }
 
 function getNextField(draft) {
+  if (hasBypassSpecBundle(draft)) {
+    if (!draft.email) return "email";
+    if (!draft.name) return "name";
+    if (!draft.phone) return "phone";
+    return "done";
+  }
+
   const technicalPriority = ["application", "jobType", "doorMaterial", "hardwareScope", "openingCountEstimate"];
   for (const f of technicalPriority) {
     if (["doorMaterial", "application", "jobType", "hardwareScope"].includes(f) && draft[f] === "unknown") return f;
@@ -547,7 +562,9 @@ function buildNextQuestion(field) {
     handing: "Do you know handing (LH/RH/LHR/RHR), or should I mark site-verify?",
     fireRatedStatus: "Any fire-rated openings? yes, no, or unknown is fine.",
     requestType: "Do you want budget range pricing or a full quote?",
+    projectName: "Project name?",
     name: "What name should I put on this quote request?",
+    phone: "Best phone number?",
     email: "Best email for your quote?",
   };
   return map[field] || "What detail would you like to add next for this quote request?";
@@ -566,6 +583,8 @@ function buildClarifyingQuestion(field) {
     hingeLocationRequirement: "For hinge prep, should I use standard, match-existing, or custom?",
     handing: "Quick method: stand on the hinge side with the door closed — if hinges are left, that's LH; right is RH. Want me to mark site-verify if unknown?",
     fireRatedStatus: "Any fire-rated openings? yes, no, or unknown is fine.",
+    projectName: "Project name is enough — even a short label.",
+    phone: "Share the best callback number.",
   };
   return map[field] || "No problem — tell me whichever detail you know, and I will guide the rest.";
 }
@@ -882,6 +901,8 @@ function labelField(field) {
     frameDepth: "frame depth",
     wallThicknessIn: "wall thickness",
     hingeLocationRequirement: "hinge prep",
+    projectName: "project",
+    phone: "phone",
     name: "name",
     email: "email",
   };
@@ -1107,6 +1128,15 @@ function recordEvidenceFromTurn({ draft, priorDraft, userMessage }) {
 
 function hasRequiredEvidence(draft) {
   const evidence = draft?.evidenceMap && typeof draft.evidenceMap === "object" ? draft.evidenceMap : {};
+
+  if (hasBypassSpecBundle(draft)) {
+    const bypassRequired = ["sizeWidthIn", "sizeHeightIn", "doorMaterial", "frameDepth", "email", "name", "phone"];
+    for (const field of bypassRequired) {
+      if (!evidence[field]) return false;
+    }
+    return true;
+  }
+
   const required = [
     "application",
     "jobType",
@@ -1115,13 +1145,23 @@ function hasRequiredEvidence(draft) {
     "openingCountEstimate",
     "sizeWidthIn",
     "sizeHeightIn",
-    "name",
     "email",
+    "name",
   ];
   for (const field of required) {
     if (!evidence[field]) return false;
   }
   return true;
+}
+
+function hasBypassSpecBundle(draft) {
+  const hasSize = Number.isFinite(draft?.sizeWidthIn) && Number.isFinite(draft?.sizeHeightIn);
+  const hasMaterial = String(draft?.doorMaterial || "") !== "unknown" || Boolean(String(draft?.doorType || "").trim());
+  const hasFrame = Boolean(String(draft?.frameDepth || "").trim()) || Number.isFinite(draft?.wallThicknessIn);
+  const hasHingeOrPrep =
+    String(draft?.hingeLocationRequirement || "") !== "unknown"
+    || /hinge|mortise|prep/i.test(String(draft?.hardwareNeeds || ""));
+  return hasSize && hasMaterial && hasFrame && hasHingeOrPrep;
 }
 
 function toNominalLabel(widthIn, heightIn) {
@@ -1375,14 +1415,25 @@ async function getOpenAIUpdates({ env, userMessage, draft, currentStep, nextFiel
 
 function selectGuideContext({ userMessage, nextField }) {
   const m = String(userMessage || "").toLowerCase();
-  const chunks = [
-    "Scope: This assistant is for commercial door and frame quote intake.",
-    "Sizing shorthand: 3070 = 36x84, 3068 = 36x80.",
-    "Handing quick check: stand on hinge side with door closed; hinges left=LH, right=RH.",
-    "Uncertainty handling: site-verify is acceptable for handing and field conditions.",
-    "Frame depth help: if frame depth unknown, ask rough finished wall thickness.",
-    "Hinge prep: replacement often uses match-existing; new work often standard unless custom required.",
-  ];
+  const chunks = [BASE_GUIDE_CONTEXT];
+
+  const scored = REFERENCE_GUIDES.map((guide) => ({
+    ...guide,
+    score: guide.keywords.reduce((acc, kw) => acc + (m.includes(kw) ? 1 : 0), 0),
+  }))
+    .filter((g) => g.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  if (!scored.length) {
+    chunks.push(
+      "Reference default: sizing shorthand 3070=36x84, 3068=36x80; use match-existing for replacement when manufacturer/template is unknown."
+    );
+  } else {
+    for (const guide of scored) {
+      chunks.push(`Reference ${guide.id}: ${guide.context}`);
+    }
+  }
 
   if (/\bstorm\b|\bhouse\b|\bhome\b|\bresidential\b/.test(m)) {
     chunks.unshift("Out-of-scope: residential/storm-door requests should be declined and redirected to commercial openings only.");
@@ -1392,6 +1443,40 @@ function selectGuideContext({ userMessage, nextField }) {
   }
   return chunks.join("\n");
 }
+
+const BASE_GUIDE_CONTEXT = [
+  "Scope: This assistant is for commercial door and frame quote intake.",
+  "Deterministic policy: do not invent missing specs; ask one high-value next question.",
+  "Bypass policy: if customer provides dense valid specs, capture all and move straight to contact fields.",
+  "Uncertainty policy: site-verify is acceptable for handing/field conditions.",
+].join(" ");
+
+const REFERENCE_GUIDES = [
+  {
+    id: "01-known-hinge-locations-by-manufacturer.md",
+    keywords: ["hinge", "mesker", "ceco", "curries", "steelcraft", "amweld", "dks", "republic", "kewanee", "dominion", "fenestra", "pioneer"],
+    context:
+      "Use manufacturer-confirmed hinge tables only. Measurement rule: frame = door + 1/8 in. Do not cross-assume manufacturer patterns. If manufacturer/series is unknown, set verify_required.",
+  },
+  {
+    id: "02-asa-strike-locations-by-manufacturer.md",
+    keywords: ["asa", "strike", "e point", "latch prep"],
+    context:
+      "Use ASA strike location by confirmed manufacturer family and door height. Do not infer ASA from hinge data alone. Preserve match-existing when stated. If unknown, set verify_required.",
+  },
+  {
+    id: "03-hardware-prep-templates.md",
+    keywords: ["c4", "mb", "blank", "mortise", "deadbolt", "panic", "exit device", "prep"],
+    context:
+      "Normalize explicit prep codes: C4, MB, BLANK, C4+DB, C4BE. If panic/exit device is involved, do not assume standard latch prep. If ambiguous between cylindrical/mortise, ask directly.",
+  },
+  {
+    id: "04-frame-application-by-wall-condition.md",
+    keywords: ["frame", "drywall", "stud", "throat", "wall", "5-3/4", "8-1/4", "construction"],
+    context:
+      "For drywall frame sizing, require stud size and finish thickness/layers on both sides before selecting frame size. Do not infer wall build-up. Use verify_required when key inputs are missing.",
+  },
+];
 
 const RATE_LIMIT = new Map();
 function checkRateLimit(ip) {
