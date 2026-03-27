@@ -315,7 +315,7 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
   else if (m.includes("exterior")) draft.application = "exterior";
 
   if (m.includes("replace") || m.includes("replacing") || /\breplacement\b/.test(m)) draft.jobType = "replacement";
-  if (m.includes("new opening") || m.includes("new construction") || /^\s*new\s*$/.test(m)) draft.jobType = "new";
+  if (m.includes("new opening") || m.includes("new construction") || /\bnew\s*con(?:struction|str|st)?\b/.test(m) || /^\s*new\s*$/.test(m)) draft.jobType = "new";
 
   if (m.includes("single")) draft.openingType = "single";
   if (m.includes("double")) draft.openingType = draft.openingType === "single" ? "mixed" : "double";
@@ -483,7 +483,7 @@ function mapShortAnswerByStep(draft, m, step) {
   }
 
   if (step === "jobType") {
-    if (/^\s*new\s*$/.test(m) || /\bnew construction\b/.test(m)) draft.jobType = "new";
+    if (/^\s*new\s*$/.test(m) || /\bnew construction\b/.test(m) || /\bnew\s*con(?:struction|str|st)?\b/.test(m)) draft.jobType = "new";
     if (/^\s*replace(?:ment)?\s*$/.test(m) || /\breplacing\b/.test(m)) draft.jobType = "replacement";
   }
 
@@ -1268,7 +1268,7 @@ function toNominalLabel(widthIn, heightIn) {
 function extractOpeningSize(message) {
   const text = String(message || "").toLowerCase();
 
-  const literal = text.match(/\b(\d{2})(?:\s*(?:in|inch|inches|"))?\s*[x×]\s*(\d{2,3})(?:\s*(?:in|inch|inches|"))?\b/i);
+  const literal = text.match(/\b(\d{2})(?:\s*(?:in|inch|inches|"))?\s*(?:x|×|by)\s*(\d{2,3})(?:\s*(?:in|inch|inches|"))?\b/i);
   if (literal) {
     const widthIn = Number(literal[1]);
     const heightIn = Number(literal[2]);
