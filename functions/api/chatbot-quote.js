@@ -304,6 +304,9 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
 
   mapShortAnswerByStep(draft, m, step);
 
+  const explicitName = extractNameFromMessage(message);
+  if (explicitName) draft.name = explicitName;
+
   if (m.includes("ballpark") || m.includes("budget")) draft.requestType = "budget";
   if (m.includes("full quote")) draft.requestType = "full";
 
@@ -441,6 +444,7 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
 
 function mapShortAnswerByStep(draft, m, step) {
   if (!step) return;
+  const rawMessage = String(m || "").trim();
 
   if (step === "sizeWidthIn") {
     const size = extractOpeningSize(m);
@@ -455,6 +459,21 @@ function mapShortAnswerByStep(draft, m, step) {
   if (step === "requestType") {
     if (/\bbudget|ballpark|rough\b/.test(m)) draft.requestType = "budget";
     if (/\bfull\b/.test(m)) draft.requestType = "full";
+  }
+
+  if (step === "name") {
+    const parsed = extractNameFromMessage(rawMessage);
+    if (parsed) {
+      draft.name = parsed;
+    } else if (isLikelyPersonName(rawMessage)) {
+      draft.name = toTitleCaseName(rawMessage);
+    }
+  }
+
+  if (step === "projectName") {
+    if (rawMessage && !/^\s*(idk|unknown|not sure)\s*$/i.test(rawMessage)) {
+      draft.projectName = rawMessage.slice(0, 80);
+    }
   }
 
   if (step === "application") {
@@ -1151,6 +1170,15 @@ function recordEvidenceFromTurn({ draft, priorDraft, userMessage }) {
   };
 
   for (const field of changed) {
+    if (field === "name" && String(draft.name || "").trim()) {
+      evidenceMap[field] = {
+        source: "user",
+        excerpt: message.slice(0, 180),
+        turnAt: Date.now(),
+      };
+      continue;
+    }
+
     const rule = rules[field];
     if (!rule) continue;
     if (!rule.test(message)) continue;
@@ -1162,6 +1190,32 @@ function recordEvidenceFromTurn({ draft, priorDraft, userMessage }) {
   }
 
   draft.evidenceMap = evidenceMap;
+}
+
+function extractNameFromMessage(message) {
+  const text = String(message || "").trim();
+  if (!text) return "";
+
+  const m = text.match(/\b(?:my\s+name\s+is|name\s+is|this\s+is|i\s+am)\s+([a-z][a-z'\-]*(?:\s+[a-z][a-z'\-]*){0,3})\b/i);
+  if (!m) return "";
+  return toTitleCaseName(m[1]);
+}
+
+function isLikelyPersonName(value) {
+  const v = String(value || "").trim();
+  if (!v || v.length < 2 || v.length > 60) return false;
+  if (/\d/.test(v)) return false;
+  if (/[@]|\bdoor\b|\bframe\b|\bquote\b|\bopening\b|\bhinge\b/i.test(v)) return false;
+  return /^[a-z][a-z'\-]*(?:\s+[a-z][a-z'\-]*){0,3}$/i.test(v);
+}
+
+function toTitleCaseName(value) {
+  return String(value || "")
+    .trim()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ")
+    .slice(0, 80);
 }
 
 function hasRequiredEvidence(draft) {

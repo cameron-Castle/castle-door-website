@@ -1357,13 +1357,15 @@
 
     const CHATBOT_SESSION_KEY = "castle_chatbot_session_id";
     const CHATBOT_STATE_KEY = "castle_chatbot_state";
-    let chatbotSessionId = localStorage.getItem(CHATBOT_SESSION_KEY) || `chat-${Date.now()}-${Math.floor(Math.random() * 99999)}`;
+    localStorage.removeItem(CHATBOT_SESSION_KEY);
+    localStorage.removeItem(CHATBOT_STATE_KEY);
+    let chatbotSessionId = `chat-${Date.now()}-${Math.floor(Math.random() * 99999)}`;
     localStorage.setItem(CHATBOT_SESSION_KEY, chatbotSessionId);
-    let chatbotState = safeParse(localStorage.getItem(CHATBOT_STATE_KEY), {
+    let chatbotState = {
       mode: "guided",
       currentStep: "requestType",
       quoteDraft: {},
-    });
+    };
 
     function pickQuoteRep() {
       const idx = Math.floor(Math.random() * quoteReps.length);
