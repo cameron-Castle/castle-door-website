@@ -1615,8 +1615,9 @@
           appendChatbotMessage("assistant", String(out.assistantMessage || "What should we capture next?"));
 
           const ready = Boolean(out.readyToSubmit);
-          if (chatbotSubmit) chatbotSubmit.disabled = !ready;
-          setChatbotStatus(ready ? "Assistant has enough data. You can submit now." : "Continue answering to complete quote details.", ready ? "ok" : "");
+          const canSubmit = Boolean(out.canSubmit);
+          if (chatbotSubmit) chatbotSubmit.disabled = !canSubmit;
+          setChatbotStatus(canSubmit ? "Assistant has enough data. You can submit now." : "Continue answering to complete quote details.", canSubmit ? "ok" : "");
         } catch {
           appendChatbotMessage("assistant", "Network error while contacting chatbot.");
           setChatbotStatus("Network error while contacting chatbot.", "err");

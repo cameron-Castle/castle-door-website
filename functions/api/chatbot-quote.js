@@ -101,6 +101,7 @@ export async function onRequestPost(context) {
   const nextField = getNextField(draft);
   const readyToSubmit = nextField === "done";
   const canSubmit = readyToSubmit && validationErrors.length === 0 && hasRequiredEvidence(draft);
+  const missingSubmitFields = canSubmit ? [] : getMissingSubmitFields(draft);
   const priorNextField = getNextField(priorDraft);
   const priorCanSubmit = priorNextField === "done" && validateDraft(priorDraft).length === 0;
   const changedFields = diffDraftFields(priorDraft, draft).filter((field) => field !== "guidedNotes");
@@ -140,7 +141,7 @@ export async function onRequestPost(context) {
       : effectiveCanSubmit
       ? buildSummaryMessage(draft, unknownsToVerify, assumptionsUsed)
       : effectiveReadyToSubmit
-        ? buildReviewRequiredMessage(validationErrors)
+        ? buildReviewRequiredMessage(validationErrors, missingSubmitFields)
         : buildConversationalFollowup({
           turnType,
           userMessage,
@@ -837,13 +838,46 @@ function buildSummaryMessage(draft, unknowns, assumptions) {
 }
 
 function buildReviewRequiredMessage(validationErrors) {
+  const errors = Array.isArray(validationErrors) ? validationErrors : [];
+  const missing = arguments[1] && Array.isArray(arguments[1]) ? arguments[1] : [];
+  const details = [...errors, ...missing.map((x) => `Missing: ${x}`)];
   const lines = [
     "I have most of your details, but a few items need review before submission:",
-    ...validationErrors.map((x) => `- ${x}`),
+    ...details.map((x) => `- ${x}`),
     "",
     "Reply with updates and I will fix these before submit.",
   ];
   return lines.join("\n");
+}
+
+function getMissingSubmitFields(draft) {
+  const evidence = draft?.evidenceMap && typeof draft.evidenceMap === "object" ? draft.evidenceMap : {};
+  const missing = [];
+
+  const require = (field, label, hasValue = true) => {
+    const valueOk = hasValue;
+    const evidenceOk = Boolean(evidence[field]);
+    if (!valueOk || !evidenceOk) missing.push(label);
+  };
+
+  if (hasBypassSpecBundle(draft)) {
+    require("email", "Email", Boolean(String(draft.email || "").trim()));
+    require("name", "Name", Boolean(String(draft.name || "").trim()));
+    require("phone", "Phone", Boolean(String(draft.phone || "").trim()));
+    return [...new Set(missing)];
+  }
+
+  require("application", "Application (interior/exterior/both)", draft.application && draft.application !== "unknown");
+  require("jobType", "Job type (replacement/new construction)", draft.jobType && draft.jobType !== "unknown");
+  require("doorMaterial", "Door material", draft.doorMaterial && draft.doorMaterial !== "unknown");
+  require("hardwareScope", "Scope (door/frame/hardware)", draft.hardwareScope && draft.hardwareScope !== "unknown");
+  require("openingCountEstimate", "Opening count", Boolean(String(draft.openingCountEstimate || "").trim()));
+  require("sizeWidthIn", "Opening width", Number.isFinite(draft.sizeWidthIn));
+  require("sizeHeightIn", "Opening height", Number.isFinite(draft.sizeHeightIn));
+  require("email", "Email", Boolean(String(draft.email || "").trim()));
+  require("name", "Name", Boolean(String(draft.name || "").trim()));
+
+  return [...new Set(missing)];
 }
 
 function classifyTurnType({ userMessage, confusedReply, draftBefore, draftAfter, readyToSubmit, canSubmit }) {
