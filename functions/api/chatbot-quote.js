@@ -257,6 +257,7 @@ function sanitizeDraft(input) {
     name: str(d.name),
     email: str(d.email),
     phone: str(d.phone),
+    phoneOptOut: Boolean(d.phoneOptOut),
     company: str(d.company),
     sizeWidthIn: numOrNull(d.sizeWidthIn),
     sizeHeightIn: numOrNull(d.sizeHeightIn),
@@ -582,6 +583,14 @@ function mapShortAnswerByStep(draft, m, step) {
     }
   }
 
+  if (step === "phone") {
+    if (/^\s*(none|no|n\/a|na|skip)\s*$/i.test(rawMessage)) {
+      draft.phone = "";
+      draft.phoneOptOut = true;
+      draft.guidedNotes = appendUniqueNote(draft.guidedNotes, "Customer opted out of providing phone number.");
+    }
+  }
+
   if (step === "application") {
     if (/\bboth\b/.test(normalized) || (/(\binterior\b|\binside\b|\bindoors?\b)/.test(normalized) && /(\bexterior\b|\boutside\b|\boutdoors?\b)/.test(normalized))) draft.application = "both";
     else if (/(\binterior\b|\binside\b|\bindoors?\b)/.test(normalized)) draft.application = "interior";
@@ -663,7 +672,7 @@ function getNextField(draft) {
   if (hasBypassSpecBundle(draft)) {
     if (!draft.email) return "email";
     if (!draft.name) return "name";
-    if (!draft.phone) return "phone";
+    if (!draft.phone && !draft.phoneOptOut) return "phone";
     return "done";
   }
 
@@ -1054,7 +1063,11 @@ function getMissingSubmitFields(draft) {
     require("hingeLocationRequirement", "Hinge prep", draft.hingeLocationRequirement && draft.hingeLocationRequirement !== "unknown");
     require("email", "Email", Boolean(String(draft.email || "").trim()));
     require("name", "Name", Boolean(String(draft.name || "").trim()));
-    require("phone", "Phone", Boolean(String(draft.phone || "").trim()));
+    const phoneProvided = Boolean(String(draft.phone || "").trim());
+    const phoneOptOut = Boolean(draft.phoneOptOut);
+    if (!(phoneProvided || phoneOptOut)) missing.push("Phone (or explicitly skip phone)");
+    if (phoneOptOut && !evidence.phoneOptOut) missing.push("Phone opt-out confirmation");
+    if (phoneProvided && !evidence.phone) missing.push("Phone");
     return [...new Set(missing)];
   }
 
@@ -1336,10 +1349,20 @@ function recordEvidenceFromTurn({ draft, priorDraft, userMessage }) {
     name: /\b(my name is|name is|i am|this is)\b/i,
     email: /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/i,
     phone: /\b\d{3}-?\d{3}-?\d{4}\b/i,
+    phoneOptOut: /^\s*(none|no|n\/a|na|skip)\s*$/i,
   };
 
   for (const field of changed) {
     if (field === "name" && String(draft.name || "").trim()) {
+      evidenceMap[field] = {
+        source: "user",
+        excerpt: message.slice(0, 180),
+        turnAt: Date.now(),
+      };
+      continue;
+    }
+
+    if (field === "phoneOptOut" && draft.phoneOptOut) {
       evidenceMap[field] = {
         source: "user",
         excerpt: message.slice(0, 180),
@@ -1391,10 +1414,14 @@ function hasRequiredEvidence(draft) {
   const evidence = draft?.evidenceMap && typeof draft.evidenceMap === "object" ? draft.evidenceMap : {};
 
   if (hasBypassSpecBundle(draft)) {
-    const bypassRequired = ["sizeWidthIn", "sizeHeightIn", "doorMaterial", "frameDepth", "hingeLocationRequirement", "email", "name", "phone"];
+    const bypassRequired = ["sizeWidthIn", "sizeHeightIn", "doorMaterial", "frameDepth", "hingeLocationRequirement", "email", "name"];
     for (const field of bypassRequired) {
       if (!evidence[field]) return false;
     }
+    const phoneProvided = Boolean(String(draft.phone || "").trim());
+    if (!phoneProvided && !draft.phoneOptOut) return false;
+    if (phoneProvided && !evidence.phone) return false;
+    if (draft.phoneOptOut && !evidence.phoneOptOut) return false;
     return true;
   }
 
@@ -1451,7 +1478,7 @@ function extractOpeningSize(message) {
     return {
       widthIn: Number(slashNominal[1]) * 12,
       heightIn: Number(slashNominal[2]) * 12,
-      assumed: true,
+      assumed: false,
     };
   }
 
@@ -1460,7 +1487,7 @@ function extractOpeningSize(message) {
     return {
       widthIn: Number(compactNominal[1]) * 12,
       heightIn: Number(compactNominal[2]) * 12,
-      assumed: true,
+      assumed: false,
     };
   }
 
@@ -1469,7 +1496,7 @@ function extractOpeningSize(message) {
     return {
       widthIn: Number(feetNominal[1]) * 12,
       heightIn: Number(feetNominal[2]) * 12,
-      assumed: true,
+      assumed: false,
     };
   }
 
@@ -1585,6 +1612,7 @@ function mergeSafeUpdates(draft, updates) {
     name: "string",
     email: "string",
     phone: "string",
+    phoneOptOut: "boolean",
     company: "string",
     sizeWidthIn: "number",
     sizeHeightIn: "number",

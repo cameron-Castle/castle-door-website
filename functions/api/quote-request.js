@@ -18,7 +18,12 @@ export async function onRequestPost(context) {
   const name = String(body?.name || "").trim();
   const email = String(body?.email || "").trim();
   const phone = String(body?.phone || "").trim();
+  const phoneOptOut = Boolean(body?.phoneOptOut);
   const company = String(body?.company || "").trim();
+  const sizeWidthIn = Number.isFinite(Number(body?.sizeWidthIn)) ? Number(body.sizeWidthIn) : null;
+  const sizeHeightIn = Number.isFinite(Number(body?.sizeHeightIn)) ? Number(body.sizeHeightIn) : null;
+  const doorHeightIn = Number.isFinite(Number(body?.doorHeightIn)) ? Number(body.doorHeightIn) : null;
+  const sizeAssumed = Boolean(body?.sizeAssumed);
   const doorType = String(body?.doorType || "").trim();
   const woodSpecies = String(body?.woodSpecies || "").trim();
   const frameType = String(body?.frameType || "").trim();
@@ -30,6 +35,23 @@ export async function onRequestPost(context) {
   const timeline = String(body?.timeline || "").trim();
   const guidedNotes = String(body?.guidedNotes || "").trim();
   const customScope = String(body?.customScope || "").trim();
+  const chatTranscript = Array.isArray(body?.chatTranscript) ? body.chatTranscript : [];
+  const cleanedTranscript = chatTranscript
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const roleRaw = String(entry.role || "").toLowerCase();
+      const role = roleRaw === "user" ? "User" : roleRaw === "assistant" ? "Assistant" : "Unknown";
+      const text = String(entry.text || "").trim();
+      if (!text) return null;
+      const at = String(entry.at || "").trim();
+      return {
+        role,
+        text: text.slice(0, 2000),
+        at: at.slice(0, 80),
+      };
+    })
+    .filter(Boolean)
+    .slice(-250);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!name || !email || !emailRegex.test(email)) {
@@ -129,6 +151,9 @@ export async function onRequestPost(context) {
   const guidedHtml = `
     <h3>Guided Build Selections</h3>
     <ul>
+      <li><strong>Opening Size (W x H):</strong> ${esc(Number.isFinite(sizeWidthIn) && Number.isFinite(sizeHeightIn) ? `${sizeWidthIn} x ${sizeHeightIn}` : "(not specified)")}</li>
+      <li><strong>Door Height:</strong> ${esc(Number.isFinite(doorHeightIn) ? `${doorHeightIn} in` : "(not specified)")}</li>
+      <li><strong>Size Assumed:</strong> ${esc(sizeAssumed ? "Yes" : "No")}</li>
       <li><strong>Door Type:</strong> ${esc(doorType || "(not specified)")}</li>
       <li><strong>Wood Species:</strong> ${esc(woodSpecies || "(not specified)")}</li>
       <li><strong>Frame Type:</strong> ${esc(frameType || "(not specified)")}</li>
@@ -145,8 +170,21 @@ export async function onRequestPost(context) {
 
   const customHtml = `
     <h3>Custom Quote Scope</h3>
+    <p><strong>Opening Size (W x H):</strong> ${esc(Number.isFinite(sizeWidthIn) && Number.isFinite(sizeHeightIn) ? `${sizeWidthIn} x ${sizeHeightIn}` : "(not specified)")}</p>
     <p>${esc(customScope || "(none)")}</p>
   `;
+
+  const transcriptHtml = cleanedTranscript.length
+    ? `
+      <hr />
+      <h3>Chat Transcript</h3>
+      <ol>
+        ${cleanedTranscript
+          .map((entry) => `<li><strong>${esc(entry.role)}:</strong> ${esc(entry.text)}${entry.at ? ` <span style="color:#64748b">(${esc(entry.at)})</span>` : ""}</li>`)
+          .join("")}
+      </ol>
+    `
+    : "";
 
   const html = `
     <h2>New Website Quote Request</h2>
@@ -156,14 +194,23 @@ export async function onRequestPost(context) {
     <ul>
       <li><strong>Name:</strong> ${esc(name)}</li>
       <li><strong>Email:</strong> ${esc(email)}</li>
-      <li><strong>Phone:</strong> ${esc(phone || "(not provided)")}</li>
+      <li><strong>Phone:</strong> ${esc(phone || (phoneOptOut ? "(customer opted out)" : "(not provided)"))}</li>
       <li><strong>Company:</strong> ${esc(company || "(not provided)")}</li>
     </ul>
     <hr />
     ${mode === "guided" ? guidedHtml : customHtml}
+    ${transcriptHtml}
     <hr />
     <p style="color:#64748b;font-size:12px;">Source host: ${esc(sourceHost)}</p>
   `;
+
+  const transcriptTextBlock = cleanedTranscript.length
+    ? [
+        "",
+        "Chat Transcript",
+        ...cleanedTranscript.map((entry) => `- ${entry.role}: ${entry.text}${entry.at ? ` (${entry.at})` : ""}`),
+      ].join("\n")
+    : "";
 
   const text = [
     "New Website Quote Request",
@@ -172,12 +219,15 @@ export async function onRequestPost(context) {
     "Customer Contact",
     `Name: ${name}`,
     `Email: ${email}`,
-    `Phone: ${phone || "(not provided)"}`,
+    `Phone: ${phone || (phoneOptOut ? "(customer opted out)" : "(not provided)")}`,
     `Company: ${company || "(not provided)"}`,
     "",
     mode === "guided" ? "Guided Build Selections" : "Custom Quote Scope",
     mode === "guided"
       ? [
+          `Opening Size (W x H): ${Number.isFinite(sizeWidthIn) && Number.isFinite(sizeHeightIn) ? `${sizeWidthIn} x ${sizeHeightIn}` : "(not specified)"}`,
+          `Door Height: ${Number.isFinite(doorHeightIn) ? `${doorHeightIn} in` : "(not specified)"}`,
+          `Size Assumed: ${sizeAssumed ? "Yes" : "No"}`,
           `Door Type: ${doorType || "(not specified)"}`,
           `Wood Species: ${woodSpecies || "(not specified)"}`,
           `Frame Type: ${frameType || "(not specified)"}`,
@@ -190,7 +240,8 @@ export async function onRequestPost(context) {
           `Assigned Rep: ${quoteRepName}`,
           `Project Notes: ${guidedNotes || "(none)"}`,
         ].join("\n")
-      : `Scope: ${customScope || "(none)"}`,
+      : [`Opening Size (W x H): ${Number.isFinite(sizeWidthIn) && Number.isFinite(sizeHeightIn) ? `${sizeWidthIn} x ${sizeHeightIn}` : "(not specified)"}`, `Scope: ${customScope || "(none)"}`].join("\n"),
+    transcriptTextBlock,
     "",
     `Source host: ${sourceHost}`,
   ].join("\n");

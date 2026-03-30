@@ -1361,6 +1361,7 @@
     localStorage.removeItem(CHATBOT_STATE_KEY);
     let chatbotSessionId = `chat-${Date.now()}-${Math.floor(Math.random() * 99999)}`;
     localStorage.setItem(CHATBOT_SESSION_KEY, chatbotSessionId);
+    const chatbotTranscript = [];
     let chatbotState = {
       mode: "guided",
       currentStep: "requestType",
@@ -1391,11 +1392,22 @@
 
     function appendChatbotMessage(role, text) {
       if (!chatbotLog) return;
+      const normalizedRole = role === "user" ? "user" : "assistant";
+      const normalizedText = String(text || "").trim();
       const div = document.createElement("div");
-      div.className = role === "user" ? "chatbot-msg user" : "chatbot-msg";
-      div.textContent = `${role === "user" ? "You" : "Assistant"}: ${text}`;
+      div.className = normalizedRole === "user" ? "chatbot-msg user" : "chatbot-msg";
+      div.textContent = `${normalizedRole === "user" ? "You" : "Assistant"}: ${normalizedText}`;
       chatbotLog.appendChild(div);
       chatbotLog.scrollTop = chatbotLog.scrollHeight;
+
+      if (normalizedText) {
+        chatbotTranscript.push({
+          role: normalizedRole,
+          text: normalizedText,
+          at: new Date().toISOString(),
+        });
+        if (chatbotTranscript.length > 400) chatbotTranscript.shift();
+      }
     }
 
     function buildQuotePayloadFromChatbotDraft() {
@@ -1416,8 +1428,13 @@
         name: String(d.name || "").trim(),
         email: String(d.email || "").trim(),
         phone: String(d.phone || "").trim(),
+        phoneOptOut: Boolean(d.phoneOptOut),
         company: String(d.company || "").trim(),
         doorType,
+        sizeWidthIn: Number.isFinite(Number(d.sizeWidthIn)) ? Number(d.sizeWidthIn) : null,
+        sizeHeightIn: Number.isFinite(Number(d.sizeHeightIn)) ? Number(d.sizeHeightIn) : null,
+        doorHeightIn: Number.isFinite(Number(d.doorHeightIn)) ? Number(d.doorHeightIn) : null,
+        sizeAssumed: Boolean(d.sizeAssumed),
         woodSpecies: String(d.woodSpecies || "").trim(),
         frameType: String(d.frameType || "").trim(),
         fireRated,
@@ -1427,6 +1444,7 @@
         quoteRep: String(qQuoteRep?.value || "").trim().toLowerCase(),
         timeline: String(d.timeline || "").trim(),
         guidedNotes: [String(d.guidedNotes || "").trim(), guidedNotesExtra.join("\n")].filter(Boolean).join("\n\n"),
+        chatTranscript: chatbotTranscript.slice(),
         customScope: "",
       };
     }
