@@ -1431,11 +1431,11 @@ function toNominalLabel(widthIn, heightIn) {
 function extractOpeningSize(message) {
   const text = normalizeParserText(message);
 
-  const literal = text.match(/\b(\d{2})(?:\s*(?:in|inch|inches|"))?\s*(?:x|×|by)\s*(\d{2,3})(?:\s*(?:in|inch|inches|"))?\b/i);
+  const literal = text.match(/\b(\d{2,3})(?:\s*(?:in|inch|inches|"))?\s*(?:x|×|by)\s*(\d{2,3})(?:\s*(?:in|inch|inches|"))?\b/i);
   if (literal) {
     const widthIn = Number(literal[1]);
     const heightIn = Number(literal[2]);
-    if (widthIn >= 20 && widthIn <= 72 && heightIn >= 60 && heightIn <= 120) {
+    if (widthIn >= 20 && widthIn <= 144 && heightIn >= 60 && heightIn <= 120) {
       return { widthIn, heightIn, assumed: false };
     }
   }
