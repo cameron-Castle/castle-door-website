@@ -621,7 +621,7 @@ function buildNextQuestion(field) {
     application: "Interior, exterior, or both?",
     jobType: "Replacement or new construction?",
     doorMaterial: "Door material: wood, hollow metal, aluminum, or unknown?",
-    hardwareScope: "Scope: door only, door + frame, or complete opening with hardware?",
+    hardwareScope: "Do you need just the door, door + frame, or a complete opening with hardware?",
     openingCountEstimate: "How many openings should I carry? A range like 16-22 is fine.",
     sizeWidthIn: "What opening size should I carry? 3070, 3068, 4070, 6070, any size, just let me know.",
     wallThicknessIn: "If frame depth is unknown, give me rough wall thickness in inches.",
@@ -644,7 +644,7 @@ function buildClarifyingQuestion(field) {
     application: "Are these interior, exterior, or both?",
     jobType: "Is this new construction or replacement?",
     doorMaterial: "Door leaf material: wood, hollow metal, aluminum, or unknown?",
-    hardwareScope: "Pick one: door only, door + frame, or complete opening with hardware.",
+    hardwareScope: "Pick one: just the door, door + frame, or complete opening with hardware.",
     sizeWidthIn: "You can answer as 3070 or any size.",
     wallThicknessIn: "Rough wall thickness in inches works (4, 5-3/4, 8-1/4, etc.).",
     hingeLocationRequirement: "Hinge prep choice: standard, match-existing, or custom. If it does not matter, I can set standard.",
@@ -1086,12 +1086,12 @@ function buildConversationalFollowup({ turnType, draftBefore, draftAfter, nextFi
   }
 
   if (turnType === "pushback") {
-    const line = captured ? `You're right — captured ${captured}.` : "You're right — I see your last detail now.";
+    const line = "You're right — updated that.";
     return [line, insight, nextQ].filter(Boolean).join(" ").trim();
   }
 
   if (turnType === "correction") {
-    const line = captured ? `Updated ${captured}.` : "Updated that.";
+    const line = "Updated that.";
     return [line, insight, nextQ].filter(Boolean).join(" ").trim();
   }
 
@@ -1111,7 +1111,7 @@ function buildConversationalFollowup({ turnType, draftBefore, draftAfter, nextFi
   }
 
   if (turnType === "spec_burst") {
-    if (captured) return [ `Captured: ${captured}.`, insight, nextQ ].filter(Boolean).join(" ");
+    if (captured) return ["Got it.", insight, nextQ].filter(Boolean).join(" ");
     if (ai) return ai.includes("?") ? ai : `${ai}\n\n${nextQ}`;
     return nextQ;
   }
@@ -1119,7 +1119,7 @@ function buildConversationalFollowup({ turnType, draftBefore, draftAfter, nextFi
   if (fieldChanged(draftBefore, draftAfter, "frameDepth")) {
     return `Got it — frame depth ${draftAfter.frameDepth}. ${nextQ}`;
   }
-  if (captured || insight) return [captured ? `Got it — ${captured}.` : "Got it.", insight, nextQ].filter(Boolean).join(" ");
+  if (captured || insight) return ["Got it.", insight, nextQ].filter(Boolean).join(" ");
   if (ai) return ai.includes("?") ? ai : `${ai}\n\n${nextQ}`;
   if (/\bquote\b/i.test(String(userMessage || "")) && nextField === "requestType") {
     return "Got it. I can do budget (fast) or full quote (detailed). Which do you want?";
