@@ -1307,7 +1307,7 @@ function extractOpeningSize(message) {
     }
   }
 
-  const slashNominal = text.match(/\b([2-4])\s*\/\s*0\s*[x×]\s*([6-8])\s*\/\s*0\b/i);
+  const slashNominal = text.match(/\b([2-6])\s*\/\s*0\s*[x×]\s*([6-8])\s*\/\s*0\b/i);
   if (slashNominal) {
     return {
       widthIn: Number(slashNominal[1]) * 12,
@@ -1316,7 +1316,7 @@ function extractOpeningSize(message) {
     };
   }
 
-  const compactNominal = text.match(/\b([2-4])0([6-8])0\b/);
+  const compactNominal = text.match(/\b([2-6])0([6-8])0\b/);
   if (compactNominal) {
     return {
       widthIn: Number(compactNominal[1]) * 12,
@@ -1325,13 +1325,39 @@ function extractOpeningSize(message) {
     };
   }
 
-  const feetNominal = text.match(/\b([2-4])\s*(?:'|ft|foot|feet)?\s*(?:x|×|by)\s*([6-8])\s*(?:'|ft|foot|feet)?\b/i);
+  const feetNominal = text.match(/\b([2-6])\s*(?:'|ft|foot|feet)?\s*(?:x|×|by)\s*([6-8])\s*(?:'|ft|foot|feet)?\b/i);
   if (feetNominal) {
     return {
       widthIn: Number(feetNominal[1]) * 12,
       heightIn: Number(feetNominal[2]) * 12,
       assumed: true,
     };
+  }
+
+  // Width-only shorthand from customers (e.g., "48in" or "4 ft door")
+  // defaults to 84" height as an assumption so flow can continue.
+  const widthOnlyInExact = text.match(/^\s*(\d{2})(?:\s*(?:in|inch|inches|"))\s*$/i);
+  if (widthOnlyInExact) {
+    const widthIn = Number(widthOnlyInExact[1]);
+    if (widthIn >= 24 && widthIn <= 72) {
+      return { widthIn, heightIn: 84, assumed: true };
+    }
+  }
+
+  const widthOnlyInDoor = text.match(/\b(\d{2})(?:\s*(?:in|inch|inches|"))\s*(?:wide\b|door\b|opening\b)/i);
+  if (widthOnlyInDoor) {
+    const widthIn = Number(widthOnlyInDoor[1]);
+    if (widthIn >= 24 && widthIn <= 72) {
+      return { widthIn, heightIn: 84, assumed: true };
+    }
+  }
+
+  const widthOnlyFeetDoor = text.match(/\b([2-6])\s*(?:'|ft|foot|feet)\s*(?:wide\s*)?(?:door|opening)\b/i);
+  if (widthOnlyFeetDoor) {
+    const widthIn = Number(widthOnlyFeetDoor[1]) * 12;
+    if (widthIn >= 24 && widthIn <= 72) {
+      return { widthIn, heightIn: 84, assumed: true };
+    }
   }
 
   return null;
