@@ -133,11 +133,16 @@ export async function onRequestPost(context) {
     readyToSubmit: effectiveReadyToSubmit,
     canSubmit: effectiveCanSubmit,
   });
+  const conversationIntent = classifyConversationIntent(userMessage);
 
-  const assistantMessage = confusedReply
-    ? buildClarifyingQuestion(currentStep && currentStep !== "done" ? currentStep : nextField)
+  const assistantMessage = conversationIntent.domainQuestion
+    ? buildDomainQaReply({ userMessage, nextField: effectiveNextField, aiAssistantMessage })
+    : confusedReply
+      ? buildClarifyingQuestion(currentStep && currentStep !== "done" ? currentStep : nextField)
     : blockedUngroundedReadyState
       ? buildLowSignalReadyGuardMessage(effectiveNextField)
+      : conversationIntent.offTopic
+        ? buildOffTopicRedirectMessage(effectiveNextField)
       : effectiveCanSubmit
       ? buildSummaryMessage(draft, unknownsToVerify, assumptionsUsed)
       : effectiveReadyToSubmit
@@ -299,7 +304,7 @@ function normalizeEnum(value, allowed, fallback) {
 }
 
 function applyDeterministicExtraction(draft, message, currentStep = "") {
-  const m = message.toLowerCase();
+  const m = normalizeParserText(message);
   const step = String(currentStep || "").trim();
 
   mapShortAnswerByStep(draft, m, step);
@@ -310,15 +315,15 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
   if (m.includes("ballpark") || m.includes("budget")) draft.requestType = "budget";
   if (m.includes("full quote")) draft.requestType = "full";
 
-  if (m.includes("interior") && m.includes("exterior")) draft.application = "both";
-  else if (m.includes("interior")) draft.application = "interior";
-  else if (m.includes("exterior")) draft.application = "exterior";
+  if (/(\binterior\b|\binside\b|\bindoors?\b)/.test(m) && /(\bexterior\b|\boutside\b|\boutdoors?\b)/.test(m)) draft.application = "both";
+  else if (/(\binterior\b|\binside\b|\bindoors?\b)/.test(m)) draft.application = "interior";
+  else if (/(\bexterior\b|\boutside\b|\boutdoors?\b)/.test(m)) draft.application = "exterior";
 
-  if (m.includes("replace") || m.includes("replacing") || /\breplacement\b/.test(m)) draft.jobType = "replacement";
-  if (m.includes("new opening") || m.includes("new construction") || /\bnew\s*con(?:struction|str|st)?\b/.test(m) || /^\s*new\s*$/.test(m)) draft.jobType = "new";
+  if (m.includes("replace") || m.includes("replacing") || /\breplacement\b|\bswap(?:\s*out)?\b|\btear\s*out\b/.test(m)) draft.jobType = "replacement";
+  if (m.includes("new opening") || m.includes("new construction") || /\bnew\s*con(?:struction|str|st)?\b|\bnew\s*build\b|\bground\s*up\b/.test(m) || /^\s*new\s*$/.test(m)) draft.jobType = "new";
 
   if (m.includes("single")) draft.openingType = "single";
-  if (m.includes("double")) draft.openingType = draft.openingType === "single" ? "mixed" : "double";
+  if (m.includes("double") || /\bpair\b/.test(m)) draft.openingType = draft.openingType === "single" ? "mixed" : "double";
 
   const manufacturer = detectManufacturerFamily(m);
   if (manufacturer) draft.manufacturerFamily = manufacturer;
@@ -335,8 +340,8 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
   if (/\bdoor and frame\b|\bframe too\b|\bboth\b.*\bframe\b|\bframe\b.*\bboth\b|\bdoor\b.*\bframe\b|\bframe\b.*\bdoor\b/.test(m)) draft.replaceFrame = true;
   if (m.includes("door slab only") || m.includes("door only")) draft.replaceFrame = false;
 
-  if (/\bjust need a door\b|\bdoor only\b/.test(m)) draft.hardwareScope = "door-only";
-  if (/\bdoor\s*(\+|and)\s*frame\b|\bdoor frame\b|\bdoor\b.*\bframe\b|\bframe\b.*\bdoor\b/.test(m)) draft.hardwareScope = "door-frame";
+  if (/\bjust need a door\b|\bdoor only\b|\bjust the door\b|\bonly the door\b|\bdoor slab only\b|\bjust the slab\b|\bonly the slab\b|\bleaf only\b/.test(m)) draft.hardwareScope = "door-only";
+  if (/\bdoor\s*(\+|and|with)\s*frame\b|\bdoor frame\b|\bdoor\b.*\bframe\b|\bframe\b.*\bdoor\b/.test(m)) draft.hardwareScope = "door-frame";
   if (/\bcomplete opening\b|\bdoor\s*(\+|and)\s*frame\s*(\+|and)\s*hardware\b/.test(m)) {
     draft.hardwareScope = "door-frame-hardware";
   }
@@ -474,6 +479,7 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
 
 function mapShortAnswerByStep(draft, m, step) {
   if (!step) return;
+  const normalized = normalizeParserText(m);
   const rawMessage = String(m || "").trim();
 
   if (step === "sizeWidthIn") {
@@ -507,14 +513,14 @@ function mapShortAnswerByStep(draft, m, step) {
   }
 
   if (step === "application") {
-    if (/\bboth\b/.test(m) || (m.includes("interior") && m.includes("exterior"))) draft.application = "both";
-    else if (/\binterior\b/.test(m)) draft.application = "interior";
-    else if (/\bexterior\b/.test(m)) draft.application = "exterior";
+    if (/\bboth\b/.test(normalized) || (/(\binterior\b|\binside\b|\bindoors?\b)/.test(normalized) && /(\bexterior\b|\boutside\b|\boutdoors?\b)/.test(normalized))) draft.application = "both";
+    else if (/(\binterior\b|\binside\b|\bindoors?\b)/.test(normalized)) draft.application = "interior";
+    else if (/(\bexterior\b|\boutside\b|\boutdoors?\b)/.test(normalized)) draft.application = "exterior";
   }
 
   if (step === "jobType") {
-    if (/^\s*new\s*$/.test(m) || /\bnew construction\b/.test(m) || /\bnew\s*con(?:struction|str|st)?\b/.test(m)) draft.jobType = "new";
-    if (/^\s*replace(?:ment)?\s*$/.test(m) || /\breplacing\b/.test(m)) draft.jobType = "replacement";
+    if (/^\s*new\s*$/.test(normalized) || /\bnew construction\b/.test(normalized) || /\bnew\s*con(?:struction|str|st)?\b/.test(normalized) || /\bnew\s*build\b|\bground\s*up\b/.test(normalized)) draft.jobType = "new";
+    if (/^\s*replace(?:ment)?\s*$/.test(normalized) || /\breplacing\b|\bswap(?:\s*out)?\b|\btear\s*out\b/.test(normalized)) draft.jobType = "replacement";
   }
 
   if (step === "doorMaterial") {
@@ -530,9 +536,9 @@ function mapShortAnswerByStep(draft, m, step) {
   }
 
   if (step === "hardwareScope") {
-    if (/\bdoor\s*only\b/.test(m)) draft.hardwareScope = "door-only";
-    if (/\bdoor\s*(\+|and)\s*frame\b/.test(m) || /\bdoor frame\b/.test(m)) draft.hardwareScope = "door-frame";
-    if (/\bcomplete\b|\bfull\b|\bhardware\b/.test(m)) draft.hardwareScope = "door-frame-hardware";
+    if (/\bdoor\s*only\b|\bjust the door\b|\bonly the door\b|\bdoor slab only\b|\bjust the slab\b|\bonly the slab\b|\bleaf only\b/.test(normalized)) draft.hardwareScope = "door-only";
+    if (/\bdoor\s*(\+|and|with)\s*frame\b/.test(normalized) || /\bdoor frame\b/.test(normalized)) draft.hardwareScope = "door-frame";
+    if (/\bcomplete\b|\bfull\b|\bhardware\b|\bfull\s*set\b/.test(normalized)) draft.hardwareScope = "door-frame-hardware";
   }
 
   if (step === "handing") {
@@ -652,6 +658,54 @@ function buildOutOfScopeMessage(reason) {
     return "It sounds like a residential storm-door request. We handle commercial doors and frames only. If you have a commercial opening, share those details and I can help immediately.";
   }
   return "This request appears outside commercial door/frame quoting. I can help if you share commercial opening details.";
+}
+
+function classifyConversationIntent(userMessage) {
+  const m = normalizeParserText(userMessage);
+  const isQuestion = /\?|^(what|how|why|when|where|can|could|should|do|does|is|are|which)\b/.test(m);
+  const doorDomain =
+    /\b(door|frame|opening|hardware|hinge|handing|fire\s*rated|vision\s*kit|jamb|strike|closer|lock|cylind)\b/.test(m)
+    || /\b[2-6]0[6-8]0\b/.test(m)
+    || /\b([2-6])\s*\/\s*0\s*[x×]\s*([6-8])\s*\/\s*0\b/.test(m);
+  const offTopic = /\b(cookie|recipe|cooking|sports|weather|politic|stock|crypto|movie|music|vacation|astrology)\b/.test(m);
+
+  return {
+    domainQuestion: isQuestion && doorDomain,
+    offTopic: offTopic && !doorDomain,
+  };
+}
+
+function buildOffTopicRedirectMessage(nextField) {
+  return [
+    "I’m focused on commercial door and frame help, so I can’t assist with that topic.",
+    buildNextQuestion(nextField || "application"),
+  ].join(" ");
+}
+
+function buildDomainQaReply({ userMessage, nextField, aiAssistantMessage }) {
+  const m = normalizeParserText(userMessage);
+  const canned = buildCannedDomainAnswer(m);
+  const answer = canned || String(aiAssistantMessage || "").trim() || "Good question — I can help with that and keep your quote moving.";
+  const clean = answer.endsWith("?") ? answer : answer.replace(/\s+/g, " ").trim();
+  return `${clean} ${buildNextQuestion(nextField || "application")}`.trim();
+}
+
+function buildCannedDomainAnswer(message) {
+  if (/\b3070\b/.test(message)) return "3070 usually means a nominal 3/0 x 7/0 door, which is typically a 36x84 opening.";
+  if (/\b6070\b/.test(message)) return "6070 usually means a nominal 6/0 x 7/0 pair, typically around a 72x84 opening.";
+  if (/\b(handing|lh|rh|lhr|rhr|left hand|right hand)\b/.test(message)) {
+    return "Handing is based on hinge side and swing. If unsure, we can mark site-verify and still quote correctly.";
+  }
+  if (/\b(frame depth|wall thickness|jamb depth|stud|sheetrock|drywall)\b/.test(message)) {
+    return "Frame depth follows wall condition (finished face to finished face). Rough wall thickness is enough for an initial quote.";
+  }
+  if (/\b(fire rated|fire-rating|fire rating)\b/.test(message)) {
+    return "Fire rating affects door, frame, and hardware requirements. If unknown, we can mark it pending plan review.";
+  }
+  if (/\b(hollow metal|steel|wood|aluminum|aluminium)\b/.test(message)) {
+    return "Material choice usually depends on durability, environment, and rating needs. We can start with your preference and adjust from plans.";
+  }
+  return "Yes — I can answer door and frame questions while collecting quote details in the background.";
 }
 
 function buildUnknowns(draft) {
@@ -1296,7 +1350,7 @@ function toNominalLabel(widthIn, heightIn) {
 }
 
 function extractOpeningSize(message) {
-  const text = String(message || "").toLowerCase();
+  const text = normalizeParserText(message);
 
   const literal = text.match(/\b(\d{2})(?:\s*(?:in|inch|inches|"))?\s*(?:x|×|by)\s*(\d{2,3})(?:\s*(?:in|inch|inches|"))?\b/i);
   if (literal) {
@@ -1361,6 +1415,24 @@ function extractOpeningSize(message) {
   }
 
   return null;
+}
+
+function normalizeParserText(message) {
+  let text = String(message || "").toLowerCase();
+  text = text.replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
+  const numberWords = {
+    two: "2",
+    three: "3",
+    four: "4",
+    five: "5",
+    six: "6",
+    seven: "7",
+    eight: "8",
+  };
+  for (const [word, digit] of Object.entries(numberWords)) {
+    text = text.replace(new RegExp(`\\b${word}\\b`, "g"), digit);
+  }
+  return text;
 }
 
 function extractStandaloneFrameDepthValue(message) {
