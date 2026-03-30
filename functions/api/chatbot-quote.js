@@ -1026,9 +1026,10 @@ function buildReviewRequiredMessage(validationErrors) {
   const errors = Array.isArray(validationErrors) ? validationErrors : [];
   const missing = arguments[1] && Array.isArray(arguments[1]) ? arguments[1] : [];
   const details = [...errors, ...missing.map((x) => `Missing: ${x}`)];
+  const detailLines = details.length ? details.map((x) => `- ${x}`) : ["- I still need one or more required fields confirmed."];
   const lines = [
     "I have most of your details, but a few items need review before submission:",
-    ...details.map((x) => `- ${x}`),
+    ...detailLines,
     "",
     "Reply with updates and I will fix these before submit.",
   ];
@@ -1046,6 +1047,11 @@ function getMissingSubmitFields(draft) {
   };
 
   if (hasBypassSpecBundle(draft)) {
+    require("sizeWidthIn", "Opening width", Number.isFinite(draft.sizeWidthIn));
+    require("sizeHeightIn", "Opening height", Number.isFinite(draft.sizeHeightIn));
+    require("doorMaterial", "Door material", draft.doorMaterial && draft.doorMaterial !== "unknown");
+    require("frameDepth", "Frame depth", Boolean(String(draft.frameDepth || "").trim()) || Number.isFinite(draft.wallThicknessIn));
+    require("hingeLocationRequirement", "Hinge prep", draft.hingeLocationRequirement && draft.hingeLocationRequirement !== "unknown");
     require("email", "Email", Boolean(String(draft.email || "").trim()));
     require("name", "Name", Boolean(String(draft.name || "").trim()));
     require("phone", "Phone", Boolean(String(draft.phone || "").trim()));
@@ -1318,13 +1324,13 @@ function recordEvidenceFromTurn({ draft, priorDraft, userMessage }) {
     application: /\binterior\b|\bexterior\b|\bboth\b/i,
     jobType: /\breplace\b|\breplacement\b|\breplacing\b|\bnew opening\b|\bnew construction\b|^\s*new\s*$/i,
     doorMaterial: /\bwood\b|\bhollow\s*metal\b|\bhm\b|\bsteel\b|\baluminum\b|\baluminium\b/i,
-    hardwareScope: /\bdoor\s*only\b|\bdoor\s*(\+|and)\s*frame\b|\bdoor frame\b|\bcomplete opening\b|\bhardware\b/i,
+    hardwareScope: /\bdoor\s*only\b|\bdoor\s*(\+|and)\s*frame\b|\bdoor frame\b|\bcomplete opening\b|\bhardware\b|\bboth\b/i,
     openingCountEstimate: /\b(\d{1,3})(?:\s*(?:to|\-|–)\s*(\d{1,3}))?\s*(?:doors?|openings?)\b/i,
     sizeWidthIn: /\b([2-4])0([6-8])0\b|\b(\d{2})\s*[x×]\s*(\d{2,3})\b|\b([2-4])\s*\/\s*0\s*[x×]\s*([6-8])\s*\/\s*0\b/i,
     sizeHeightIn: /\b([2-4])0([6-8])0\b|\b(\d{2})\s*[x×]\s*(\d{2,3})\b|\b([2-4])\s*\/\s*0\s*[x×]\s*([6-8])\s*\/\s*0\b/i,
-    frameDepth: /\b(frame|jamb|depth)\b/i,
+    frameDepth: /\b(frame|jamb|depth)\b|\b\d{1,2}\s*-\s*\d\s*\/\s*\d\b|\b\d+(?:\.\d+)?\s*(?:in|inch|inches|")\b/i,
     wallThicknessIn: /\bwall\b/i,
-    hingeLocationRequirement: /\bhinge\b/i,
+    hingeLocationRequirement: /\bhinge\b|\bstandard\b|\bmatch(?:-existing| existing)?\b|\bcustom\b|\bdoes(?:n't| not) matter\b/i,
     handing: /\blh\b|\brh\b|\blhr\b|\brhr\b|\bleft\s*hand\b|\bright\s*hand\b|\bhinges?\s+on\s+(left|right)\b/i,
     fireRatedStatus: /\bfire\s*-?\s*rated\b|\bfire\b/i,
     name: /\b(my name is|name is|i am|this is)\b/i,
@@ -1385,7 +1391,7 @@ function hasRequiredEvidence(draft) {
   const evidence = draft?.evidenceMap && typeof draft.evidenceMap === "object" ? draft.evidenceMap : {};
 
   if (hasBypassSpecBundle(draft)) {
-    const bypassRequired = ["sizeWidthIn", "sizeHeightIn", "doorMaterial", "frameDepth", "email", "name", "phone"];
+    const bypassRequired = ["sizeWidthIn", "sizeHeightIn", "doorMaterial", "frameDepth", "hingeLocationRequirement", "email", "name", "phone"];
     for (const field of bypassRequired) {
       if (!evidence[field]) return false;
     }
