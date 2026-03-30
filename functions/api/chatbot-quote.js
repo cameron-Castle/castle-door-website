@@ -463,7 +463,7 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     draft.hingeLocationRequirement = "match-existing";
   }
 
-  if (/\bwhatever is standard\b|\bstandard is fine\b|\bdefault is fine\b/.test(m) && draft.hingeLocationRequirement === "unknown") {
+  if (/\bwhatever is standard\b|\bstandard is fine\b|\bdefault is fine\b|\bit does(?: not|n't) matter\b|\bdoes(?: not|n't) matter\b/.test(m) && draft.hingeLocationRequirement === "unknown") {
     draft.hingeLocationRequirement = "standard";
   }
 
@@ -541,6 +541,14 @@ function mapShortAnswerByStep(draft, m, step) {
     if (/\bcomplete\b|\bfull\b|\bhardware\b|\bfull\s*set\b/.test(normalized)) draft.hardwareScope = "door-frame-hardware";
   }
 
+  if (step === "hingeLocationRequirement") {
+    if (/\bmatch\b|\bmatch existing\b/.test(normalized)) draft.hingeLocationRequirement = "match-existing";
+    else if (/\bcustom\b/.test(normalized)) draft.hingeLocationRequirement = "custom";
+    else if (/\bstandard\b|\bwhatever\b|\bdefault\b|\bit does(?: not|n't) matter\b|\bdoes(?: not|n't) matter\b/.test(normalized)) {
+      draft.hingeLocationRequirement = "standard";
+    }
+  }
+
   if (step === "handing") {
     const handing = extractHanding(m);
     if (handing) {
@@ -614,10 +622,10 @@ function buildNextQuestion(field) {
     jobType: "Replacement or new construction?",
     doorMaterial: "Door material: wood, hollow metal, aluminum, or unknown?",
     hardwareScope: "Scope: door only, door + frame, or complete opening with hardware?",
-    openingCountEstimate: "How many openings should I carry? A range is fine (like 16-22).",
-    sizeWidthIn: "What opening size should I carry? 3070 or 36x84 style is perfect.",
+    openingCountEstimate: "How many openings should I carry? A range like 16-22 is fine.",
+    sizeWidthIn: "What opening size should I carry? 3070, 3068, 4070, 6070, any size, just let me know.",
     wallThicknessIn: "If frame depth is unknown, give me rough wall thickness in inches.",
-    hingeLocationRequirement: "For hinge prep, should I use standard, match-existing, or custom?",
+    hingeLocationRequirement: "Hinge prep preference: standard, match-existing, or custom?",
     handing: "Do you know handing (LH/RH/LHR/RHR), or should I mark site-verify?",
     fireRatedStatus: "Any fire-rated openings? yes, no, or unknown is fine.",
     requestType: "Do you want budget range pricing or a full quote?",
@@ -637,9 +645,9 @@ function buildClarifyingQuestion(field) {
     jobType: "Is this new construction or replacement?",
     doorMaterial: "Door leaf material: wood, hollow metal, aluminum, or unknown?",
     hardwareScope: "Pick one: door only, door + frame, or complete opening with hardware.",
-    sizeWidthIn: "You can answer as 3070 or 36x84 — either works.",
+    sizeWidthIn: "You can answer as 3070 or any size.",
     wallThicknessIn: "Rough wall thickness in inches works (4, 5-3/4, 8-1/4, etc.).",
-    hingeLocationRequirement: "For hinge prep, should I use standard, match-existing, or custom?",
+    hingeLocationRequirement: "Hinge prep choice: standard, match-existing, or custom. If it does not matter, I can set standard.",
     handing: "Quick method: stand on the hinge side with the door closed — if hinges are left, that's LH; right is RH. Want me to mark site-verify if unknown?",
     fireRatedStatus: "Any fire-rated openings? yes, no, or unknown is fine.",
     projectName: "Project name is enough — even a short label.",
@@ -691,7 +699,7 @@ function buildDomainQaReply({ userMessage, nextField, aiAssistantMessage }) {
 }
 
 function buildCannedDomainAnswer(message) {
-  if (/\b3070\b/.test(message)) return "3070 usually means a nominal 3/0 x 7/0 door, which is typically a 36x84 opening.";
+  if (/\b3070\b/.test(message)) return "3070 usually means a nominal 3/0 x 7/0 door (commonly called 3x7).";
   if (/\b6070\b/.test(message)) return "6070 usually means a nominal 6/0 x 7/0 pair, typically around a 72x84 opening.";
   if (/\b(handing|lh|rh|lhr|rhr|left hand|right hand)\b/.test(message)) {
     return "Handing is based on hinge side and swing. If unsure, we can mark site-verify and still quote correctly.";
@@ -1060,7 +1068,7 @@ function buildFieldHelp(field) {
     hardwareScope: "Door-only is slab only, door+frame includes frame, complete opening includes hardware.",
     hingeLocationRequirement: "For replacement, match-existing is usually safest. For new work, standard is typical.",
     handing: "Stand on the hinge side with the door closed: hinges left = LH, hinges right = RH. Site-verify is fine if unknown.",
-    sizeWidthIn: "You can give size as 3070 or 36x84. I can translate and carry it for quote intake.",
+    sizeWidthIn: "You can give size as 3070 or 3x7. I can translate and carry it for quote intake.",
     wallThicknessIn: "Wall thickness is finished face to finished face; a rough inch value is enough.",
     fireRatedStatus: "If unsure, unknown is acceptable and can be verified from plans later.",
   };
@@ -1124,7 +1132,7 @@ function fieldChanged(before, after, field) {
 }
 
 function buildProvisionalSuggestion(nextField, draft) {
-  if (nextField === "sizeWidthIn") return "If you want standard, I can carry 3070 (36x84) and mark it for verification.";
+  if (nextField === "sizeWidthIn") return "If you want standard, I can carry 3070 (3x7) and mark it for verification.";
   if (nextField === "handing") return "We can mark handing as site-verify for now.";
   if (nextField === "fireRatedStatus") return "We can mark fire rating as unknown pending plan review.";
   if (nextField === "hingeLocationRequirement") {
@@ -1167,7 +1175,7 @@ function buildDomainInsight({ draftBefore, draftAfter, userMessage }) {
     return `Captured handing as ${h}.`;
   }
 
-  if (/\b3070\b/i.test(String(userMessage || ""))) return "3070 usually means a 36x84 opening.";
+  if (/\b3070\b/i.test(String(userMessage || ""))) return "3070 usually means a 3x7 opening.";
   return "";
 }
 
@@ -1696,7 +1704,7 @@ function selectGuideContext({ userMessage, nextField }) {
 
   if (!scored.length) {
     chunks.push(
-      "Reference default: sizing shorthand 3070=36x84, 3068=36x80; use match-existing for replacement when manufacturer/template is unknown."
+      "Reference default: sizing shorthand 3070=3x7, 3068=3x6-8; use match-existing for replacement when manufacturer/template is unknown."
     );
   } else {
     for (const guide of scored) {
