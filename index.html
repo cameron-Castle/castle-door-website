@@ -60,7 +60,7 @@
     }
 
     .site-header__inner {
-      min-height: 78px;
+      min-height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -164,7 +164,7 @@
     }
 
     .hero {
-      padding: 62px 0 28px;
+      padding: 42px 0 24px;
     }
 
     .hero__grid {
@@ -175,7 +175,7 @@
     }
 
     .hero__left {
-      padding: 6px 0;
+      padding: 2px 0;
     }
 
     .eyebrow {
@@ -189,7 +189,7 @@
       color: #1e3a8a;
       font-size: .84rem;
       font-weight: 650;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
 
     .hero h1 {
@@ -200,7 +200,7 @@
     }
 
     .hero__lead {
-      margin-top: 18px;
+      margin-top: 14px;
       max-width: 62ch;
       font-size: 1.03rem;
       color: var(--muted);
@@ -211,11 +211,11 @@
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 25px;
+      margin-top: 20px;
     }
 
     .hero__points {
-      margin-top: 28px;
+      margin-top: 22px;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
@@ -820,10 +820,10 @@
 
     @media (max-width: 860px) {
       .nav { display: none; }
-      .hero { padding-top: 44px; }
+      .hero { padding-top: 32px; }
       .hero__points,
       .hero-grid { grid-template-columns: 1fr; }
-      .actions .btn:last-child { display: none; }
+      .actions .btn:nth-child(2) { display: none; }
       .quote-form__modes,
       .form-grid,
       .quote-options { grid-template-columns: 1fr; }
@@ -853,14 +853,13 @@
         <a href="#pathways">Role Pathways</a>
         <a href="#access">Access &amp; Security</a>
         <a href="#service">Service Flow</a>
-        <a href="#quote">Request Quote</a>
         <a href="#contact">Contact</a>
       </nav>
 
       <div class="actions">
         <a class="btn" href="https://castledoorict.com/portal/login">Portal Sign In</a>
-        <a class="btn" href="#quote">Request a Quote</a>
-        <a class="btn btn--primary" href="/reports">View Reports</a>
+        <a class="btn" href="/reports">View Reports</a>
+        <a class="btn btn--primary" href="#quote">Request a Quote</a>
       </div>
     </div>
   </header>
