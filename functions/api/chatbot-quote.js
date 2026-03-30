@@ -536,6 +536,7 @@ function mapShortAnswerByStep(draft, m, step) {
   }
 
   if (step === "hardwareScope") {
+    if (/^\s*both\s*$/i.test(rawMessage)) draft.hardwareScope = "door-frame";
     if (/\bdoor\s*only\b|\bjust the door\b|\bonly the door\b|\bdoor slab only\b|\bjust the slab\b|\bonly the slab\b|\bleaf only\b/.test(normalized)) draft.hardwareScope = "door-only";
     if (/\bdoor\s*(\+|and|with)\s*frame\b/.test(normalized) || /\bdoor frame\b/.test(normalized)) draft.hardwareScope = "door-frame";
     if (/\bcomplete\b|\bfull\b|\bhardware\b|\bfull\s*set\b/.test(normalized)) draft.hardwareScope = "door-frame-hardware";
@@ -622,7 +623,7 @@ function buildNextQuestion(field) {
     jobType: "Replacement or new construction?",
     doorMaterial: "Door material: wood, hollow metal, aluminum, or unknown?",
     hardwareScope: "Do you need just the door, door + frame, or a complete opening with hardware?",
-    openingCountEstimate: "How many openings should I carry? A range like 16-22 is fine.",
+    openingCountEstimate: "How many openings should I carry? A rough count or range is fine.",
     sizeWidthIn: "What opening size should I carry? 3070, 3068, 4070, 6070, any size, just let me know.",
     wallThicknessIn: "If frame depth is unknown, give me rough wall thickness in inches.",
     hingeLocationRequirement: "Hinge prep preference: standard, match-existing, or custom?",
@@ -640,7 +641,7 @@ function buildNextQuestion(field) {
 function buildClarifyingQuestion(field) {
   const map = {
     requestType: "Choose one for now: budget range or full quote.",
-    openingCountEstimate: "Give me a rough opening count, like 12 or 16-22.",
+    openingCountEstimate: "Give me a rough opening count or range.",
     application: "Are these interior, exterior, or both?",
     jobType: "Is this new construction or replacement?",
     doorMaterial: "Door leaf material: wood, hollow metal, aluminum, or unknown?",
