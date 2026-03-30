@@ -327,7 +327,7 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     draft.doorMaterial = "wood";
     if (!draft.doorType) draft.doorType = "Wood";
   }
-  if (m.includes("hollow metal") || m.includes("hm") || /\bsteel\b/.test(m)) {
+  if (m.includes("hollow metal") || m.includes("hm") || /\bsteel\b/.test(m) || /\bmetal\b/.test(m)) {
     draft.doorMaterial = "hollow-metal";
     if (!draft.doorType) draft.doorType = "Hollow metal";
   }
@@ -403,6 +403,14 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     draft.frameDepthDerivedFromWall = false;
   }
 
+  if (!frameDepthProvided) {
+    const standaloneFrameDepth = extractStandaloneFrameDepthValue(message);
+    if (standaloneFrameDepth && (step === "wallThicknessIn" || step === "frameDepth" || !draft.frameDepth)) {
+      draft.frameDepth = standaloneFrameDepth;
+      draft.frameDepthDerivedFromWall = false;
+    }
+  }
+
   const wallFrac = message.match(/\b(\d{1,2})\s*[- ]\s*(\d)\s*\/\s*(\d)\s*(?:"|in|inch|inches)?\b/i);
   const wallDec = message.match(/\b(3\.5|4|4\.5|5|5\.5|5\.75|6|7\.25|8|8\.25)\s*(?:"|in|inch|inches)?\b/i);
   let parsedWall = null;
@@ -412,11 +420,27 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     parsedWall = Number(wallDec[1]);
   }
 
-  if (parsedWall !== null && m.includes("wall")) {
+  const hasExplicitWallContext = parsedWall !== null && m.includes("wall");
+  if (hasExplicitWallContext) {
     draft.wallThicknessIn = parsedWall;
     if (!draft.frameDepth) {
       draft.frameDepth = suggestFrameDepth(draft.wallThicknessIn);
       draft.frameDepthDerivedFromWall = true;
+    }
+  }
+
+  if (!Number.isFinite(draft.wallThicknessIn)) {
+    const inferredWall = inferWallThicknessFromStudDrywall(message);
+    if (Number.isFinite(inferredWall)) {
+      draft.wallThicknessIn = inferredWall;
+      if (!draft.frameDepth || /unknown|other|site-verify/i.test(draft.frameDepth)) {
+        draft.frameDepth = suggestFrameDepth(draft.wallThicknessIn);
+        draft.frameDepthDerivedFromWall = true;
+      }
+      draft.guidedNotes = appendUniqueNote(
+        draft.guidedNotes,
+        `Wall thickness inferred from stud/board description: ${inferredWall.toFixed(3)} in`
+      );
     }
   }
 
@@ -440,6 +464,12 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
 
   if (m.includes("unknown") || m.includes("not sure") || m.includes("no idea")) draft.handingNeedsSiteVerify = true;
   if (/\bsite\s*verify\b/.test(m)) draft.handingNeedsSiteVerify = true;
+
+  if ((step === "wallThicknessIn" || /\bwall\b/.test(m)) && /\bunknown\b|\bnot sure\b|\bno idea\b/.test(m)) {
+    draft.frameDepth = draft.frameDepth && !/unknown|other/i.test(draft.frameDepth) ? draft.frameDepth : "site-verify";
+    draft.frameDepthDerivedFromWall = false;
+    draft.wallTypeDetails = [draft.wallTypeDetails, "Wall thickness unknown; site verify required."].filter(Boolean).join(" ").trim();
+  }
 }
 
 function mapShortAnswerByStep(draft, m, step) {
@@ -492,7 +522,7 @@ function mapShortAnswerByStep(draft, m, step) {
       draft.doorMaterial = "wood";
       if (!draft.doorType) draft.doorType = "Wood";
     }
-    if (/\bhollow\s*metal\b|\bhm\b|\bsteel\b/.test(m)) {
+    if (/\bhollow\s*metal\b|\bhm\b|\bsteel\b|\bmetal\b/.test(m)) {
       draft.doorMaterial = "hollow-metal";
       if (!draft.doorType) draft.doorType = "Hollow metal";
     }
@@ -1295,7 +1325,56 @@ function extractOpeningSize(message) {
     };
   }
 
+  const feetNominal = text.match(/\b([2-4])\s*(?:'|ft|foot|feet)?\s*(?:x|×|by)\s*([6-8])\s*(?:'|ft|foot|feet)?\b/i);
+  if (feetNominal) {
+    return {
+      widthIn: Number(feetNominal[1]) * 12,
+      heightIn: Number(feetNominal[2]) * 12,
+      assumed: true,
+    };
+  }
+
   return null;
+}
+
+function extractStandaloneFrameDepthValue(message) {
+  const text = String(message || "").toLowerCase();
+  const fracWithSpace = text.match(/\b(\d{1,2})\s+(\d)\s*\/\s*(\d)\b/);
+  if (fracWithSpace) {
+    const n = Number(fracWithSpace[1]) + Number(fracWithSpace[2]) / Number(fracWithSpace[3]);
+    return normalizeFrameDepthValue(String(n));
+  }
+  const fracWithDash = text.match(/\b(\d{1,2})-(\d)\s*\/\s*(\d)\b/);
+  if (fracWithDash) {
+    const n = Number(fracWithDash[1]) + Number(fracWithDash[2]) / Number(fracWithDash[3]);
+    return normalizeFrameDepthValue(String(n));
+  }
+  return "";
+}
+
+function inferWallThicknessFromStudDrywall(message) {
+  const text = String(message || "").toLowerCase();
+  if (!/\bstud\b/.test(text) || !/sheetrock|drywall|gyp/.test(text)) return null;
+
+  const studFrac = text.match(/\b(\d)\s*(?:-|\s)\s*(\d)\s*\/\s*(\d)(?:\s*(?:"|in|inch|inches))?(?:\s+\w+){0,2}\s+stud\b/i);
+  const studDec = text.match(/\b(3\.5|3\.625|4|5\.5|5\.625|6)(?:\s*(?:"|in|inch|inches))?(?:\s+\w+){0,2}\s+stud\b/i);
+  let stud = null;
+  if (studFrac) {
+    stud = Number(studFrac[1]) + Number(studFrac[2]) / Number(studFrac[3]);
+  } else if (studDec) {
+    stud = Number(studDec[1]);
+  }
+  if (!Number.isFinite(stud)) return null;
+
+  const board58 = /5\s*\/\s*8/.test(text);
+  const board12 = /1\s*\/\s*2/.test(text);
+  const board = board58 ? 0.625 : board12 ? 0.5 : null;
+  if (!Number.isFinite(board)) return null;
+
+  const bothSides = /both\s+sides|each\s+side/.test(text);
+  if (!bothSides) return null;
+
+  return stud + board + board;
 }
 
 function extractHanding(message) {
