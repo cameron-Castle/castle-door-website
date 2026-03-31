@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sample Inspection Report | Castle Door &amp; Hardware</title>
+  <style>
+    :root {
+      --bg: #f3f6fa;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --line: #d1dbe8;
+      --brand: #1e3a5f;
+      --accent: #0f766e;
+      --ok: #166534;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 360px at 100% -10%, rgba(30, 58, 95, 0.11), transparent 60%),
+        radial-gradient(700px 280px at -10% 0%, rgba(15, 118, 110, 0.1), transparent 62%),
+        var(--bg);
+    }
+    .wrap { width: min(980px, calc(100% - 28px)); margin: 28px auto; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .kicker { font-size: .76rem; letter-spacing: .18em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
+    h1 { margin: 8px 0 0; font-size: 1.85rem; }
+    p { color: var(--muted); line-height: 1.7; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fff; }
+    .tile b { display: block; font-size: .82rem; color: #334155; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+    .status { color: var(--ok); font-weight: 700; }
+    .actions { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #0f172a;
+      text-decoration: none;
+      font-weight: 650;
+    }
+    .btn.primary {
+      border-color: transparent;
+      color: #fff;
+      background: linear-gradient(145deg, var(--brand), var(--accent));
+    }
+    @media (max-width: 740px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="kicker">Sample report view</div>
+      <h1>Inspection Report Preview</h1>
+      <p>
+        This is a sample customer-facing report page used for website preview links.
+        Final production reports are delivered from the live report routes.
+      </p>
+
+      <div class="grid" aria-label="Sample report details">
+        <div class="tile"><b>Door Label</b> Office 101 Main Entry</div>
+        <div class="tile"><b>UID</b> CD-OPENING-00017</div>
+        <div class="tile"><b>Inspection Date</b> March 28, 2026</div>
+        <div class="tile"><b>Status</b> <span class="status">Pass</span></div>
+        <div class="tile"><b>Building</b> Main Campus</div>
+        <div class="tile"><b>Technician</b> Castle Door Field Team</div>
+      </div>
+
+      <div class="actions">
+        <a class="btn primary" href="/index.html#quote">Request Service / Quote</a>
+        <a class="btn" href="/portal-sample.html">View Secure Portal Preview</a>
+        <a class="btn" href="/index.html">Back to Home</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

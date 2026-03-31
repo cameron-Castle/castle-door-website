@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Secure Portal Preview | Castle Door &amp; Hardware</title>
+  <style>
+    :root {
+      --bg: #f3f6fa;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --line: #d1dbe8;
+      --brand: #1e3a5f;
+      --brand-strong: #162c49;
+      --accent: #0f766e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 360px at 100% -10%, rgba(30, 58, 95, 0.11), transparent 60%),
+        radial-gradient(700px 280px at -10% 0%, rgba(15, 118, 110, 0.1), transparent 62%),
+        var(--bg);
+    }
+    .wrap { width: min(980px, calc(100% - 28px)); margin: 28px auto; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      padding: 22px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .kicker { font-size: .76rem; letter-spacing: .18em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
+    h1 { margin: 8px 0 0; font-size: 1.85rem; }
+    .muted { color: var(--muted); line-height: 1.7; }
+    .login-box {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      max-width: 540px;
+    }
+    label { font-size: .85rem; color: #334155; font-weight: 600; }
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-height: 40px;
+      padding: 0 10px;
+      font: inherit;
+      color: var(--text);
+    }
+    .actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #0f172a;
+      text-decoration: none;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .btn.primary {
+      border-color: transparent;
+      color: #fff;
+      background: linear-gradient(145deg, var(--brand), var(--accent));
+    }
+    .note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px dashed #b7c8df;
+      color: #334155;
+      background: #f8fbff;
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="panel">
+      <div class="kicker">Secure access preview</div>
+      <h1>Portal Sign-In Sample</h1>
+      <p class="muted">
+        This is a sample secure portal page for customer navigation demos. It shows what users can expect
+        before live authentication in production.
+      </p>
+
+      <form class="login-box" aria-label="Sample portal sign in" onsubmit="return false;">
+        <div>
+          <label for="sampleEmail">Email</label>
+          <input id="sampleEmail" type="email" placeholder="name@company.com" />
+        </div>
+        <div>
+          <label for="samplePassword">Password</label>
+          <input id="samplePassword" type="password" placeholder="••••••••" />
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="submit">Sign In (Preview)</button>
+          <a class="btn" href="/sample-report.html">View Sample Report</a>
+          <a class="btn" href="/index.html">Back to Home</a>
+        </div>
+      </form>
+
+      <div class="note">
+        Preview only: this page does not authenticate credentials. It is used to prevent dead links and to show
+        a realistic secure-entry experience from the homepage.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
