@@ -8,17 +8,17 @@
 
   <style>
     :root {
-      --bg: #f7f9fc;
+      --bg: #f3f6fa;
       --surface: #ffffff;
-      --surface-soft: #f2f6ff;
+      --surface-soft: #eaf0f7;
       --surface-dark: #0f172a;
-      --text: #0f172a;
-      --muted: #475569;
-      --line: #dbe5f1;
-      --brand: #1d4ed8;
-      --brand-strong: #1e40af;
-      --brand-soft: #dbeafe;
-      --accent: #0ea5e9;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --line: #d1dbe8;
+      --brand: #1e3a5f;
+      --brand-strong: #162c49;
+      --brand-soft: #dbe6f2;
+      --accent: #0f766e;
       --ok: #166534;
       --warn: #92400e;
       --radius-xl: 28px;
@@ -36,8 +36,8 @@
       font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(900px 360px at 100% -10%, rgba(29, 78, 216, 0.09), transparent 60%),
-        radial-gradient(700px 280px at -10% 0%, rgba(14, 165, 233, 0.1), transparent 62%),
+        radial-gradient(900px 360px at 100% -10%, rgba(30, 58, 95, 0.11), transparent 60%),
+        radial-gradient(700px 280px at -10% 0%, rgba(15, 118, 110, 0.1), transparent 62%),
         var(--bg);
       line-height: 1.55;
     }
@@ -83,8 +83,8 @@
       font-weight: 800;
       letter-spacing: 0.08em;
       color: #fff;
-      background: linear-gradient(145deg, #1d4ed8, #0ea5e9);
-      box-shadow: 0 10px 20px rgba(29, 78, 216, 0.3);
+      background: linear-gradient(145deg, var(--brand), var(--accent));
+      box-shadow: 0 10px 20px rgba(30, 58, 95, 0.3);
       flex-shrink: 0;
     }
 
@@ -156,11 +156,11 @@
       border-color: transparent;
       color: #fff;
       background: linear-gradient(145deg, var(--brand), var(--accent));
-      box-shadow: 0 8px 20px rgba(29, 78, 216, 0.3);
+      box-shadow: 0 8px 20px rgba(30, 58, 95, 0.3);
     }
 
     .btn--primary:hover {
-      background: linear-gradient(145deg, var(--brand-strong), #0284c7);
+      background: linear-gradient(145deg, var(--brand-strong), #0b5f59);
     }
 
     .hero {
@@ -184,9 +184,9 @@
       gap: 8px;
       padding: 9px 14px;
       border-radius: 999px;
-      border: 1px solid #cdddfb;
+      border: 1px solid #c9d8e8;
       background: var(--brand-soft);
-      color: #1e3a8a;
+      color: #1e3a5f;
       font-size: .84rem;
       font-weight: 650;
       margin-bottom: 14px;
@@ -327,7 +327,7 @@
       font-size: .78rem;
       text-transform: uppercase;
       letter-spacing: .2em;
-      color: #1e3a8a;
+      color: #1e3a5f;
       font-weight: 700;
     }
 
