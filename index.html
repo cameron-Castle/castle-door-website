@@ -330,9 +330,42 @@
       box-shadow: var(--shadow-md);
       padding: 22px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 16px;
       align-items: start;
+    }
+
+    .hero-focus-photo {
+      margin-bottom: 18px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      border: 1px solid #e8d8c5;
+      box-shadow: var(--shadow-md);
+      background: #fff;
+      position: relative;
+    }
+
+    .hero-focus-photo img {
+      width: 100%;
+      height: clamp(260px, 46vw, 520px);
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+
+    .hero-focus-photo__caption {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.64);
+      color: #fff;
+      font-size: .9rem;
+      line-height: 1.45;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(3px);
     }
 
     .local-proof__story {
@@ -371,7 +404,7 @@
 
     .local-proof__photos {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 10px;
     }
 
@@ -953,6 +986,15 @@
 
   <main id="top">
     <section class="hero" id="overview">
+      <div class="container">
+        <figure class="hero-focus-photo" aria-label="Castle Door main shop image">
+          <img src="assets/shop-front.png" alt="Castle Door shop front in Wichita" loading="eager" />
+          <figcaption class="hero-focus-photo__caption">
+            Local, visible, and reachable — this is our Wichita location serving commercial door inspections and service support.
+          </figcaption>
+        </figure>
+      </div>
+
       <div class="container hero__grid">
         <div class="hero__left">
           <div class="eyebrow">Wichita local team • Real people • Direct support</div>
@@ -1029,12 +1071,8 @@
 
         <div class="local-proof__photos">
           <figure class="trust-photo">
-            <img src="assets/shop-front.png" alt="Castle Door shop front exterior" loading="lazy" />
-            <figcaption>Our local shop front in Wichita where customers can reach us directly.</figcaption>
-          </figure>
-          <figure class="trust-photo">
             <img src="assets/Shopside.png" alt="Castle Door building side view" loading="lazy" />
-            <figcaption>On-site, local presence so report follow-up and service stay personal.</figcaption>
+            <figcaption>Local presence and direct service follow-up from the same Wichita team.</figcaption>
           </figure>
         </div>
       </div>
