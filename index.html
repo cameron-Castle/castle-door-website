@@ -322,6 +322,84 @@
       line-height: 1.7;
     }
 
+    .local-proof {
+      margin-top: 18px;
+      border: 1px solid #e8d8c5;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, #fffdf9, #fff7ee);
+      box-shadow: var(--shadow-md);
+      padding: 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .local-proof__story {
+      border: 1px solid #f0dfca;
+      border-radius: 16px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .local-proof__story h3 {
+      margin: 6px 0 8px;
+      font-size: 1.22rem;
+      line-height: 1.3;
+    }
+
+    .local-proof__story p {
+      color: #475569;
+      line-height: 1.75;
+      font-size: .95rem;
+    }
+
+    .proof-points {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+      color: #334155;
+      font-size: .92rem;
+    }
+
+    .proof-points div::before {
+      content: "•";
+      color: #b45309;
+      margin-right: 8px;
+      font-weight: 700;
+    }
+
+    .local-proof__photos {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .trust-photo {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid #ead9c7;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+      display: grid;
+      grid-template-rows: 150px auto;
+    }
+
+    .trust-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .trust-photo figcaption {
+      font-size: .82rem;
+      color: #475569;
+      line-height: 1.5;
+      padding: 8px 10px;
+      background: #fff;
+    }
+
     section.block {
       padding: 34px 0;
     }
@@ -826,6 +904,10 @@
         grid-template-columns: 1fr;
       }
 
+      .local-proof {
+        grid-template-columns: 1fr;
+      }
+
       .section-title { max-width: none; }
     }
 
@@ -833,7 +915,8 @@
       .nav { display: none; }
       .hero { padding-top: 32px; }
       .hero__points,
-      .hero-grid { grid-template-columns: 1fr; }
+      .hero-grid,
+      .local-proof__photos { grid-template-columns: 1fr; }
       .actions .btn:nth-child(2) { display: none; }
       .quote-form__modes,
       .form-grid,
@@ -872,11 +955,12 @@
     <section class="hero" id="overview">
       <div class="container hero__grid">
         <div class="hero__left">
-          <div class="eyebrow">Commercial inspection access and service coordination</div>
-          <h1>A cleaner path from door report to service action.</h1>
+          <div class="eyebrow">Wichita local team • Real people • Direct support</div>
+          <h1>Commercial door inspections with a real local team behind every report.</h1>
           <p class="hero__lead">
-            Castle Door &amp; Hardware gives customers, field teams, and admins a single, easy-to-understand experience:
-            view reports quickly, sign in securely when needed, and route follow-up work without confusion.
+            Castle Door &amp; Hardware is built for facility teams that want straight answers.
+            You can view inspection reports quickly, call a real person when something is unclear,
+            and route service follow-up without getting bounced around.
           </p>
 
           <div class="hero__cta">
@@ -925,6 +1009,34 @@
             This site is your marketing and navigation surface. Report evidence and secure operations remain in their dedicated routes.
           </div>
         </aside>
+      </div>
+
+      <div class="container local-proof" aria-label="Local trust and team proof">
+        <article class="local-proof__story">
+          <div class="section-kicker" style="letter-spacing:.12em;">Owner note</div>
+          <h3>Hi, I’m Cameron. We’re a Wichita shop, not a faceless call center.</h3>
+          <p>
+            If you call us, you get someone who understands doors, frames, and field reality.
+            We built this experience so customers can see report evidence fast and still reach a person
+            when they need help making a decision.
+          </p>
+          <div class="proof-points" aria-label="Local trust points">
+            <div>Local address and phone are visible on every page.</div>
+            <div>Report links and portal access are live production routes.</div>
+            <div>Service requests route to a real inbox monitored by our team.</div>
+          </div>
+        </article>
+
+        <div class="local-proof__photos">
+          <figure class="trust-photo">
+            <img src="assets/shop-front.png" alt="Castle Door shop front exterior" loading="lazy" />
+            <figcaption>Our local shop front in Wichita where customers can reach us directly.</figcaption>
+          </figure>
+          <figure class="trust-photo">
+            <img src="assets/Shopside.png" alt="Castle Door building side view" loading="lazy" />
+            <figcaption>On-site, local presence so report follow-up and service stay personal.</figcaption>
+          </figure>
+        </div>
       </div>
     </section>
 
