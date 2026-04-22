@@ -1165,56 +1165,29 @@ function buildFieldHelp(field) {
   return help[field] || "";
 }
 
-function buildConversationalFollowup({ turnType, draftBefore, draftAfter, nextField, aiAssistantMessage, userMessage }) {
-  const captured = describeCapturedUpdates(draftBefore, draftAfter);
-  const insight = buildDomainInsight({ draftBefore, draftAfter, userMessage });
+function buildConversationalFollowup({ draftAfter, nextField }) {
   const nextQ = buildNextQuestion(nextField);
-  const ai = String(aiAssistantMessage || "").trim();
 
-  if (turnType === "style_feedback") {
-    return `Understood. Short version: ${nextQ}`;
-  }
+  const explanations = {
+    wallThicknessIn: "This helps determine the correct frame depth.",
+    sizeWidthIn: "This tells me what size opening you're working with.",
+    handing: "This affects hinge placement and swing direction.",
+    hingeLocationRequirement: "This determines whether we match an existing frame or use standard prep.",
+    fireRatedStatus: "This affects door, frame, and hardware requirements."
+  };
 
-  if (turnType === "pushback") {
-    const line = "You're right — updated that.";
-    return [line, insight, nextQ].filter(Boolean).join(" ").trim();
-  }
+  const fallback = {
+    wallThicknessIn: "If you're not sure, you can measure the wall thickness or send a photo.",
+    sizeWidthIn: "If you don’t know, measuring the current door or sending a photo works too.",
+    handing: "If you're unsure, I can mark it for site verification.",
+    hingeLocationRequirement: "If this is replacement, we can usually match existing.",
+    fireRatedStatus: "If unknown, we can confirm from plans later."
+  };
 
-  if (turnType === "correction") {
-    const line = "Updated that.";
-    return [line, insight, nextQ].filter(Boolean).join(" ").trim();
-  }
+  const explain = explanations[nextField] || "";
+  const help = fallback[nextField] || "";
 
-  if (turnType === "uncertain") {
-    const provisional = buildProvisionalSuggestion(nextField, draftAfter);
-    return provisional ? [provisional, nextQ].join(" ") : `No problem — unknown is fine for now. ${nextQ}`;
-  }
-
-  if (turnType === "clarification_request") {
-    const help = buildFieldHelp(nextField);
-    return help ? `${help} ${nextQ}` : buildClarifyingQuestion(nextField);
-  }
-
-  if (turnType === "recommendation_request") {
-    const help = buildFieldHelp(nextField);
-    if (help) return `${help} ${nextQ}`;
-  }
-
-  if (turnType === "spec_burst") {
-    if (captured) return ["Got it.", insight, nextQ].filter(Boolean).join(" ");
-    if (ai) return ai.includes("?") ? ai : `${ai}\n\n${nextQ}`;
-    return nextQ;
-  }
-
-  if (fieldChanged(draftBefore, draftAfter, "frameDepth")) {
-    return `Got it — frame depth ${draftAfter.frameDepth}. ${nextQ}`;
-  }
-  if (captured || insight) return ["Got it.", insight, nextQ].filter(Boolean).join(" ");
-  if (ai) return ai.includes("?") ? ai : `${ai}\n\n${nextQ}`;
-  if (/\bquote\b/i.test(String(userMessage || "")) && nextField === "requestType") {
-    return "Got it. I can do budget (fast) or full quote (detailed). Which do you want?";
-  }
-  return nextQ;
+  return `${nextQ}${explain ? " " + explain : ""}${help ? " " + help : ""}`;
 }
 
 function fieldChanged(before, after, field) {
@@ -1729,9 +1702,9 @@ async function getOpenAIUpdates({ env, userMessage, draft, currentStep, nextFiel
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: String(env?.OPENAI_CHATBOT_MODEL || "gpt-5.4-nano"),
+      model: String(env?.OPENAI_CHATBOT_MODEL || "gpt-5.4-mini"),
       temperature: 0,
-      max_tokens: 180,
+      max_tokens: 120,
       messages: [
         {
           role: "system",
@@ -1745,7 +1718,8 @@ async function getOpenAIUpdates({ env, userMessage, draft, currentStep, nextFiel
             "Avoid rigid form wording.",
             "If user is confused, explain field meaning in plain language then ask a clearer question.",
             "If user is unsure, suggest site-verify or unknown pending review without inventing facts.",
-            "Do not sound like a scripted form and do not repeat the same question when user already answered it.",
+            "Ask one simple question at a time.",
+            "If the user may not understand, briefly explain in plain language and offer a fallback.",
           ].join(" "),
         },
         {
@@ -1895,4 +1869,5 @@ async function fetchWithTimeout(url, options, timeoutMs = 8000) {
     clearTimeout(id);
   }
 }
+
 

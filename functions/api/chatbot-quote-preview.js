@@ -349,7 +349,7 @@ async function getOpenAIUpdates({ env, userMessage, draft }) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: String(env?.OPENAI_CHATBOT_MODEL || "gpt-4.1-nano"),
+      model: String(env?.OPENAI_CHATBOT_MODEL || "gpt-5.4-mini"),
       temperature: 0,
       max_tokens: 180,
       messages: [
