@@ -536,6 +536,39 @@
       background: linear-gradient(145deg, var(--brand), var(--accent));
     }
 
+    .pathways-details {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8fbff;
+      padding: 10px 12px;
+    }
+
+    .pathways-details summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #1e3a5f;
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pathways-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .pathways-details summary::before {
+      content: "▸";
+      font-size: .9rem;
+      line-height: 1;
+      transition: transform .15s ease;
+    }
+
+    .pathways-details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
     .timeline {
       margin-top: 22px;
       display: grid;
@@ -994,7 +1027,7 @@
         <figure class="hero-focus-photo" aria-label="Castle Door main shop image">
           <img src="assets/shop-front.png" alt="Castle Door shop front in Wichita" loading="eager" />
           <figcaption class="hero-focus-photo__caption">
-            One office, one team: 3515 N Santa Fe, Wichita, KS 67219 — call anytime with questions.
+            One office, one team: 3515 N Santa Fe, Wichita, KS 67219 — call anytime: (316) 832-0300.
           </figcaption>
         </figure>
       </div>
@@ -1057,11 +1090,14 @@
           Whether someone needs fast public report visibility or secure portal access, we keep the path clear.
           Customers, field teams, and administrators can all move quickly without guesswork.
         </p>
-        <div class="list" style="margin-top:12px;">
-          <div class="list-item">Public report access for quick visibility when secure context is not required.</div>
-          <div class="list-item">Secure portal path when account-specific workflows and permissions matter.</div>
-          <div class="list-item">One contractor-friendly flow from inspection evidence to next action.</div>
-        </div>
+        <details class="pathways-details">
+          <summary>See public vs secure access details</summary>
+          <div class="list" style="margin-top:10px;">
+            <div class="list-item">Public report access for quick visibility when secure context is not required.</div>
+            <div class="list-item">Secure portal path when account-specific workflows and permissions matter.</div>
+            <div class="list-item">One contractor-friendly flow from inspection evidence to next action.</div>
+          </div>
+        </details>
 
         <div class="cards-3">
           <article class="card">
