@@ -8,17 +8,18 @@
 
   <style>
     :root {
-      --bg: #f3f6fa;
+      --bg: #eef3f9;
       --surface: #ffffff;
-      --surface-soft: #eaf0f7;
-      --surface-dark: #0f172a;
+      --surface-soft: #e9f0fa;
+      --surface-dark: #0b1220;
       --text: #1f2937;
       --muted: #4b5563;
-      --line: #d1dbe8;
-      --brand: #1e3a5f;
-      --brand-strong: #162c49;
-      --brand-soft: #dbe6f2;
-      --accent: #0f766e;
+      --line: #cbd7e7;
+      --brand: #0d2340;
+      --brand-strong: #09172d;
+      --brand-soft: #dce7f6;
+      --accent: #0c89c9;
+      --heat: #d97706;
       --ok: #166534;
       --warn: #92400e;
       --radius-xl: 28px;
@@ -36,8 +37,8 @@
       font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(900px 360px at 100% -10%, rgba(30, 58, 95, 0.11), transparent 60%),
-        radial-gradient(700px 280px at -10% 0%, rgba(15, 118, 110, 0.1), transparent 62%),
+        radial-gradient(900px 360px at 100% -10%, rgba(13, 35, 64, 0.13), transparent 60%),
+        radial-gradient(720px 320px at -10% 0%, rgba(217, 119, 6, 0.1), transparent 62%),
         var(--bg);
       line-height: 1.55;
     }
@@ -55,8 +56,8 @@
       top: 0;
       z-index: 80;
       backdrop-filter: blur(14px);
-      background: rgba(247, 249, 252, 0.86);
-      border-bottom: 1px solid rgba(219, 229, 241, 0.9);
+      background: rgba(245, 249, 255, 0.88);
+      border-bottom: 1px solid rgba(203, 215, 231, 0.95);
     }
 
     .site-header__inner {
@@ -155,12 +156,12 @@
     .btn--primary {
       border-color: transparent;
       color: #fff;
-      background: linear-gradient(145deg, var(--brand), var(--accent));
-      box-shadow: 0 8px 20px rgba(30, 58, 95, 0.3);
+      background: linear-gradient(145deg, var(--brand), var(--heat));
+      box-shadow: 0 8px 20px rgba(13, 35, 64, 0.28);
     }
 
     .btn--primary:hover {
-      background: linear-gradient(145deg, var(--brand-strong), #0b5f59);
+      background: linear-gradient(145deg, var(--brand-strong), #b45309);
     }
 
     .btn--bolt {
@@ -175,7 +176,7 @@
     }
 
     .hero {
-      padding: 42px 0 24px;
+      padding: 30px 0 26px;
     }
 
     .hero__grid {
@@ -324,9 +325,9 @@
 
     .local-proof {
       margin-top: 18px;
-      border: 1px solid #e8d8c5;
+      border: 1px solid #d8e2ef;
       border-radius: var(--radius-xl);
-      background: linear-gradient(180deg, #fffdf9, #fff7ee);
+      background: linear-gradient(180deg, #f9fbff, #f2f7ff);
       box-shadow: var(--shadow-md);
       padding: 22px;
       display: grid;
@@ -339,17 +340,27 @@
       margin-bottom: 18px;
       border-radius: var(--radius-xl);
       overflow: hidden;
-      border: 1px solid #e8d8c5;
-      box-shadow: var(--shadow-md);
-      background: #fff;
+      border: 1px solid #2a3a53;
+      box-shadow: 0 16px 42px rgba(11, 18, 32, 0.28);
+      background: #0b1220;
       position: relative;
+    }
+
+    .hero-focus-photo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(95deg, rgba(7, 14, 26, 0.7), rgba(7, 14, 26, 0.2) 50%, rgba(7, 14, 26, 0.65));
+      pointer-events: none;
+      z-index: 1;
     }
 
     .hero-focus-photo img {
       width: 100%;
-      height: clamp(260px, 46vw, 520px);
+      height: clamp(280px, 49vw, 600px);
       object-fit: cover;
-      object-position: center;
+      object-position: center 35%;
       display: block;
     }
 
@@ -360,12 +371,13 @@
       bottom: 14px;
       padding: 10px 12px;
       border-radius: 12px;
-      background: rgba(15, 23, 42, 0.64);
+      background: rgba(6, 12, 22, 0.76);
       color: #fff;
       font-size: .9rem;
       line-height: 1.45;
       border: 1px solid rgba(255, 255, 255, 0.24);
       backdrop-filter: blur(3px);
+      z-index: 2;
     }
 
     .local-proof__story {
@@ -397,21 +409,21 @@
 
     .proof-points div::before {
       content: "•";
-      color: #b45309;
+      color: #d97706;
       margin-right: 8px;
       font-weight: 700;
     }
 
     .local-proof__photos {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
 
     .trust-photo {
       border-radius: 14px;
       overflow: hidden;
-      border: 1px solid #ead9c7;
+      border: 1px solid #d8e2ef;
       background: #fff;
       box-shadow: var(--shadow-sm);
       display: grid;
@@ -444,7 +456,7 @@
     .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius-xl);
-      background: var(--surface);
+      background: linear-gradient(180deg, #ffffff, #f7faff);
       box-shadow: var(--shadow-md);
       padding: 30px;
     }
@@ -849,7 +861,7 @@
     }
 
     .contact-panel {
-      background: linear-gradient(180deg, #f8fbff, #ffffff);
+      background: linear-gradient(180deg, #f3f8ff, #ffffff);
     }
 
     .contact-grid {
@@ -1025,9 +1037,9 @@
     <section class="hero" id="overview">
       <div class="container">
         <figure class="hero-focus-photo" aria-label="Castle Door main shop image">
-          <img src="assets/shop-front.png" alt="Castle Door shop front in Wichita" loading="eager" />
+          <img src="PIC references/ChatGPT Image Apr 24, 2026, 12_49_37 PM.png" alt="Castle Door welder building a steel frame in the fabrication shop" loading="eager" />
           <figcaption class="hero-focus-photo__caption">
-            One office, one team: 3515 N Santa Fe, Wichita, KS 67219 — call anytime: (316) 832-0300.
+            Built in the shop, supported in the field — local fabrication and inspection support from Wichita.
           </figcaption>
         </figure>
       </div>
@@ -1075,8 +1087,12 @@
 
         <div class="local-proof__photos">
           <figure class="trust-photo trust-photo--secondary">
-            <img src="assets/Shopside.png" alt="Castle Door building side view" loading="lazy" />
-            <figcaption>Local presence and direct service follow-up from the same Wichita team.</figcaption>
+            <img src="PIC references/ChatGPT Image Apr 24, 2026, 01_31_36 PM.png" alt="Castle Door fabricator welding a steel frame in the shop" loading="lazy" />
+            <figcaption>Frame fabrication and field support come from the same local team.</figcaption>
+          </figure>
+          <figure class="trust-photo trust-photo--secondary">
+            <img src="PIC references/ChatGPT Image Apr 24, 2026, 11_50_10 AM.png" alt="Close-up weld detail on a steel frame corner with sparks" loading="lazy" />
+            <figcaption>Precision weld work and inspection readiness built into every opening.</figcaption>
           </figure>
         </div>
       </div>
