@@ -726,13 +726,54 @@
       gap: 8px;
       font-size: .92rem;
       color: #e2d2c2;
+      list-style: none;
+      padding: 0;
     }
 
-    .quote-checklist div::before {
-      content: "✓";
-      color: #166534;
-      margin-right: 8px;
-      font-weight: 700;
+    .quote-check-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid #5a4a3d;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #2d261f;
+    }
+
+    .quote-check-item.is-done {
+      border-color: #3d5a46;
+      background: #283127;
+    }
+
+    .quote-check-item__label {
+      color: #e2d2c2;
+      line-height: 1.45;
+    }
+
+    .quote-check-item__status {
+      font-size: .75rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 4px 8px;
+      border: 1px solid #6f563f;
+      color: #f2c79d;
+      background: #3b2d22;
+      white-space: nowrap;
+    }
+
+    .quote-check-item.is-done .quote-check-item__status {
+      border-color: #3d5a46;
+      color: #d5f3dd;
+      background: #22402d;
+    }
+
+    .quote-check-summary {
+      margin-top: 10px;
+      color: #c7b8a8;
+      font-size: .83rem;
+      line-height: 1.6;
     }
 
     .form-message {
@@ -1328,14 +1369,8 @@
           <aside class="quote-panel" aria-label="Quote request help">
             <div class="section-kicker" style="letter-spacing:.14em;">What to include</div>
             <h3 style="margin-top:8px; font-size:1.1rem;">Faster quotes come from clearer inputs.</h3>
-            <div class="quote-checklist">
-              <div>Door and frame type</div>
-              <div>Frame depth and wall type details (when unknown/other)</div>
-              <div>Whether fire-rated construction is needed</div>
-              <div>Wood species (birch, maple, oak) when wood is selected</div>
-              <div>Vision kit chart and target timeline</div>
-              <div>Site notes or known field constraints</div>
-            </div>
+            <ul class="quote-checklist" id="quoteChecklist" aria-live="polite"></ul>
+            <div class="quote-check-summary" id="quoteChecklistSummary" aria-live="polite"></div>
             <p style="margin-top:12px; color:var(--muted); font-size:.92rem; line-height:1.7;">
               Quote emails are sent through secure email delivery with Resend and routed straight to your sales inbox.
             </p>
@@ -1359,7 +1394,7 @@
               <div><strong>Email:</strong> Cameron@castledoorandhardware.com</div>
               <div><strong>Phone:</strong> (316) 832-0300</div>
               <div><strong>Address:</strong> 3515 N Santa Fe, Wichita, KS 67219</div>
-              <div><strong>Team:</strong> Cameron, Kale, Josh</div>
+              <div><strong>Team:</strong> Cameron, Kale</div>
               <div><strong>Hours:</strong> Monday-Friday, 7:30 AM-4:30 PM. If we know you're coming, we'll keep the light on and the door open.</div>
               <div><strong>Service Area:</strong> Wichita and surrounding area</div>
             </div>
@@ -1404,7 +1439,6 @@
             <select id="cRecipient" name="recipient">
               <option value="cameron">Cameron</option>
               <option value="kale">Kale</option>
-              <option value="josh">Josh</option>
             </select>
           </div>
           <div class="field">
@@ -1486,6 +1520,15 @@
     const chatbotSubmit = document.getElementById("chatbotSubmit");
     const chatbotStatus = document.getElementById("chatbotStatus");
     const visionKitWrap = document.getElementById("visionKitWrap");
+    const quoteChecklist = document.getElementById("quoteChecklist");
+    const quoteChecklistSummary = document.getElementById("quoteChecklistSummary");
+    const qName = document.getElementById("qName");
+    const qEmail = document.getElementById("qEmail");
+    const qCustomScope = document.getElementById("qCustomScope");
+    const qGuidedNotes = document.getElementById("qGuidedNotes");
+    const qTimeline = document.getElementById("qTimeline");
+    const qFireRated = document.getElementById("qFireRated");
+    let currentQuoteExperience = "guided";
 
     const quoteReps = [
       { key: "kale", name: "Kale" },
@@ -1520,6 +1563,82 @@
       } catch {
         return fallback;
       }
+    }
+
+    function toBoolKnown(value) {
+      if (typeof value === "boolean") return true;
+      const v = String(value || "").trim().toLowerCase();
+      return ["yes", "no", "true", "false", "y", "n"].includes(v);
+    }
+
+    function renderQuoteChecklist(items, contextLabel) {
+      if (!quoteChecklist || !quoteChecklistSummary) return;
+      quoteChecklist.innerHTML = items
+        .map((item) => {
+          const doneClass = item.done ? "is-done" : "";
+          const status = item.done ? "Complete" : item.required ? "Missing" : "Optional";
+          return `
+            <li class="quote-check-item ${doneClass}">
+              <span class="quote-check-item__label">${item.label}</span>
+              <span class="quote-check-item__status">${status}</span>
+            </li>
+          `;
+        })
+        .join("");
+
+      const requiredItems = items.filter((i) => i.required);
+      const doneRequired = requiredItems.filter((i) => i.done).length;
+      const missing = requiredItems.filter((i) => !i.done).map((i) => i.label);
+      quoteChecklistSummary.textContent = missing.length
+        ? `${contextLabel}: ${doneRequired}/${requiredItems.length} required complete. Missing: ${missing.join(" • ")}`
+        : `${contextLabel}: all required quote info is complete.`;
+    }
+
+    function refreshQuoteChecklist() {
+      if (!quoteChecklist || !quoteChecklistSummary) return;
+
+      if (currentQuoteExperience === "assistant") {
+        const d = chatbotState?.quoteDraft || {};
+        const doorTypeValue = String(d.doorType || d.doorMaterial || "").trim().toLowerCase();
+        const frameDepthValue = String(d.frameDepth || "").trim().toLowerCase();
+        const needsWall = frameDepthValue === "other" || frameDepthValue === "unknown";
+        const isWood = doorTypeValue.includes("wood") && !doorTypeValue.includes("hollow");
+        const hasVisionDecision = Object.prototype.hasOwnProperty.call(d, "visionKitRequired") || Object.prototype.hasOwnProperty.call(d, "needsVisionKitReference");
+
+        const items = [
+          { label: "Contact name + email", required: true, done: Boolean(String(d.name || "").trim() && String(d.email || "").trim()) },
+          { label: "Door type / material", required: true, done: Boolean(doorTypeValue) },
+          { label: "Frame depth", required: true, done: Boolean(frameDepthValue) },
+          { label: "Wall/opening detail (when frame depth is unknown/other)", required: needsWall, done: !needsWall || Boolean(String(d.wallTypeDetails || "").trim()) },
+          { label: "Wood species (only if wood)", required: isWood, done: !isWood || Boolean(String(d.woodSpecies || "").trim()) },
+          { label: "Fire-rated requirement reviewed", required: false, done: toBoolKnown(d.fireRatedStatus) || typeof d.fireRated === "boolean" },
+          { label: "Timeline or project notes", required: false, done: Boolean(String(d.timeline || d.guidedNotes || "").trim()) },
+          { label: "Vision kit preference reviewed", required: false, done: hasVisionDecision },
+        ];
+
+        renderQuoteChecklist(items, "Assistant checklist");
+        return;
+      }
+
+      const mode = String(document.querySelector('input[name="quoteMode"]:checked')?.value || "guided");
+      const doorTypeValue = String(qDoorType?.value || "").trim().toLowerCase();
+      const frameDepthValue = String(qFrameDepth?.value || "").trim();
+      const needsWall = frameDepthValue === "Other" || frameDepthValue === "Unknown";
+      const isWood = doorTypeValue === "wood";
+
+      const items = [
+        { label: "Contact name + email", required: true, done: Boolean(String(qName?.value || "").trim() && String(qEmail?.value || "").trim()) },
+        { label: mode === "custom" ? "Custom scope details" : "Door type", required: true, done: mode === "custom" ? Boolean(String(qCustomScope?.value || "").trim()) : Boolean(doorTypeValue) },
+        { label: "Frame depth", required: mode === "guided", done: mode !== "guided" || Boolean(frameDepthValue) },
+        { label: "Wall/opening detail (when frame depth is unknown/other)", required: mode === "guided" && needsWall, done: mode !== "guided" || !needsWall || Boolean(String(qWallType?.value || "").trim()) },
+        { label: "Wood species (only if wood)", required: mode === "guided" && isWood, done: mode !== "guided" || !isWood || Boolean(String(qWoodSpecies?.value || "").trim()) },
+        { label: "Fire-rated requirement reviewed", required: false, done: Boolean(qFireRated) },
+        { label: "Timeline or project notes", required: false, done: Boolean(String(qTimeline?.value || qGuidedNotes?.value || "").trim()) },
+        { label: "Vision kit preference reviewed", required: false, done: Boolean(qNeedsVisionKit && (qNeedsVisionKit.checked || !qNeedsVisionKit.checked)) },
+      ];
+
+      const context = mode === "custom" ? "Custom checklist" : "Guided checklist";
+      renderQuoteChecklist(items, context);
     }
 
     function setChatbotStatus(text, cls = "") {
@@ -1657,6 +1776,7 @@
     }
 
     function setQuoteExperience(experience) {
+      currentQuoteExperience = experience;
       quoteOptionButtons.forEach((btn) => {
         btn.classList.toggle("active", btn.getAttribute("data-quote-experience") === experience);
       });
@@ -1686,6 +1806,8 @@
         customFields.style.display = "none";
         if (visionKitWrap) visionKitWrap.style.display = "none";
       }
+
+      refreshQuoteChecklist();
     }
 
     function setQuoteMode(mode) {
@@ -1698,6 +1820,7 @@
         updateWallTypeVisibility();
         updateVisionReferenceVisibility();
       }
+      refreshQuoteChecklist();
     }
 
     document.querySelectorAll('input[name="quoteMode"]').forEach((el) => {
@@ -1708,12 +1831,20 @@
     if (qFrameDepth) qFrameDepth.addEventListener("change", updateWallTypeVisibility);
     if (qNeedsVisionKit) qNeedsVisionKit.addEventListener("change", updateVisionReferenceVisibility);
 
+    [qName, qEmail, qDoorType, qFrameDepth, qWallType, qWoodSpecies, qTimeline, qGuidedNotes, qCustomScope, qFireRated, qNeedsVisionKit]
+      .filter(Boolean)
+      .forEach((el) => {
+        el.addEventListener("input", refreshQuoteChecklist);
+        el.addEventListener("change", refreshQuoteChecklist);
+      });
+
     setQuoteMode(document.querySelector('input[name="quoteMode"]:checked')?.value || "guided");
     updateWoodSpeciesVisibility();
     updateWallTypeVisibility();
     setupVisionReferenceDebug();
     updateVisionReferenceVisibility();
     pickQuoteRep();
+    refreshQuoteChecklist();
 
     if (quoteStartBtn) {
       quoteStartBtn.addEventListener("click", () => {
@@ -1776,6 +1907,7 @@
           const canSubmit = Boolean(out.canSubmit);
           if (chatbotSubmit) chatbotSubmit.disabled = !canSubmit;
           setChatbotStatus(canSubmit ? "Assistant has enough data. You can submit now." : "Continue answering to complete quote details.", canSubmit ? "ok" : "");
+          refreshQuoteChecklist();
         } catch {
           appendChatbotMessage("assistant", "Network error while contacting chatbot.");
           setChatbotStatus("Network error while contacting chatbot.", "err");
@@ -1915,6 +2047,7 @@
         if (defaultMode) defaultMode.checked = true;
         setQuoteMode("guided");
         pickQuoteRep();
+        refreshQuoteChecklist();
       } catch {
         qMessage.textContent = "Network error while sending quote request.";
         qMessage.classList.add("err");
