@@ -20,6 +20,8 @@ export async function onRequestPost(context) {
   const phone = String(body?.phone || "").trim();
   const phoneOptOut = Boolean(body?.phoneOptOut);
   const company = String(body?.company || "").trim();
+  const frameWidthIn = Number.isFinite(Number(body?.frameWidthIn)) ? Number(body.frameWidthIn) : null;
+  const frameHeightIn = Number.isFinite(Number(body?.frameHeightIn)) ? Number(body.frameHeightIn) : null;
   const sizeWidthIn = Number.isFinite(Number(body?.sizeWidthIn)) ? Number(body.sizeWidthIn) : null;
   const sizeHeightIn = Number.isFinite(Number(body?.sizeHeightIn)) ? Number(body.sizeHeightIn) : null;
   const doorHeightIn = Number.isFinite(Number(body?.doorHeightIn)) ? Number(body.doorHeightIn) : null;
@@ -151,6 +153,7 @@ export async function onRequestPost(context) {
   const guidedHtml = `
     <h3>Guided Build Selections</h3>
     <ul>
+      <li><strong>Frame Size (W x H):</strong> ${esc(Number.isFinite(frameWidthIn) && Number.isFinite(frameHeightIn) ? `${frameWidthIn} x ${frameHeightIn}` : "(not specified)")}</li>
       <li><strong>Opening Size (W x H):</strong> ${esc(Number.isFinite(sizeWidthIn) && Number.isFinite(sizeHeightIn) ? `${sizeWidthIn} x ${sizeHeightIn}` : "(not specified)")}</li>
       <li><strong>Door Height:</strong> ${esc(Number.isFinite(doorHeightIn) ? `${doorHeightIn} in` : "(not specified)")}</li>
       <li><strong>Size Assumed:</strong> ${esc(sizeAssumed ? "Yes" : "No")}</li>
@@ -225,6 +228,7 @@ export async function onRequestPost(context) {
     mode === "guided" ? "Guided Build Selections" : "Custom Quote Scope",
     mode === "guided"
       ? [
+          `Frame Size (W x H): ${Number.isFinite(frameWidthIn) && Number.isFinite(frameHeightIn) ? `${frameWidthIn} x ${frameHeightIn}` : "(not specified)"}`,
           `Opening Size (W x H): ${Number.isFinite(sizeWidthIn) && Number.isFinite(sizeHeightIn) ? `${sizeWidthIn} x ${sizeHeightIn}` : "(not specified)"}`,
           `Door Height: ${Number.isFinite(doorHeightIn) ? `${doorHeightIn} in` : "(not specified)"}`,
           `Size Assumed: ${sizeAssumed ? "Yes" : "No"}`,
