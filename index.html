@@ -746,6 +746,12 @@
       background: #283127;
     }
 
+    .quote-check-item.is-na {
+      border-color: #5a4a3d;
+      background: #2a241f;
+      opacity: .86;
+    }
+
     .quote-check-item__label {
       color: #e2d2c2;
       line-height: 1.45;
@@ -767,6 +773,12 @@
       border-color: #3d5a46;
       color: #d5f3dd;
       background: #22402d;
+    }
+
+    .quote-check-item.is-na .quote-check-item__status {
+      border-color: #6f5a47;
+      color: #d8c5b1;
+      background: #342a22;
     }
 
     .quote-check-summary {
@@ -1576,9 +1588,11 @@
       quoteChecklist.innerHTML = items
         .map((item) => {
           const doneClass = item.done ? "is-done" : "";
-          const status = item.done ? "Complete" : item.required ? "Missing" : "Optional";
+          const applicable = item.applicable !== false;
+          const naClass = applicable ? "" : "is-na";
+          const status = !applicable ? "N/A" : item.done ? "Complete" : item.required ? "Missing" : "Optional";
           return `
-            <li class="quote-check-item ${doneClass}">
+            <li class="quote-check-item ${doneClass} ${naClass}">
               <span class="quote-check-item__label">${item.label}</span>
               <span class="quote-check-item__status">${status}</span>
             </li>
@@ -1586,7 +1600,7 @@
         })
         .join("");
 
-      const requiredItems = items.filter((i) => i.required);
+      const requiredItems = items.filter((i) => i.required && i.applicable !== false);
       const doneRequired = requiredItems.filter((i) => i.done).length;
       const missing = requiredItems.filter((i) => !i.done).map((i) => i.label);
       quoteChecklistSummary.textContent = missing.length
@@ -1609,8 +1623,8 @@
           { label: "Contact name + email", required: true, done: Boolean(String(d.name || "").trim() && String(d.email || "").trim()) },
           { label: "Door type / material", required: true, done: Boolean(doorTypeValue) },
           { label: "Frame depth", required: true, done: Boolean(frameDepthValue) },
-          { label: "Wall/opening detail (when frame depth is unknown/other)", required: needsWall, done: !needsWall || Boolean(String(d.wallTypeDetails || "").trim()) },
-          { label: "Wood species (only if wood)", required: isWood, done: !isWood || Boolean(String(d.woodSpecies || "").trim()) },
+          { label: "Wall/opening detail (when frame depth is unknown/other)", required: needsWall, applicable: needsWall, done: Boolean(String(d.wallTypeDetails || "").trim()) },
+          { label: "Wood species (only if wood)", required: isWood, applicable: isWood, done: Boolean(String(d.woodSpecies || "").trim()) },
           { label: "Fire-rated requirement reviewed", required: false, done: toBoolKnown(d.fireRatedStatus) || typeof d.fireRated === "boolean" },
           { label: "Timeline or project notes", required: false, done: Boolean(String(d.timeline || d.guidedNotes || "").trim()) },
           { label: "Vision kit preference reviewed", required: false, done: hasVisionDecision },
@@ -1630,11 +1644,11 @@
         { label: "Contact name + email", required: true, done: Boolean(String(qName?.value || "").trim() && String(qEmail?.value || "").trim()) },
         { label: mode === "custom" ? "Custom scope details" : "Door type", required: true, done: mode === "custom" ? Boolean(String(qCustomScope?.value || "").trim()) : Boolean(doorTypeValue) },
         { label: "Frame depth", required: mode === "guided", done: mode !== "guided" || Boolean(frameDepthValue) },
-        { label: "Wall/opening detail (when frame depth is unknown/other)", required: mode === "guided" && needsWall, done: mode !== "guided" || !needsWall || Boolean(String(qWallType?.value || "").trim()) },
-        { label: "Wood species (only if wood)", required: mode === "guided" && isWood, done: mode !== "guided" || !isWood || Boolean(String(qWoodSpecies?.value || "").trim()) },
-        { label: "Fire-rated requirement reviewed", required: false, done: Boolean(qFireRated) },
+        { label: "Wall/opening detail (when frame depth is unknown/other)", required: mode === "guided" && needsWall, applicable: mode === "guided" && needsWall, done: Boolean(String(qWallType?.value || "").trim()) },
+        { label: "Wood species (only if wood)", required: mode === "guided" && isWood, applicable: mode === "guided" && isWood, done: Boolean(String(qWoodSpecies?.value || "").trim()) },
+        { label: "Fire-rated marked", required: false, done: Boolean(qFireRated?.checked) },
         { label: "Timeline or project notes", required: false, done: Boolean(String(qTimeline?.value || qGuidedNotes?.value || "").trim()) },
-        { label: "Vision kit preference reviewed", required: false, done: Boolean(qNeedsVisionKit && (qNeedsVisionKit.checked || !qNeedsVisionKit.checked)) },
+        { label: "Vision kit requested", required: false, done: Boolean(qNeedsVisionKit?.checked) },
       ];
 
       const context = mode === "custom" ? "Custom checklist" : "Guided checklist";
