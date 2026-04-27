@@ -156,12 +156,17 @@
     .btn--primary {
       border-color: #6b5a4a;
       color: #f8efe4;
-      background: #312821;
+      background: linear-gradient(145deg, #5a3a22 0%, #8a4f1e 52%, #6a3410 100%);
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
     }
 
     .btn--primary:hover {
-      background: #3a2f27;
+      background: linear-gradient(145deg, #6a4527 0%, #9a5c22 50%, #7a3d12 100%);
+    }
+
+    .btn--primary:disabled {
+      background: linear-gradient(145deg, #47372b 0%, #5a4330 100%);
+      color: #d6c3ae;
     }
 
     .btn--bolt {
