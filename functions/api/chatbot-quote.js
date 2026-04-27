@@ -129,7 +129,7 @@ export async function onRequestPost(context) {
     });
   }
 
-  const effectiveNextField = blockedUngroundedReadyState ? "application" : nextField;
+  const effectiveNextField = blockedUngroundedReadyState ? "frameWidthIn" : nextField;
   const effectiveReadyToSubmit = blockedUngroundedReadyState ? false : readyToSubmit;
   const effectiveCanSubmit = blockedUngroundedReadyState ? false : canSubmit;
   const turnType = classifyTurnType({
@@ -163,8 +163,10 @@ export async function onRequestPost(context) {
           aiAssistantMessage,
         });
 
+  const finalAssistantMessage = enforceTwoLineReply(resolvedAssistantMessage);
+
   const orchestrationPlan = buildOrchestrationPlan({
-    assistantMessage: resolvedAssistantMessage,
+    assistantMessage: finalAssistantMessage,
     nextField: effectiveNextField,
     canSubmit: effectiveCanSubmit,
     readyToSubmit: effectiveReadyToSubmit,
@@ -190,8 +192,18 @@ export async function onRequestPost(context) {
     scopeStatus: draft.scopeStatus,
     blockedReason: draft.blockedReason,
     nextFocus: aiNextFocus || effectiveNextField,
+    missingSubmitFields,
     orchestrationPlan,
   });
+}
+
+function enforceTwoLineReply(message) {
+  const text = String(message || "").replace(/\r/g, "").trim();
+  if (!text) return "";
+  const lines = text.split("\n").map((x) => x.trim()).filter(Boolean);
+  if (!lines.length) return "";
+  if (lines.length === 1) return lines[0].slice(0, 260);
+  return `${lines[0].slice(0, 220)}\n${lines[1].slice(0, 220)}`;
 }
 
 function buildConversationMemory({ draft, nextField, userMessage }) {
@@ -239,7 +251,7 @@ function buildOrchestrationPlan({
     confidence: Number.isFinite(aiConfidence) ? aiConfidence : 0,
     next_action: nextAction,
     safety_reason: blockedReason || aiSafetyReason || "",
-    next_focus: nextField || "application",
+    next_focus: nextField || "frameWidthIn",
   };
 }
 
@@ -259,10 +271,13 @@ function sanitizeDraft(input) {
     phone: str(d.phone),
     phoneOptOut: Boolean(d.phoneOptOut),
     company: str(d.company),
+    frameWidthIn: numOrNull(d.frameWidthIn),
+    frameHeightIn: numOrNull(d.frameHeightIn),
     sizeWidthIn: numOrNull(d.sizeWidthIn),
     sizeHeightIn: numOrNull(d.sizeHeightIn),
     doorHeightIn: numOrNull(d.doorHeightIn),
     sizeAssumed: Boolean(d.sizeAssumed),
+    frameSizeDerivedFromRoughOpening: Boolean(d.frameSizeDerivedFromRoughOpening),
     doorType: str(d.doorType),
     doorMaterial: normalizeEnum(d.doorMaterial, ["wood", "hollow-metal", "aluminum", "unknown"], "unknown"),
     woodSpecies: str(d.woodSpecies),
@@ -377,11 +392,20 @@ function normalizeEnum(value, allowed, fallback) {
 function applyDeterministicExtraction(draft, message, currentStep = "") {
   const m = normalizeParserText(message);
   const step = String(currentStep || "").trim();
+  const rawMessage = String(message || "").trim();
 
   mapShortAnswerByStep(draft, m, step);
 
   const explicitName = extractNameFromMessage(message);
   if (explicitName) draft.name = explicitName;
+
+  const explicitCompany = rawMessage.match(/\b(?:company(?:\s+name)?\s+is|we\s+are|this\s+is)\s+([^\n,.]{2,80})\b/i);
+  if (explicitCompany) {
+    const candidate = String(explicitCompany[1] || "").trim();
+    if (candidate && !/^my\s+name\s+is\b/i.test(candidate) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate)) {
+      draft.company = candidate;
+    }
+  }
 
   if (m.includes("ballpark") || m.includes("budget")) draft.requestType = "budget";
   if (m.includes("full quote")) draft.requestType = "full";
@@ -467,6 +491,25 @@ function applyDeterministicExtraction(draft, message, currentStep = "") {
     draft.sizeHeightIn = extractedSize.heightIn;
     draft.doorHeightIn = extractedSize.heightIn;
     draft.sizeAssumed = extractedSize.assumed;
+  }
+
+  if (extractedSize && (!draft.frameWidthIn || !draft.frameHeightIn)) {
+    draft.frameWidthIn = extractedSize.widthIn;
+    draft.frameHeightIn = extractedSize.heightIn;
+  }
+
+  const roughOpening = extractRoughOpeningSize(message);
+  if (roughOpening) {
+    const deduced = deduceFrameFromRoughOpening(roughOpening.widthIn, roughOpening.heightIn);
+    if (deduced) {
+      draft.frameWidthIn = deduced.frameWidthIn;
+      draft.frameHeightIn = deduced.frameHeightIn;
+      draft.frameSizeDerivedFromRoughOpening = true;
+      draft.guidedNotes = appendUniqueNote(
+        draft.guidedNotes,
+        `Frame size deduced from rough opening ${roughOpening.widthIn}x${roughOpening.heightIn}: ${deduced.frameWidthIn}x${deduced.frameHeightIn}`
+      );
+    }
   }
 
   if (/\b6\s*['-]\s*8\b|\b6\s*8\b/.test(m)) draft.doorHeightIn = 80;
@@ -563,6 +606,23 @@ function mapShortAnswerByStep(draft, m, step) {
     }
   }
 
+  if (step === "frameWidthIn") {
+    const size = extractOpeningSize(m);
+    if (size) {
+      draft.frameWidthIn = size.widthIn;
+      draft.frameHeightIn = size.heightIn;
+    }
+    const rough = extractRoughOpeningSize(rawMessage);
+    if (rough) {
+      const deduced = deduceFrameFromRoughOpening(rough.widthIn, rough.heightIn);
+      if (deduced) {
+        draft.frameWidthIn = deduced.frameWidthIn;
+        draft.frameHeightIn = deduced.frameHeightIn;
+        draft.frameSizeDerivedFromRoughOpening = true;
+      }
+    }
+  }
+
   if (step === "requestType") {
     if (/\bbudget|ballpark|rough\b/.test(m)) draft.requestType = "budget";
     if (/\bfull\b/.test(m)) draft.requestType = "full";
@@ -575,6 +635,12 @@ function mapShortAnswerByStep(draft, m, step) {
     } else if (isLikelyPersonName(rawMessage)) {
       draft.name = toTitleCaseName(rawMessage);
     }
+  }
+
+  if (step === "company") {
+    if (/^\s*(unknown|not sure|idk|n\/a|na|skip)\s*$/i.test(rawMessage)) return;
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawMessage)) return;
+    if (rawMessage.length >= 2) draft.company = rawMessage.slice(0, 120);
   }
 
   if (step === "projectName") {
@@ -612,6 +678,13 @@ function mapShortAnswerByStep(draft, m, step) {
       if (!draft.doorType) draft.doorType = "Hollow metal";
     }
     if (/\baluminum\b|\baluminium\b/.test(m)) draft.doorMaterial = "aluminum";
+    if (/\bunknown\b|\bnot sure\b|\bdon'?t know\b|\bidk\b|\bunsure\b/.test(normalized)) {
+      draft.doorMaterial = "unknown";
+      draft.guidedNotes = appendUniqueNote(
+        draft.guidedNotes,
+        "Customer does not know door material yet."
+      );
+    }
   }
 
   if (step === "hardwareScope") {
@@ -669,27 +742,9 @@ function suggestFrameDepth(wallThicknessIn) {
 }
 
 function getNextField(draft) {
-  if (hasBypassSpecBundle(draft)) {
-    if (!draft.email) return "email";
-    if (!draft.name) return "name";
-    if (!draft.phone && !draft.phoneOptOut) return "phone";
-    return "done";
-  }
-
-  const technicalPriority = ["application", "jobType", "doorMaterial", "hardwareScope", "openingCountEstimate"];
-  for (const f of technicalPriority) {
-    if (["doorMaterial", "application", "jobType", "hardwareScope"].includes(f) && draft[f] === "unknown") return f;
-    if (!draft[f]) return f;
-  }
-
-  if (!draft.sizeWidthIn || !draft.sizeHeightIn) return "sizeWidthIn";
-
-  if ((draft.frameDepth === "" || /unknown|other/i.test(draft.frameDepth)) && !draft.wallThicknessIn) return "wallThicknessIn";
-  if (draft.hingeLocationRequirement === "unknown") return "hingeLocationRequirement";
-  if (draft.handing === "unknown") return "handing";
-  if (draft.fireRatedStatus === "unknown") return "fireRatedStatus";
-
-  if (draft.requestType === "unknown") return "requestType";
+  if (!draft.frameWidthIn || !draft.frameHeightIn) return "frameWidthIn";
+  if ((draft.frameDepth === "" || /unknown|other|site-verify/i.test(draft.frameDepth)) && !draft.wallThicknessIn) return "frameDepth";
+  if (!draft.company) return "company";
   if (!draft.name) return "name";
   if (!draft.email) return "email";
 
@@ -698,20 +753,12 @@ function getNextField(draft) {
 
 function buildNextQuestion(field) {
   const map = {
+    frameWidthIn: "What frame size do you need (width x height)?",
+    frameDepth: "What frame depth do you need?",
+    company: "What company should I put on this quote?",
     application: "Interior, exterior, or both?",
-    jobType: "Replacement or new construction?",
-    doorMaterial: "Door material: wood, hollow metal, aluminum, or unknown?",
-    hardwareScope: "Do you need just the door, door + frame, or a complete opening with hardware?",
-    openingCountEstimate: "How many openings do you need quoted? A rough count or range is fine.",
-    sizeWidthIn: "What opening size do you need quoted? 3070, 3068, 4070, 6070, or any size.",
-    wallThicknessIn: "If frame depth is unknown, give me rough wall thickness in inches.",
-    hingeLocationRequirement: "Hinge prep preference: standard, match-existing, or custom?",
-    handing: "Do you know handing (LH/RH/LHR/RHR), or should I mark site-verify?",
-    fireRatedStatus: "Any fire-rated openings? yes, no, or unknown is fine.",
-    requestType: "Do you want budget range pricing or a full quote?",
-    projectName: "Project name?",
+    openingCountEstimate: "How many openings are you quoting?",
     name: "What name should I put on this quote request?",
-    phone: "Best phone number?",
     email: "Best email for your quote?",
   };
   return map[field] || "What detail would you like to add next for this quote request?";
@@ -719,25 +766,19 @@ function buildNextQuestion(field) {
 
 function buildClarifyingQuestion(field) {
   const map = {
-    requestType: "Choose one for now: budget range or full quote.",
+    frameWidthIn: "Use width x height, like 36x84 or 3070.",
+    frameDepth: "Depth can be like 5-3/4 or 8-1/4.",
+    company: "Company name only is fine.",
     openingCountEstimate: "Give me a rough opening count or range.",
     application: "Are these interior, exterior, or both?",
-    jobType: "Is this new construction or replacement?",
-    doorMaterial: "Door leaf material: wood, hollow metal, aluminum, or unknown?",
-    hardwareScope: "Pick one: just the door, door + frame, or complete opening with hardware.",
-    sizeWidthIn: "You can answer as 3070 or any size.",
-    wallThicknessIn: "Rough wall thickness in inches works (4, 5-3/4, 8-1/4, etc.).",
-    hingeLocationRequirement: "Hinge prep choice: standard, match-existing, or custom. If it does not matter, I can set standard.",
-    handing: "Quick method: stand on the hinge side with the door closed — if hinges are left, that's LH; right is RH. Want me to mark site-verify if unknown?",
-    fireRatedStatus: "Any fire-rated openings? yes, no, or unknown is fine.",
-    projectName: "Project name is enough — even a short label.",
-    phone: "Share the best callback number.",
+    name: "Your first and last name is perfect.",
+    email: "Drop the best email address for quote delivery.",
   };
   return map[field] || "No problem — tell me whichever detail you know, and I will guide the rest.";
 }
 
 function buildLowSignalReadyGuardMessage(field) {
-  const nextQ = buildNextQuestion(field || "application");
+  const nextQ = buildNextQuestion(field || "frameWidthIn");
   return `I cannot mark this ready from that message alone. ${nextQ}`;
 }
 
@@ -766,7 +807,7 @@ function classifyConversationIntent(userMessage) {
 function buildOffTopicRedirectMessage(nextField) {
   return [
     "I’m focused on commercial door and frame help, so I can’t assist with that topic.",
-    buildNextQuestion(nextField || "application"),
+    buildNextQuestion(nextField || "frameWidthIn"),
   ].join(" ");
 }
 
@@ -775,7 +816,7 @@ function buildDomainQaReply({ userMessage, nextField, aiAssistantMessage }) {
   const canned = buildCannedDomainAnswer(m);
   const answer = canned || String(aiAssistantMessage || "").trim() || "Good question — I can help with that and keep your quote moving.";
   const clean = answer.endsWith("?") ? answer : answer.replace(/\s+/g, " ").trim();
-  return `${clean} ${buildNextQuestion(nextField || "application")}`.trim();
+  return `${clean}\n${buildNextQuestion(nextField || "frameWidthIn")}`.trim();
 }
 
 function buildCannedDomainAnswer(message) {
@@ -1018,12 +1059,11 @@ function buildAssumptions(draft) {
 function buildSummaryMessage(draft, unknowns, assumptions) {
   const lines = [
     "I have enough to submit your quote request.",
-    `- Type: ${draft.requestType || "budget"}`,
-    `- Openings: ${draft.openingCountEstimate || "(not set)"}`,
-    `- Application: ${draft.application}`,
-    `- Job: ${draft.jobType}`,
-    `- Material: ${draft.doorMaterial}`,
-    `- Scope: ${draft.hardwareScope}`,
+    `- Name: ${draft.name || "N/A"}`,
+    `- Email: ${draft.email || "N/A"}`,
+    `- Company: ${draft.company || "N/A"}`,
+    `- Frame size: ${Number.isFinite(draft.frameWidthIn) && Number.isFinite(draft.frameHeightIn) ? `${draft.frameWidthIn}x${draft.frameHeightIn}` : "N/A"}`,
+    `- Frame depth: ${draft.frameDepth || "N/A"}`,
   ];
   if (assumptions.length) lines.push("", "Assumptions:", ...assumptions.map((x) => `- ${x}`));
   if (unknowns.length) lines.push("", "Unknowns to verify:", ...unknowns.map((x) => `- ${x}`));
@@ -1055,29 +1095,10 @@ function getMissingSubmitFields(draft) {
     if (!valueOk || !evidenceOk) missing.push(label);
   };
 
-  if (hasBypassSpecBundle(draft)) {
-    require("sizeWidthIn", "Opening width", Number.isFinite(draft.sizeWidthIn));
-    require("sizeHeightIn", "Opening height", Number.isFinite(draft.sizeHeightIn));
-    require("doorMaterial", "Door material", draft.doorMaterial && draft.doorMaterial !== "unknown");
-    require("frameDepth", "Frame depth", Boolean(String(draft.frameDepth || "").trim()) || Number.isFinite(draft.wallThicknessIn));
-    require("hingeLocationRequirement", "Hinge prep", draft.hingeLocationRequirement && draft.hingeLocationRequirement !== "unknown");
-    require("email", "Email", Boolean(String(draft.email || "").trim()));
-    require("name", "Name", Boolean(String(draft.name || "").trim()));
-    const phoneProvided = Boolean(String(draft.phone || "").trim());
-    const phoneOptOut = Boolean(draft.phoneOptOut);
-    if (!(phoneProvided || phoneOptOut)) missing.push("Phone (or explicitly skip phone)");
-    if (phoneOptOut && !evidence.phoneOptOut) missing.push("Phone opt-out confirmation");
-    if (phoneProvided && !evidence.phone) missing.push("Phone");
-    return [...new Set(missing)];
-  }
-
-  require("application", "Application (interior/exterior/both)", draft.application && draft.application !== "unknown");
-  require("jobType", "Job type (replacement/new construction)", draft.jobType && draft.jobType !== "unknown");
-  require("doorMaterial", "Door material", draft.doorMaterial && draft.doorMaterial !== "unknown");
-  require("hardwareScope", "Scope (door/frame/hardware)", draft.hardwareScope && draft.hardwareScope !== "unknown");
-  require("openingCountEstimate", "Opening count", Boolean(String(draft.openingCountEstimate || "").trim()));
-  require("sizeWidthIn", "Opening width", Number.isFinite(draft.sizeWidthIn));
-  require("sizeHeightIn", "Opening height", Number.isFinite(draft.sizeHeightIn));
+  require("frameWidthIn", "Frame width", Number.isFinite(draft.frameWidthIn));
+  require("frameHeightIn", "Frame height", Number.isFinite(draft.frameHeightIn));
+  require("frameDepth", "Frame depth", Boolean(String(draft.frameDepth || "").trim()) || Number.isFinite(draft.wallThicknessIn));
+  require("company", "Company", Boolean(String(draft.company || "").trim()));
   require("email", "Email", Boolean(String(draft.email || "").trim()));
   require("name", "Name", Boolean(String(draft.name || "").trim()));
 
@@ -1166,28 +1187,9 @@ function buildFieldHelp(field) {
 }
 
 function buildConversationalFollowup({ draftAfter, nextField }) {
-  const nextQ = buildNextQuestion(nextField);
-
-  const explanations = {
-    wallThicknessIn: "This helps determine the correct frame depth.",
-    sizeWidthIn: "This tells me what size opening you're working with.",
-    handing: "This affects hinge placement and swing direction.",
-    hingeLocationRequirement: "This determines whether we match an existing frame or use standard prep.",
-    fireRatedStatus: "This affects door, frame, and hardware requirements."
-  };
-
-  const fallback = {
-    wallThicknessIn: "If you're not sure, you can measure the wall thickness or send a photo.",
-    sizeWidthIn: "If you don’t know, measuring the current door or sending a photo works too.",
-    handing: "If you're unsure, I can mark it for site verification.",
-    hingeLocationRequirement: "If this is replacement, we can usually match existing.",
-    fireRatedStatus: "If unknown, we can confirm from plans later."
-  };
-
-  const explain = explanations[nextField] || "";
-  const help = fallback[nextField] || "";
-
-  return `${nextQ}${explain ? " " + explain : ""}${help ? " " + help : ""}`;
+  const nextQ = buildNextQuestion(nextField || "frameWidthIn");
+  const help = buildFieldHelp(nextField);
+  return help ? `${help}\n${nextQ}` : nextQ;
 }
 
 function fieldChanged(before, after, field) {
@@ -1354,6 +1356,36 @@ function recordEvidenceFromTurn({ draft, priorDraft, userMessage }) {
     };
   }
 
+  const hasSizeEvidence = Boolean(extractOpeningSize(message) || extractRoughOpeningSize(message));
+  if (changed.includes("frameWidthIn") && hasSizeEvidence) {
+    evidenceMap.frameWidthIn = {
+      source: "user",
+      excerpt: message.slice(0, 180),
+      turnAt: Date.now(),
+    };
+  }
+  if (changed.includes("frameHeightIn") && hasSizeEvidence) {
+    evidenceMap.frameHeightIn = {
+      source: "user",
+      excerpt: message.slice(0, 180),
+      turnAt: Date.now(),
+    };
+  }
+  if (changed.includes("frameDepth") && Boolean(extractFrameDepthFromMessage(message) || extractStandaloneFrameDepthValue(message) || /site\s*verify|unknown|not sure/i.test(message))) {
+    evidenceMap.frameDepth = {
+      source: "user",
+      excerpt: message.slice(0, 180),
+      turnAt: Date.now(),
+    };
+  }
+  if (changed.includes("company") && String(draft.company || "").trim()) {
+    evidenceMap.company = {
+      source: "user",
+      excerpt: message.slice(0, 180),
+      turnAt: Date.now(),
+    };
+  }
+
   draft.evidenceMap = evidenceMap;
 }
 
@@ -1386,29 +1418,7 @@ function toTitleCaseName(value) {
 function hasRequiredEvidence(draft) {
   const evidence = draft?.evidenceMap && typeof draft.evidenceMap === "object" ? draft.evidenceMap : {};
 
-  if (hasBypassSpecBundle(draft)) {
-    const bypassRequired = ["sizeWidthIn", "sizeHeightIn", "doorMaterial", "frameDepth", "hingeLocationRequirement", "email", "name"];
-    for (const field of bypassRequired) {
-      if (!evidence[field]) return false;
-    }
-    const phoneProvided = Boolean(String(draft.phone || "").trim());
-    if (!phoneProvided && !draft.phoneOptOut) return false;
-    if (phoneProvided && !evidence.phone) return false;
-    if (draft.phoneOptOut && !evidence.phoneOptOut) return false;
-    return true;
-  }
-
-  const required = [
-    "application",
-    "jobType",
-    "doorMaterial",
-    "hardwareScope",
-    "openingCountEstimate",
-    "sizeWidthIn",
-    "sizeHeightIn",
-    "email",
-    "name",
-  ];
+  const required = ["frameWidthIn", "frameHeightIn", "frameDepth", "company", "email", "name"];
   for (const field of required) {
     if (!evidence[field]) return false;
   }
@@ -1416,13 +1426,9 @@ function hasRequiredEvidence(draft) {
 }
 
 function hasBypassSpecBundle(draft) {
-  const hasSize = Number.isFinite(draft?.sizeWidthIn) && Number.isFinite(draft?.sizeHeightIn);
-  const hasMaterial = String(draft?.doorMaterial || "") !== "unknown" || Boolean(String(draft?.doorType || "").trim());
-  const hasFrame = Boolean(String(draft?.frameDepth || "").trim()) || Number.isFinite(draft?.wallThicknessIn);
-  const hasHingeOrPrep =
-    String(draft?.hingeLocationRequirement || "") !== "unknown"
-    || /hinge|mortise|prep/i.test(String(draft?.hardwareNeeds || ""));
-  return hasSize && hasMaterial && hasFrame && hasHingeOrPrep;
+  const hasFrameSize = Number.isFinite(draft?.frameWidthIn) && Number.isFinite(draft?.frameHeightIn);
+  const hasDepth = Boolean(String(draft?.frameDepth || "").trim()) || Number.isFinite(draft?.wallThicknessIn);
+  return hasFrameSize && hasDepth;
 }
 
 function toNominalLabel(widthIn, heightIn) {
@@ -1500,6 +1506,22 @@ function extractOpeningSize(message) {
   }
 
   return null;
+}
+
+function extractRoughOpeningSize(message) {
+  const text = String(message || "");
+  if (!/rough\s*opening|\br\.o\.?\b|\bro\b/i.test(text)) return null;
+  const size = extractOpeningSize(text);
+  if (!size) return null;
+  return { widthIn: size.widthIn, heightIn: size.heightIn };
+}
+
+function deduceFrameFromRoughOpening(widthIn, heightIn) {
+  if (!Number.isFinite(widthIn) || !Number.isFinite(heightIn)) return null;
+  return {
+    frameWidthIn: Math.max(18, Math.round((widthIn - 2) * 1000) / 1000),
+    frameHeightIn: Math.max(48, Math.round((heightIn - 1) * 1000) / 1000),
+  };
 }
 
 function normalizeParserText(message) {
@@ -1587,9 +1609,12 @@ function mergeSafeUpdates(draft, updates) {
     phone: "string",
     phoneOptOut: "boolean",
     company: "string",
+    frameWidthIn: "number",
+    frameHeightIn: "number",
     sizeWidthIn: "number",
     sizeHeightIn: "number",
     sizeAssumed: "boolean",
+    frameSizeDerivedFromRoughOpening: "boolean",
     doorType: "string",
     doorMaterial: "string",
     woodSpecies: "string",
