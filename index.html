@@ -154,14 +154,14 @@
     }
 
     .btn--primary {
-      border-color: transparent;
-      color: #fff;
-      background: linear-gradient(145deg, var(--brand), var(--heat));
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.34);
+      border-color: #6b5a4a;
+      color: #f8efe4;
+      background: #312821;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
     }
 
     .btn--primary:hover {
-      background: linear-gradient(145deg, var(--brand-strong), #b45309);
+      background: #3a2f27;
     }
 
     .btn--bolt {
@@ -1057,7 +1057,7 @@
 
       <div class="actions">
         <a class="btn" href="#pathways">Capabilities</a>
-        <a class="btn btn--primary" href="#demo">Demo</a>
+        <a class="btn" href="#demo">Demo</a>
         <a class="btn" href="#quote">Request a Quote</a>
         <a class="btn" href="#contact">Contact</a>
       </div>
@@ -1185,9 +1185,9 @@
           </article>
 
           <article class="card">
-            <h3>Talk to the Team</h3>
-            <p>Need help choosing door/frame/hardware options? Contact us directly and we will work through it with you.</p>
-            <a class="btn" href="#contact">Contact Castle Door</a>
+            <h3>Shop Build Snapshot</h3>
+            <p style="margin-bottom:10px;"><img src="assets/weld3.png" alt="Shop fabrication snapshot of door and frame welding prep" loading="lazy" style="width:100%; border-radius:10px; border:1px solid var(--line);" /></p>
+            <p>In-house welding and prep support custom commercial openings when standard stock does not fit the condition.</p>
           </article>
         </div>
       </div>
@@ -1223,7 +1223,7 @@
         <div class="quote-grid hidden" id="quoteBodyWrap">
           <form id="quoteForm" class="quote-form" novalidate>
             <div class="chatbot-box hidden" id="chatbotBox" aria-label="Quote assistant chatbot">
-              <div class="section-kicker" style="letter-spacing:.12em;">Quote assistant</div>
+              <div class="section-kicker" style="letter-spacing:.12em;">Assistant (BETA)</div>
               <div class="chatbot-note">
                 Not sure what you need? Use this assistant and then submit directly from chat.
               </div>
@@ -1363,7 +1363,7 @@
             <div id="qMessage" class="form-message" aria-live="polite"></div>
           </form>
 
-          <aside class="quote-panel" aria-label="Quote request help">
+          <aside class="quote-panel hidden" id="quoteInfoPanel" aria-label="Quote request help">
             <div class="section-kicker" style="letter-spacing:.14em;">What to include</div>
             <h3 style="margin-top:8px; font-size:1.1rem;">Live quote intake details.</h3>
             <ul class="quote-data-list" id="quoteDataList" aria-live="polite"></ul>
@@ -1509,6 +1509,7 @@
     const quoteModePills = document.getElementById("quoteModePills");
     const manualContactFields = document.getElementById("manualContactFields");
     const qManualSubmitRow = document.getElementById("qManualSubmitRow");
+    const quoteInfoPanel = document.getElementById("quoteInfoPanel");
     const quoteOptionButtons = Array.from(document.querySelectorAll("[data-quote-experience]"));
     const chatbotLog = document.getElementById("chatbotLog");
     const chatbotInput = document.getElementById("chatbotInput");
@@ -1793,6 +1794,7 @@
       if (manualContactFields) manualContactFields.classList.toggle("hidden", isAssistant);
       if (qManualSubmitRow) qManualSubmitRow.classList.toggle("hidden", isAssistant);
       if (qMessage) qMessage.classList.toggle("hidden", isAssistant);
+      if (quoteInfoPanel) quoteInfoPanel.classList.toggle("hidden", !isAssistant);
 
       if (isFreeform) {
         const customMode = document.querySelector('input[name="quoteMode"][value="custom"]');

@@ -258,6 +258,9 @@ function buildOrchestrationPlan({
 function sanitizeDraft(input) {
   const d = input && typeof input === "object" ? input : {};
   const evidenceMap = d?.evidenceMap && typeof d.evidenceMap === "object" ? d.evidenceMap : {};
+  const deferredFields = Array.isArray(d?.deferredFields)
+    ? d.deferredFields.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 24)
+    : [];
   return {
     requestType: normalizeEnum(d.requestType, ["budget", "full", "unknown"], "unknown"),
     openingType: normalizeEnum(d.openingType, ["single", "double", "mixed", "unknown"], "unknown"),
@@ -304,6 +307,7 @@ function sanitizeDraft(input) {
     timeline: str(d.timeline),
     guidedNotes: str(d.guidedNotes),
     evidenceMap: sanitizeEvidenceMap(evidenceMap),
+    deferredFields,
     scopeStatus: normalizeEnum(d.scopeStatus, ["in_scope", "out_of_scope", "needs_scope_clarification", "unknown"], "unknown"),
     blockedReason: str(d.blockedReason),
   };
@@ -595,6 +599,18 @@ function mapShortAnswerByStep(draft, m, step) {
   if (!step) return;
   const normalized = normalizeParserText(m);
   const rawMessage = String(m || "").trim();
+  const skipIntent = /^\s*(skip|unknown|not sure|idk|n\/a|na|pass|next)\s*$/i.test(rawMessage);
+  const markDeferred = (field) => {
+    if (!field) return;
+    if (!Array.isArray(draft.deferredFields)) draft.deferredFields = [];
+    if (!draft.deferredFields.includes(field)) draft.deferredFields.push(field);
+  };
+
+  if (skipIntent && ["frameWidthIn", "frameDepth", "company"].includes(step)) {
+    markDeferred(step);
+    draft.guidedNotes = appendUniqueNote(draft.guidedNotes, `${labelField(step)} skipped by customer during intake.`);
+    return;
+  }
 
   if (step === "sizeWidthIn") {
     const size = extractOpeningSize(m);
@@ -742,9 +758,12 @@ function suggestFrameDepth(wallThicknessIn) {
 }
 
 function getNextField(draft) {
-  if (!draft.frameWidthIn || !draft.frameHeightIn) return "frameWidthIn";
-  if ((draft.frameDepth === "" || /unknown|other|site-verify/i.test(draft.frameDepth)) && !draft.wallThicknessIn) return "frameDepth";
-  if (!draft.company) return "company";
+  const deferred = new Set(Array.isArray(draft?.deferredFields) ? draft.deferredFields : []);
+  const skipped = (field) => deferred.has(field);
+
+  if ((!draft.frameWidthIn || !draft.frameHeightIn) && !skipped("frameWidthIn")) return "frameWidthIn";
+  if ((draft.frameDepth === "" || /unknown|other|site-verify/i.test(draft.frameDepth)) && !draft.wallThicknessIn && !skipped("frameDepth")) return "frameDepth";
+  if (!draft.company && !skipped("company")) return "company";
   if (!draft.name) return "name";
   if (!draft.email) return "email";
 
@@ -753,9 +772,9 @@ function getNextField(draft) {
 
 function buildNextQuestion(field) {
   const map = {
-    frameWidthIn: "What frame size do you need (width x height)?",
-    frameDepth: "What frame depth do you need?",
-    company: "What company should I put on this quote?",
+    frameWidthIn: "What frame size do you need (width x height)? You can also say skip.",
+    frameDepth: "What frame depth do you need? You can say skip if unknown.",
+    company: "What company should I put on this quote? You can say skip.",
     application: "Interior, exterior, or both?",
     openingCountEstimate: "How many openings are you quoting?",
     name: "What name should I put on this quote request?",
@@ -768,7 +787,7 @@ function buildClarifyingQuestion(field) {
   const map = {
     frameWidthIn: "Use width x height, like 36x84 or 3070.",
     frameDepth: "Depth can be like 5-3/4 or 8-1/4.",
-    company: "Company name only is fine.",
+    company: "Company name only is fine, or say skip.",
     openingCountEstimate: "Give me a rough opening count or range.",
     application: "Are these interior, exterior, or both?",
     name: "Your first and last name is perfect.",
