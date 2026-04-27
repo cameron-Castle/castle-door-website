@@ -71,8 +71,17 @@ export async function onRequestPost(context) {
     brad: "Brad@castledoorandhardware.com",
     cameron: "Cameron@castledoorandhardware.com",
   };
-  const quoteTo = quoteRepMap[quoteRep] || String(env?.QUOTE_TO_EMAIL || "Cameron@castledoorandhardware.com").trim();
-  const quoteRepName = quoteRep === "kale" ? "Kale" : quoteRep === "brad" ? "Brad" : "Cameron";
+  const isChatbotQuote = cleanedTranscript.length > 0;
+  const quoteTo = isChatbotQuote
+    ? "Cameron@castledoorandhardware.com"
+    : quoteRepMap[quoteRep] || String(env?.QUOTE_TO_EMAIL || "Cameron@castledoorandhardware.com").trim();
+  const quoteRepName = isChatbotQuote
+    ? "Cameron"
+    : quoteRep === "kale"
+      ? "Kale"
+      : quoteRep === "brad"
+        ? "Brad"
+        : "Cameron";
 
   if (!resendApiKey || !resendFrom || !quoteTo) {
     return json({ error: "Quote email service is not configured" }, 500);
