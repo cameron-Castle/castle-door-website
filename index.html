@@ -1192,10 +1192,22 @@
           <article class="card">
             <h3>Platform Demos</h3>
             <p style="margin-bottom:10px;"><img src="assets/weld3.png" alt="Shop fabrication snapshot of door and frame welding prep" loading="lazy" style="width:100%; border-radius:10px; border:1px solid var(--line);" /></p>
-            <p>Use these direct demo links when you need to preview report viewer or portal experience.</p>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-              <a class="btn" href="https://r.castledoorict.com/reports/p0bwkg/09in5f/co1?scope=all">Open Demo Report Viewer</a>
-              <a class="btn" href="https://castledoorict.com/portal?biz=p0bwkg">Open Demo Portal</a>
+            <p>Use this demo panel to preview both customer-facing experiences before rollout.</p>
+
+            <div style="margin-top:10px; display:grid; gap:10px;">
+              <div style="border:1px solid var(--line); border-radius:12px; padding:12px; background:rgba(255,255,255,.02);">
+                <h4 style="margin:0 0 8px;">Report Viewer Demo</h4>
+                <p style="margin:0 0 8px; color:var(--muted);">Shows what a customer sees after opening a report link: status, door details, PDFs, and related report context in one place.</p>
+                <p style="margin:0; color:var(--muted);">Benefit: teams can validate readability, shareability, and confidence in the delivered inspection/report evidence experience.</p>
+                <div style="margin-top:10px;"><a class="btn" href="https://r.castledoorict.com/reports/p0bwkg/09in5f/co1?scope=all">Open Demo Report Viewer</a></div>
+              </div>
+
+              <div style="border:1px solid var(--line); border-radius:12px; padding:12px; background:rgba(255,255,255,.02);">
+                <h4 style="margin:0 0 8px;">Portal Demo</h4>
+                <p style="margin:0 0 8px; color:var(--muted);">Shows the secured portal workflow used for customer-side operations, including guided access and business-context actions.</p>
+                <p style="margin:0; color:var(--muted);">Benefit: gives customers and internal teams a clean path for controlled access, communication, and task handling without exposing admin internals.</p>
+                <div style="margin-top:10px;"><a class="btn" href="https://castledoorict.com/portal?biz=p0bwkg">Open Demo Portal</a></div>
+              </div>
             </div>
           </article>
         </div>
@@ -1363,11 +1375,10 @@
               </div>
             </div>
 
-            <input id="qQuoteRep" name="quoteRep" type="hidden" value="" />
+            <input id="qQuoteRep" name="quoteRep" type="hidden" value="cameron" />
 
             <div id="qManualSubmitRow" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
               <button class="btn btn--primary" id="qSubmit" type="submit">Send Quote Request</button>
-              <span class="btn" id="qRepBadge" style="cursor:default;">Delivered directly to Cameron</span>
             </div>
             <div id="qMessage" class="form-message" aria-live="polite"></div>
           </form>
@@ -1503,7 +1514,6 @@
     const qNeedsVisionKit = document.getElementById("qNeedsVisionKit");
     const visionReferenceImage = document.getElementById("visionReferenceImage");
     const visionReferenceImgEl = document.querySelector("#visionReferenceImage img");
-    const qRepBadge = document.getElementById("qRepBadge");
     const qQuoteRep = document.getElementById("qQuoteRep");
     const openContactModal = document.getElementById("openContactModal");
     const closeContactModal = document.getElementById("closeContactModal");
@@ -1539,10 +1549,6 @@
     const qFireRated = document.getElementById("qFireRated");
     let currentQuoteExperience = "guided";
 
-    const quoteReps = [
-      { key: "cameron", name: "Cameron" },
-    ];
-
     const CHATBOT_SESSION_KEY = "castle_chatbot_session_id";
     const CHATBOT_STATE_KEY = "castle_chatbot_state";
     localStorage.removeItem(CHATBOT_SESSION_KEY);
@@ -1555,13 +1561,6 @@
       currentStep: "requestType",
       quoteDraft: {},
     };
-
-    function pickQuoteRep() {
-      const idx = Math.floor(Math.random() * quoteReps.length);
-      const rep = quoteReps[idx];
-      if (qRepBadge) qRepBadge.textContent = `Delivered directly to ${rep.name}`;
-      if (qQuoteRep) qQuoteRep.value = rep.key;
-    }
 
     function safeParse(raw, fallback) {
       try {
@@ -1853,7 +1852,6 @@
     updateWallTypeVisibility();
     setupVisionReferenceDebug();
     updateVisionReferenceVisibility();
-    pickQuoteRep();
     refreshQuoteChecklist();
 
     if (quoteStartBtn) {
@@ -2083,7 +2081,6 @@
         const defaultMode = document.querySelector('input[name="quoteMode"][value="guided"]');
         if (defaultMode) defaultMode.checked = true;
         setQuoteMode("guided");
-        pickQuoteRep();
         refreshQuoteChecklist();
       } catch {
         qMessage.textContent = "Network error while sending quote request.";
