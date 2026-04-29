@@ -534,62 +534,15 @@
       position: relative;
       aspect-ratio: 16 / 10;
       background: #120f0d;
+      min-height: 220px;
     }
 
     .demo-slider__viewport img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      object-position: center;
       display: block;
-    }
-
-    .demo-slider__controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 8px;
-      border-top: 1px solid var(--line);
-      background: #2a241f;
-    }
-
-    .demo-slider__nav {
-      min-height: 34px;
-      min-width: 34px;
-      padding: 0 10px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: #352d27;
-      color: #f6ede3;
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    .demo-slider__dots {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .demo-slider__dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      border: 0;
-      padding: 0;
-      background: #6f5d4b;
-      cursor: pointer;
-    }
-
-    .demo-slider__dot.active {
-      background: #d8a46f;
-    }
-
-    .demo-slider__count {
-      color: var(--muted);
-      font-size: .82rem;
-      font-weight: 700;
-      letter-spacing: .04em;
     }
 
     .split {
@@ -1270,12 +1223,6 @@
               <div class="demo-slider__viewport">
                 <img src="assets/report-1.png" alt="Report Viewer demo screenshot 1" loading="lazy" />
               </div>
-              <div class="demo-slider__controls">
-                <button class="demo-slider__nav" type="button" data-prev aria-label="Previous report viewer screenshot">‹</button>
-                <div class="demo-slider__dots" aria-label="Report Viewer screenshots"></div>
-                <span class="demo-slider__count" data-count>1 / 3</span>
-                <button class="demo-slider__nav" type="button" data-next aria-label="Next report viewer screenshot">›</button>
-              </div>
             </div>
             <p style="margin:0 0 8px; color:var(--muted);">Shows what a customer sees after opening a report link: status, door details, PDFs, and related report context in one place.</p>
             <p style="margin:0; color:var(--muted);">Benefit: teams can validate readability, shareability, and confidence in the delivered inspection/report evidence experience.</p>
@@ -1292,12 +1239,6 @@
               data-images='[{"src":"assets/Portal-1.png","alt":"Portal demo screenshot 1"},{"src":"assets/Portal-2.png","alt":"Portal demo screenshot 2"},{"src":"assets/Portal-3.png","alt":"Portal demo screenshot 3"}]'>
               <div class="demo-slider__viewport">
                 <img src="assets/Portal-1.png" alt="Portal demo screenshot 1" loading="lazy" />
-              </div>
-              <div class="demo-slider__controls">
-                <button class="demo-slider__nav" type="button" data-prev aria-label="Previous portal screenshot">‹</button>
-                <div class="demo-slider__dots" aria-label="Portal screenshots"></div>
-                <span class="demo-slider__count" data-count>1 / 3</span>
-                <button class="demo-slider__nav" type="button" data-next aria-label="Next portal screenshot">›</button>
               </div>
             </div>
             <p style="margin:0 0 8px; color:var(--muted);">Shows the secured portal workflow used for customer-side operations, including guided access and business-context actions.</p>
@@ -1947,11 +1888,7 @@
       const sliders = Array.from(document.querySelectorAll("[data-slider]"));
       sliders.forEach((root) => {
         const viewportImg = root.querySelector(".demo-slider__viewport img");
-        const dotsWrap = root.querySelector(".demo-slider__dots");
-        const countEl = root.querySelector("[data-count]");
-        const prevBtn = root.querySelector("[data-prev]");
-        const nextBtn = root.querySelector("[data-next]");
-        if (!viewportImg || !dotsWrap || !countEl || !prevBtn || !nextBtn) return;
+        if (!viewportImg) return;
 
         const raw = root.getAttribute("data-images") || "[]";
         const images = safeParse(raw, []).filter((x) => x && x.src);
@@ -1966,11 +1903,6 @@
           const active = images[index] || images[0];
           viewportImg.src = active.src;
           viewportImg.alt = active.alt || "Demo screenshot";
-          countEl.textContent = `${index + 1} / ${images.length}`;
-          Array.from(dotsWrap.querySelectorAll(".demo-slider__dot")).forEach((dot, i) => {
-            dot.classList.toggle("active", i === index);
-            dot.setAttribute("aria-pressed", i === index ? "true" : "false");
-          });
         }
 
         function go(nextIndex) {
@@ -1989,31 +1921,6 @@
           stop();
           timer = setInterval(() => go(index + 1), interval);
         }
-
-        dotsWrap.innerHTML = images
-          .map((_, i) => `<button class="demo-slider__dot${i === 0 ? " active" : ""}" type="button" data-dot="${i}" aria-label="Show slide ${i + 1}" aria-pressed="${i === 0 ? "true" : "false"}"></button>`)
-          .join("");
-
-        dotsWrap.addEventListener("click", (e) => {
-          const t = e.target;
-          if (!(t instanceof HTMLElement)) return;
-          const rawIdx = t.getAttribute("data-dot");
-          if (rawIdx == null) return;
-          const dotIdx = Number(rawIdx);
-          if (!Number.isFinite(dotIdx)) return;
-          go(dotIdx);
-          start();
-        });
-
-        prevBtn.addEventListener("click", () => {
-          go(index - 1);
-          start();
-        });
-
-        nextBtn.addEventListener("click", () => {
-          go(index + 1);
-          start();
-        });
 
         root.addEventListener("mouseenter", stop);
         root.addEventListener("mouseleave", start);
