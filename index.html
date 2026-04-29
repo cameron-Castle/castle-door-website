@@ -532,9 +532,9 @@
 
     .demo-slider__viewport {
       position: relative;
-      aspect-ratio: 16 / 10;
+      aspect-ratio: 16 / 9;
       background: #120f0d;
-      min-height: 220px;
+      min-height: 320px;
     }
 
     .demo-slider__viewport img {
@@ -1204,8 +1204,8 @@
           If a frame is not in stock, we can fabricate it in-house.
         </p>
 
-        <div class="cards-3" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
-          <article class="card">
+        <div class="cards-3" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+          <article class="card" style="grid-column: 1 / -1;">
             <h3>Supply Quote Workflow</h3>
             <p style="margin-bottom:10px;"><img src="assets/weld2.png" alt="Shop welding and frame prep work" loading="lazy" style="width:100%; border-radius:10px; border:1px solid var(--line);" /></p>
             <p>Use guided fields or the assistant to submit frame size, depth, and contact details for a fast quote turnaround.</p>
