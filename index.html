@@ -1114,6 +1114,15 @@
       .hero h1 { max-width: none; }
       .map-card,
       .map-card iframe { min-height: 240px; }
+      #demo .cards-3 { grid-template-columns: 1fr !important; }
+      #demo .card[style*="grid-column"] { grid-column: auto !important; }
+      .demo-slider__viewport {
+        aspect-ratio: 10 / 14;
+        min-height: 420px;
+      }
+      .demo-slider__viewport img {
+        object-position: center top;
+      }
       .hero-focus-photo__caption {
         left: 10px;
         right: 10px;
