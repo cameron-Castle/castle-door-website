@@ -147,6 +147,10 @@
       transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
     }
 
+    .actions .btn {
+      flex: 0 0 auto;
+    }
+
     .btn:hover {
       transform: translateY(-1px);
       box-shadow: var(--shadow-sm);
@@ -1054,7 +1058,33 @@
 
     @media (max-width: 860px) {
       .nav { display: none; }
-      .hero { padding-top: 32px; }
+
+      .site-header__inner {
+        min-height: auto;
+        padding: 10px 0;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .brand {
+        flex: 1 1 100%;
+      }
+
+      .actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        overflow: visible;
+        gap: 8px;
+      }
+
+      .actions .btn {
+        min-height: 40px;
+        padding: 0 12px;
+        font-size: .85rem;
+      }
+
+      .hero { padding-top: 24px; }
       .hero__points,
       .hero-grid,
       .local-proof__photos { grid-template-columns: 1fr; }
@@ -1067,8 +1097,43 @@
     @media (max-width: 560px) {
       .container { width: min(calc(100% - 22px), var(--max)); }
       .brand__name { font-size: .82rem; }
+      .brand__sub { font-size: .74rem; }
+      .btn {
+        min-height: 46px;
+        padding: 0 14px;
+      }
       .panel { padding: 20px; }
+      .card,
+      .quote-form,
+      .quote-panel,
+      .contact-card,
+      .modal__card { padding: 14px; }
+      .section-copy,
+      .hero__lead,
+      .step p { line-height: 1.68; }
       .hero h1 { max-width: none; }
+      .map-card,
+      .map-card iframe { min-height: 240px; }
+      .hero-focus-photo__caption {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        font-size: .84rem;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .container { width: min(calc(100% - 18px), var(--max)); }
+      .brand__sub { display: none; }
+      .hero { padding-top: 18px; }
+      .panel { padding: 16px; }
+      .actions .btn {
+        flex: 1 1 calc(50% - 8px);
+      }
+      .hero-card,
+      .local-proof { padding: 14px; }
+      .quote-option,
+      .mode-pill { padding: 10px; }
     }
   </style>
 </head>
