@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact Castle Door &amp; Hardware | Wichita, KS</title>
+  <meta name="description" content="Contact Castle Door & Hardware for commercial door, frame, and hardware supply support in Wichita, KS. Call (316) 832-0300 or email the team directly." />
+  <link rel="canonical" href="https://castledoorict.com/contact.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Contact Castle Door & Hardware | Wichita, KS" />
+  <meta property="og:description" content="Reach Castle Door & Hardware for commercial supply quotes, frame fabrication questions, and hardware planning support." />
+  <meta property="og:url" content="https://castledoorict.com/contact.html" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="index.html" aria-label="Castle Door and Hardware home">
+        <div class="brand__mark">CD</div>
+        <div>
+          <div class="brand__name">Castle Door &amp; Hardware</div>
+          <div class="brand__sub">Commercial door, frame, and hardware supplier</div>
+        </div>
+      </a>
+
+      <div class="actions">
+        <a class="btn" href="capabilities.html">Capabilities</a>
+        <a class="btn" href="demo.html">Demo</a>
+        <a class="btn" href="quote.html">Request a Quote</a>
+        <a class="btn" href="contact.html" aria-current="page">Contact</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="block" id="contact">
+      <div class="container panel contact-panel">
+        <div class="contact-grid">
+          <article>
+            <div class="section-kicker">Contact</div>
+            <h2 class="section-title">Need door, frame, or hardware supply support?</h2>
+            <p class="section-copy" style="max-width:60ch;">
+              Reach out for commercial supply quotes, frame fabrication questions, and hardware planning support.
+            </p>
+
+            <div class="contact-meta">
+              <div><strong>Email:</strong> Cameron@castledoorandhardware.com</div>
+              <div><strong>Phone:</strong> (316) 832-0300</div>
+              <div><strong>Address:</strong> 3515 N Santa Fe, Wichita, KS 67219</div>
+              <div><strong>Team:</strong> Brad, Kale, and Cameron</div>
+              <div><strong>Hours:</strong> Monday-Friday, 7:30 AM-4:30 PM. If we know you're coming, we'll keep the light on and the door open.</div>
+              <div><strong>Service Area:</strong> Wichita and surrounding area</div>
+            </div>
+
+            <div class="map-card">
+              <iframe
+                title="Castle Door and Hardware location map"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                src="https://www.google.com/maps?q=3515+N+Santa+Fe,+Wichita,+KS+67219&output=embed"></iframe>
+            </div>
+          </article>
+
+          <article class="contact-card">
+            <div class="section-kicker" style="letter-spacing:.14em;">Quick actions</div>
+            <div class="contact-actions" style="margin-top:12px;">
+              <button class="btn" id="openContactModal" type="button">Email the Experts</button>
+              <a class="btn" href="tel:+13168320300">Call (316) 832-0300</a>
+              <a class="btn" href="quote.html">Go to Quote Intake</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="contactModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
+    <div class="modal__card">
+      <div class="modal__head">
+        <div id="contactModalTitle" class="modal__title">Email the Experts</div>
+        <button id="closeContactModal" class="icon-btn" type="button" aria-label="Close contact form">×</button>
+      </div>
+
+      <p style="margin: 0 0 12px; color: var(--muted); font-size: .92rem; line-height: 1.7;">
+        Send your contact details and message here. We will email you back directly.
+      </p>
+
+      <form id="contactModalForm" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="cRecipient">Who should this go to?</label>
+            <select id="cRecipient" name="recipient">
+              <option value="cameron">Cameron</option>
+              <option value="kale">Kale</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="cName">Name</label>
+            <input id="cName" name="name" required />
+          </div>
+          <div class="field">
+            <label for="cEmail">Email</label>
+            <input id="cEmail" name="email" type="email" required />
+          </div>
+          <div class="field">
+            <label for="cPhone">Phone</label>
+            <input id="cPhone" name="phone" type="tel" />
+          </div>
+          <div class="field">
+            <label for="cCompany">Company</label>
+            <input id="cCompany" name="company" />
+          </div>
+          <div class="field full">
+            <label for="cMessage">How can we help?</label>
+            <textarea id="cMessage" name="message" required placeholder="Tell us what you need help with..."></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+          <button class="btn btn--primary" id="cSubmit" type="submit">Send Message</button>
+          <button class="btn" id="cCancel" type="button">Cancel</button>
+        </div>
+        <div id="cMessageStatus" class="form-message" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="footer container">
+    <div>© <span id="year"></span> Castle Door &amp; Hardware</div>
+    <div class="footer-links">
+      <a href="capabilities.html">Capabilities</a>
+      <a href="quote.html">Request Quote</a>
+      <a href="index.html">Home</a>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    const openContactModal = document.getElementById("openContactModal");
+    const closeContactModal = document.getElementById("closeContactModal");
+    const contactModal = document.getElementById("contactModal");
+    const contactModalForm = document.getElementById("contactModalForm");
+    const cSubmit = document.getElementById("cSubmit");
+    const cCancel = document.getElementById("cCancel");
+    const cMessageStatus = document.getElementById("cMessageStatus");
+
+    function setModalOpen(open) {
+      if (!contactModal) return;
+      contactModal.setAttribute("aria-hidden", open ? "false" : "true");
+      if (open) {
+        const firstInput = document.getElementById("cName");
+        if (firstInput) firstInput.focus();
+      } else if (openContactModal) {
+        openContactModal.focus();
+      }
+    }
+
+    if (openContactModal) {
+      openContactModal.addEventListener("click", () => setModalOpen(true));
+    }
+    if (closeContactModal) {
+      closeContactModal.addEventListener("click", () => setModalOpen(false));
+    }
+    if (cCancel) {
+      cCancel.addEventListener("click", () => setModalOpen(false));
+    }
+    if (contactModal) {
+      contactModal.addEventListener("click", (e) => {
+        if (e.target === contactModal) setModalOpen(false);
+      });
+    }
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && contactModal?.getAttribute("aria-hidden") === "false") {
+        setModalOpen(false);
+      }
+    });
+
+    if (contactModalForm) {
+      contactModalForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!cMessageStatus || !cSubmit) return;
+
+        cMessageStatus.textContent = "";
+        cMessageStatus.className = "form-message";
+
+        const fd = new FormData(contactModalForm);
+        const payload = {
+          recipient: String(fd.get("recipient") || "").trim(),
+          name: String(fd.get("name") || "").trim(),
+          email: String(fd.get("email") || "").trim(),
+          phone: String(fd.get("phone") || "").trim(),
+          company: String(fd.get("company") || "").trim(),
+          message: String(fd.get("message") || "").trim(),
+        };
+
+        if (!payload.name || !payload.email || !payload.message) {
+          cMessageStatus.textContent = "Name, email, and message are required.";
+          cMessageStatus.classList.add("err");
+          return;
+        }
+
+        cSubmit.disabled = true;
+        cSubmit.textContent = "Sending...";
+
+        try {
+          const res = await fetch("/api/contact-request", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            cMessageStatus.textContent = out.error || "Unable to send message right now.";
+            cMessageStatus.classList.add("err");
+            return;
+          }
+
+          cMessageStatus.textContent = "Message sent. We will reply to your email shortly.";
+          cMessageStatus.classList.add("ok");
+          contactModalForm.reset();
+          setTimeout(() => setModalOpen(false), 700);
+        } catch {
+          cMessageStatus.textContent = "Network error while sending message.";
+          cMessageStatus.classList.add("err");
+        } finally {
+          cSubmit.disabled = false;
+          cSubmit.textContent = "Send Message";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

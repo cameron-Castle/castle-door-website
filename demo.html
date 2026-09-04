@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quote Workflow, Report Viewer &amp; Portal Demo | Castle Door &amp; Hardware</title>
+  <meta name="description" content="See how Castle Door & Hardware's guided quote intake, report viewer, and customer portal work before you request a commercial door, frame, or hardware quote." />
+  <link rel="canonical" href="https://castledoorict.com/demo.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Quote Workflow, Report Viewer & Portal Demo | Castle Door & Hardware" />
+  <meta property="og:description" content="See the guided quote intake, report viewer, and customer portal used by Castle Door & Hardware." />
+  <meta property="og:url" content="https://castledoorict.com/demo.html" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="index.html" aria-label="Castle Door and Hardware home">
+        <div class="brand__mark">CD</div>
+        <div>
+          <div class="brand__name">Castle Door &amp; Hardware</div>
+          <div class="brand__sub">Commercial door, frame, and hardware supplier</div>
+        </div>
+      </a>
+
+      <div class="actions">
+        <a class="btn" href="capabilities.html">Capabilities</a>
+        <a class="btn" href="demo.html" aria-current="page">Demo</a>
+        <a class="btn" href="quote.html">Request a Quote</a>
+        <a class="btn" href="contact.html">Contact</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="block" id="demo">
+      <div class="container panel">
+        <div class="section-kicker">Shop-focused process</div>
+        <h2 class="section-title">From quote to supply: practical, direct, and built around your opening specs.</h2>
+        <p class="section-copy">
+          We review your opening details, lock in supply specs, and coordinate doors, frames, and hardware through one team.
+          If a frame is not in stock, we can fabricate it in-house.
+        </p>
+
+        <div class="cards-3" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+          <article class="card" style="grid-column: 1 / -1;">
+            <h3>Supply Quote Workflow</h3>
+            <p style="margin-bottom:10px;"><img src="assets/weld2.png" alt="Shop welding and frame prep work" loading="lazy" style="width:100%; border-radius:10px; border:1px solid var(--line);" /></p>
+            <p>Use guided fields or the assistant to submit frame size, depth, and contact details for a fast quote turnaround.</p>
+            <a class="btn" href="quote.html">Start Quote Intake</a>
+          </article>
+
+          <article class="card">
+            <h3>Report Viewer Demo</h3>
+            <div
+              class="demo-slider"
+              data-slider
+              data-autoplay="true"
+              data-interval="4200"
+              data-images='[{"src":"assets/report1.png","alt":"Report Viewer demo screenshot 1"},{"src":"assets/report2.png","alt":"Report Viewer demo screenshot 2"},{"src":"assets/report3.png","alt":"Report Viewer demo screenshot 3"}]'>
+              <div class="demo-slider__viewport">
+                <img src="assets/report1.png" alt="Report Viewer demo screenshot 1" loading="lazy" />
+              </div>
+            </div>
+            <p style="margin:0 0 8px; color:var(--muted);">Shows what a customer sees after opening a report link: status, door details, PDFs, and related report context in one place.</p>
+            <p style="margin:0; color:var(--muted);">Benefit: teams can validate readability, shareability, and confidence in the delivered inspection/report evidence experience.</p>
+            <div style="margin-top:10px;"><a class="btn" href="https://r.castledoorict.com/reports/p0bwkg/09in5f/co1?scope=all">Open Demo Report Viewer</a></div>
+          </article>
+
+          <article class="card">
+            <h3>Portal Demo</h3>
+            <div
+              class="demo-slider"
+              data-slider
+              data-autoplay="true"
+              data-interval="4600"
+              data-images='[{"src":"assets/Portal1.png","alt":"Portal demo screenshot 1"},{"src":"assets/Portal2.png","alt":"Portal demo screenshot 2"},{"src":"assets/Portal3.png","alt":"Portal demo screenshot 3"}]'>
+              <div class="demo-slider__viewport">
+                <img src="assets/Portal1.png" alt="Portal demo screenshot 1" loading="lazy" />
+              </div>
+            </div>
+            <p style="margin:0 0 8px; color:var(--muted);">Shows the secured portal workflow used for customer-side operations, including guided access and business-context actions.</p>
+            <p style="margin:0; color:var(--muted);">Benefit: gives customers and internal teams a clean path for controlled access, communication, and task handling without exposing admin internals.</p>
+            <div style="margin-top:10px;"><a class="btn" href="https://castledoorict.com/portal?biz=p0bwkg">Open Demo Portal</a></div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <div>© <span id="year"></span> Castle Door &amp; Hardware</div>
+    <div class="footer-links">
+      <a href="capabilities.html">Capabilities</a>
+      <a href="quote.html">Request Quote</a>
+      <a href="index.html">Home</a>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function safeParse(raw, fallback) {
+      try {
+        const p = JSON.parse(raw || "");
+        return p && typeof p === "object" ? p : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function initDemoSliders() {
+      const sliders = Array.from(document.querySelectorAll("[data-slider]"));
+      sliders.forEach((root) => {
+        const viewportImg = root.querySelector(".demo-slider__viewport img");
+        if (!viewportImg) return;
+
+        const raw = root.getAttribute("data-images") || "[]";
+        const images = safeParse(raw, []).filter((x) => x && x.src);
+        if (!images.length) return;
+
+        let index = 0;
+        let timer = null;
+        const autoplay = String(root.getAttribute("data-autoplay") || "true") !== "false";
+        const interval = Math.max(2000, Number(root.getAttribute("data-interval") || 4500));
+
+        function render() {
+          const active = images[index] || images[0];
+          viewportImg.src = active.src;
+          viewportImg.alt = active.alt || "Demo screenshot";
+        }
+
+        function go(nextIndex) {
+          index = (nextIndex + images.length) % images.length;
+          render();
+        }
+
+        function stop() {
+          if (!timer) return;
+          clearInterval(timer);
+          timer = null;
+        }
+
+        function start() {
+          if (!autoplay || images.length < 2) return;
+          stop();
+          timer = setInterval(() => go(index + 1), interval);
+        }
+
+        root.addEventListener("mouseenter", stop);
+        root.addEventListener("mouseleave", start);
+        root.addEventListener("focusin", stop);
+        root.addEventListener("focusout", start);
+
+        render();
+        start();
+      });
+    }
+
+    initDemoSliders();
+  </script>
+</body>
+</html>

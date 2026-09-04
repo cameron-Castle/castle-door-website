@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Request a Commercial Door, Frame &amp; Hardware Quote | Castle Door &amp; Hardware</title>
+  <meta name="description" content="Request a commercial door, frame, or hardware quote from Castle Door & Hardware in Wichita, KS. Use a guided builder, a free-form request, or our quote assistant." />
+  <link rel="canonical" href="https://castledoorict.com/quote.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Request a Commercial Door, Frame & Hardware Quote | Castle Door & Hardware" />
+  <meta property="og:description" content="Guided builder, free-form request, or quote assistant — request a commercial door, frame, or hardware quote from Castle Door & Hardware." />
+  <meta property="og:url" content="https://castledoorict.com/quote.html" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="index.html" aria-label="Castle Door and Hardware home">
+        <div class="brand__mark">CD</div>
+        <div>
+          <div class="brand__name">Castle Door &amp; Hardware</div>
+          <div class="brand__sub">Commercial door, frame, and hardware supplier</div>
+        </div>
+      </a>
+
+      <div class="actions">
+        <a class="btn" href="capabilities.html">Capabilities</a>
+        <a class="btn" href="demo.html">Demo</a>
+        <a class="btn" href="quote.html" aria-current="page">Request a Quote</a>
+        <a class="btn" href="contact.html">Contact</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="block" id="quote">
+      <div class="container panel">
+        <div class="section-kicker">Request Quote</div>
+        <h2 class="section-title">Build your quote your way: guided selections or free-form details.</h2>
+        <p class="section-copy">
+          Send a quote request directly to our team. Choose a guided step-by-step builder for door and frame specs,
+          or use the free-form option if you already have a custom scope.
+        </p>
+
+        <div class="quote-entry" id="quoteEntry">
+          <button class="btn btn--primary" id="quoteStartBtn" type="button">Request a Quote</button>
+          <div class="quote-options hidden" id="quoteEntryOptions" aria-label="Quote request options">
+            <button class="quote-option" type="button" data-quote-experience="freeform">
+              <strong>1) I know what I want</strong><br/>
+              Free-form request. You type your scope and send.
+            </button>
+            <button class="quote-option" type="button" data-quote-experience="guided">
+              <strong>2) I kinda know what I want</strong><br/>
+              Guided form with practical questions and drop-downs.
+            </button>
+            <button class="quote-option" type="button" data-quote-experience="assistant">
+              <strong>3) Try our AI assistant</strong><br/>
+              Chat assistant helps you discover what you need.
+            </button>
+          </div>
+        </div>
+
+        <div class="quote-grid hidden" id="quoteBodyWrap">
+          <form id="quoteForm" class="quote-form" novalidate>
+            <div class="chatbot-box hidden" id="chatbotBox" aria-label="Quote assistant chatbot">
+              <div class="section-kicker" style="letter-spacing:.12em;">Assistant (BETA)</div>
+              <div class="chatbot-note">
+                Not sure what you need? Use this assistant and then submit directly from chat.
+              </div>
+              <div id="chatbotLog" class="chatbot-log" aria-live="polite"></div>
+              <textarea id="chatbotInput" placeholder="Type your project details or answer the assistant question..."></textarea>
+              <div class="chatbot-actions">
+                <button class="btn" id="chatbotSend" type="button">Send to Assistant</button>
+                <button class="btn btn--primary" id="chatbotSubmit" type="button" disabled>Submit Assistant Quote</button>
+              </div>
+              <div id="chatbotStatus" class="form-message" aria-live="polite"></div>
+            </div>
+
+            <div class="quote-form__modes" id="quoteModePills" role="radiogroup" aria-label="Quote request type">
+              <label class="mode-pill">
+                <input type="radio" name="quoteMode" value="guided" checked />
+                <span>Guided build (door/frame selections)</span>
+              </label>
+              <label class="mode-pill">
+                <input type="radio" name="quoteMode" value="custom" />
+                <span>Free-form custom request</span>
+              </label>
+            </div>
+
+            <div class="form-grid" id="manualContactFields">
+              <div class="field">
+                <label for="qName">Name</label>
+                <input id="qName" name="name" required />
+              </div>
+              <div class="field">
+                <label for="qEmail">Email</label>
+                <input id="qEmail" name="email" type="email" required />
+              </div>
+              <div class="field">
+                <label for="qPhone">Phone</label>
+                <input id="qPhone" name="phone" type="tel" />
+              </div>
+              <div class="field">
+                <label for="qCompany">Company</label>
+                <input id="qCompany" name="company" />
+              </div>
+            </div>
+
+            <div id="guidedFields" class="form-grid" style="margin-top:10px;">
+              <div class="field">
+                <label for="qFrameWidth">Frame width (inches)</label>
+                <input id="qFrameWidth" name="frameWidthIn" type="number" min="18" max="144" step="0.125" placeholder="e.g. 36" />
+              </div>
+              <div class="field">
+                <label for="qFrameHeight">Frame height (inches)</label>
+                <input id="qFrameHeight" name="frameHeightIn" type="number" min="48" max="120" step="0.125" placeholder="e.g. 84" />
+              </div>
+              <div class="field">
+                <label for="qDoorType">Door type</label>
+                <select id="qDoorType" name="doorType">
+                  <option value="">Select...</option>
+                  <option>Hollow metal</option>
+                  <option>Wood</option>
+                </select>
+              </div>
+              <div class="field hidden" id="woodSpeciesField">
+                <label for="qWoodSpecies">Wood species</label>
+                <select id="qWoodSpecies" name="woodSpecies">
+                  <option value="">Select...</option>
+                  <option>Birch</option>
+                  <option>Maple</option>
+                  <option>Oak</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qFrameType">Frame type (optional)</label>
+                <select id="qFrameType" name="frameType">
+                  <option value="">Select...</option>
+                  <option>Welded frame</option>
+                  <option>Knock-down frame</option>
+                  <option>Existing frame reuse</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qFrameDepth">Frame depth</label>
+                <select id="qFrameDepth" name="frameDepth">
+                  <option value="">Select...</option>
+                  <option>5-3/4</option>
+                  <option>8-1/4</option>
+                  <option>Other</option>
+                  <option>Unknown</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qFireRated">Fire rated</label>
+                <label class="check-row check-row--tight" for="qFireRated" aria-label="Fire rated opening">
+                  <input id="qFireRated" name="fireRated" type="checkbox" />
+                  Fire-rated opening
+                </label>
+              </div>
+              <div class="field hidden" id="wallTypeField">
+                <label for="qWallType">Wall type / opening details</label>
+                <input id="qWallType" name="wallTypeDetails" placeholder="e.g. Metal stud, 5/8 sheetrock both sides" />
+              </div>
+              <div class="field">
+                <label for="qTimeline">Target timeline</label>
+                <input id="qTimeline" name="timeline" placeholder="e.g. Need installed in 4-6 weeks" />
+              </div>
+              <div class="field full">
+                <label for="qGuidedNotes">Project notes</label>
+                <textarea id="qGuidedNotes" name="guidedNotes" placeholder="Opening details, site notes, priorities..."></textarea>
+              </div>
+            </div>
+
+            <div class="vision-wrap" id="visionKitWrap">
+              <div class="vision-kicker">Vision kit reference</div>
+              <label class="check-row" for="qNeedsVisionKit">
+                <input id="qNeedsVisionKit" name="needsVisionKitReference" type="checkbox" />
+                <span>Show vision kit style chart (A-H)</span>
+              </label>
+              <div class="vision-image hidden" id="visionReferenceImage">
+                <img
+                  src="assets/vision-kit-reference.png"
+                  alt="Vision kit reference chart with options A through H"
+                />
+              </div>
+              <div class="vision-note">Check the box to open the standard vision kit chart image.</div>
+            </div>
+
+            <div id="customFields" class="form-grid" style="display:none; margin-top:10px;">
+              <div class="field full">
+                <label for="qCustomScope">Describe your quote request</label>
+                <textarea id="qCustomScope" name="customScope" placeholder="Type your scope, counts, materials, and timing."></textarea>
+              </div>
+            </div>
+
+            <input id="qQuoteRep" name="quoteRep" type="hidden" value="cameron" />
+
+            <div id="qManualSubmitRow" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+              <button class="btn btn--primary" id="qSubmit" type="submit">Send Quote Request</button>
+            </div>
+            <div id="qMessage" class="form-message" aria-live="polite"></div>
+          </form>
+
+          <aside class="quote-panel hidden" id="quoteInfoPanel" aria-label="Quote request help">
+            <div class="section-kicker" style="letter-spacing:.14em;">What to include</div>
+            <h3 style="margin-top:8px; font-size:1.1rem;">Live quote intake details.</h3>
+            <ul class="quote-data-list" id="quoteDataList" aria-live="polite"></ul>
+            <div class="quote-data-summary" id="quoteDataSummary" aria-live="polite"></div>
+            <p style="margin-top:12px; color:var(--muted); font-size:.92rem; line-height:1.7;">
+              Quote emails are sent through secure email delivery with Resend and routed straight to your sales inbox.
+            </p>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <div>© <span id="year"></span> Castle Door &amp; Hardware</div>
+    <div class="footer-links">
+      <a href="capabilities.html">Capabilities</a>
+      <a href="contact.html">Contact</a>
+      <a href="index.html">Home</a>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    const quoteForm = document.getElementById("quoteForm");
+    const guidedFields = document.getElementById("guidedFields");
+    const customFields = document.getElementById("customFields");
+    const qMessage = document.getElementById("qMessage");
+    const qSubmit = document.getElementById("qSubmit");
+    const qDoorType = document.getElementById("qDoorType");
+    const qWoodSpecies = document.getElementById("qWoodSpecies");
+    const woodSpeciesField = document.getElementById("woodSpeciesField");
+    const qFrameDepth = document.getElementById("qFrameDepth");
+    const qWallType = document.getElementById("qWallType");
+    const wallTypeField = document.getElementById("wallTypeField");
+    const qNeedsVisionKit = document.getElementById("qNeedsVisionKit");
+    const visionReferenceImage = document.getElementById("visionReferenceImage");
+    const visionReferenceImgEl = document.querySelector("#visionReferenceImage img");
+    const qQuoteRep = document.getElementById("qQuoteRep");
+    const quoteStartBtn = document.getElementById("quoteStartBtn");
+    const quoteEntryOptions = document.getElementById("quoteEntryOptions");
+    const quoteBodyWrap = document.getElementById("quoteBodyWrap");
+    const quoteModePills = document.getElementById("quoteModePills");
+    const manualContactFields = document.getElementById("manualContactFields");
+    const qManualSubmitRow = document.getElementById("qManualSubmitRow");
+    const quoteInfoPanel = document.getElementById("quoteInfoPanel");
+    const quoteOptionButtons = Array.from(document.querySelectorAll("[data-quote-experience]"));
+    const chatbotBox = document.getElementById("chatbotBox");
+    const chatbotLog = document.getElementById("chatbotLog");
+    const chatbotInput = document.getElementById("chatbotInput");
+    const chatbotSend = document.getElementById("chatbotSend");
+    const chatbotSubmit = document.getElementById("chatbotSubmit");
+    const chatbotStatus = document.getElementById("chatbotStatus");
+    const visionKitWrap = document.getElementById("visionKitWrap");
+    const quoteDataList = document.getElementById("quoteDataList");
+    const quoteDataSummary = document.getElementById("quoteDataSummary");
+    const qName = document.getElementById("qName");
+    const qEmail = document.getElementById("qEmail");
+    const qCompany = document.getElementById("qCompany");
+    const qFrameWidth = document.getElementById("qFrameWidth");
+    const qFrameHeight = document.getElementById("qFrameHeight");
+    const qCustomScope = document.getElementById("qCustomScope");
+    const qGuidedNotes = document.getElementById("qGuidedNotes");
+    const qTimeline = document.getElementById("qTimeline");
+    const qFireRated = document.getElementById("qFireRated");
+    let currentQuoteExperience = "guided";
+
+    const CHATBOT_SESSION_KEY = "castle_chatbot_session_id";
+    const CHATBOT_STATE_KEY = "castle_chatbot_state";
+    localStorage.removeItem(CHATBOT_SESSION_KEY);
+    localStorage.removeItem(CHATBOT_STATE_KEY);
+    let chatbotSessionId = `chat-${Date.now()}-${Math.floor(Math.random() * 99999)}`;
+    localStorage.setItem(CHATBOT_SESSION_KEY, chatbotSessionId);
+    const chatbotTranscript = [];
+    let chatbotState = {
+      mode: "guided",
+      currentStep: "requestType",
+      quoteDraft: {},
+    };
+
+    function safeParse(raw, fallback) {
+      try {
+        const p = JSON.parse(raw || "");
+        return p && typeof p === "object" ? p : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function renderQuoteData(items, contextLabel) {
+      if (!quoteDataList || !quoteDataSummary) return;
+      quoteDataList.innerHTML = items
+        .map((item) => `
+            <li class="quote-data-item">
+              <span class="quote-data-item__label">${item.label}</span>
+              <span class="quote-data-item__value">${item.value}</span>
+            </li>
+          `)
+        .join("");
+
+      const required = items.filter((i) => i.required);
+      const gathered = required.filter((i) => i.value !== "N/A").length;
+      const missing = required.filter((i) => i.value === "N/A").map((i) => i.label);
+      quoteDataSummary.textContent = missing.length
+        ? `${contextLabel}: ${gathered}/${required.length} required gathered. Missing: ${missing.join(" • ")}`
+        : `${contextLabel}: all required details gathered.`;
+    }
+
+    function refreshQuoteChecklist() {
+      if (!quoteDataList || !quoteDataSummary) return;
+
+      if (currentQuoteExperience === "assistant") {
+        const d = chatbotState?.quoteDraft || {};
+        const frameWidth = Number.isFinite(Number(d.frameWidthIn)) ? String(d.frameWidthIn) : "N/A";
+        const frameHeight = Number.isFinite(Number(d.frameHeightIn)) ? String(d.frameHeightIn) : "N/A";
+        const frameDepth = String(d.frameDepth || "").trim() || "N/A";
+        const derived = d.frameSizeDerivedFromRoughOpening === true ? " (derived)" : "";
+        const frameSize = frameWidth !== "N/A" && frameHeight !== "N/A" ? `${frameWidth} x ${frameHeight}${derived}` : "N/A";
+        const items = [
+          { label: "Name", required: true, value: String(d.name || "").trim() || "N/A" },
+          { label: "Email", required: true, value: String(d.email || "").trim() || "N/A" },
+          { label: "Company", required: true, value: String(d.company || "").trim() || "N/A" },
+          { label: "Frame size (W x H)", required: true, value: frameSize },
+          { label: "Frame depth", required: true, value: frameDepth },
+          { label: "Interior / Exterior", required: false, value: String(d.application || "").trim() || "N/A" },
+          { label: "Opening count", required: false, value: String(d.openingCountEstimate || "").trim() || "N/A" },
+        ];
+
+        renderQuoteData(items, "Assistant intake");
+        return;
+      }
+
+      const mode = String(document.querySelector('input[name="quoteMode"]:checked')?.value || "guided");
+      const frameDepthValue = String(qFrameDepth?.value || "").trim() || "N/A";
+      const frameWidth = Number.isFinite(Number(qFrameWidth?.value)) ? String(Number(qFrameWidth.value)) : "N/A";
+      const frameHeight = Number.isFinite(Number(qFrameHeight?.value)) ? String(Number(qFrameHeight.value)) : "N/A";
+      const frameSize = frameWidth !== "N/A" && frameHeight !== "N/A" ? `${frameWidth} x ${frameHeight}` : "N/A";
+      const timelineOrNotes = String(qTimeline?.value || qGuidedNotes?.value || "").trim() || "N/A";
+      const items = [
+        { label: "Name", required: true, value: String(qName?.value || "").trim() || "N/A" },
+        { label: "Email", required: true, value: String(qEmail?.value || "").trim() || "N/A" },
+        { label: "Company", required: true, value: String(qCompany?.value || "").trim() || "N/A" },
+        { label: "Frame size (W x H)", required: true, value: mode === "custom" ? "N/A" : frameSize },
+        { label: "Frame depth", required: mode === "guided", value: frameDepthValue },
+        { label: "Interior / Exterior", required: false, value: "N/A" },
+        { label: "Opening count", required: false, value: "N/A" },
+        { label: "Notes", required: false, value: timelineOrNotes },
+      ];
+
+      const context = mode === "custom" ? "Custom intake" : "Guided intake";
+      renderQuoteData(items, context);
+    }
+
+    function setChatbotStatus(text, cls = "") {
+      if (!chatbotStatus) return;
+      chatbotStatus.textContent = text;
+      chatbotStatus.className = `form-message ${cls}`.trim();
+    }
+
+    function appendChatbotMessage(role, text) {
+      if (!chatbotLog) return;
+      const normalizedRole = role === "user" ? "user" : "assistant";
+      const normalizedText = String(text || "").trim();
+      const div = document.createElement("div");
+      div.className = normalizedRole === "user" ? "chatbot-msg user" : "chatbot-msg";
+      div.textContent = `${normalizedRole === "user" ? "You" : "Assistant"}: ${normalizedText}`;
+      chatbotLog.appendChild(div);
+      chatbotLog.scrollTop = chatbotLog.scrollHeight;
+
+      if (normalizedText) {
+        chatbotTranscript.push({
+          role: normalizedRole,
+          text: normalizedText,
+          at: new Date().toISOString(),
+        });
+        if (chatbotTranscript.length > 400) chatbotTranscript.shift();
+      }
+    }
+
+    function buildQuotePayloadFromChatbotDraft() {
+      const d = chatbotState?.quoteDraft || {};
+      const frameDepth = String(d.frameDepth || "").trim();
+      const wallTypeDetails = String(d.wallTypeDetails || "").trim() || (d.wallThicknessIn ? `Wall thickness approx: ${d.wallThicknessIn} in` : "");
+      const guidedNotesExtra = [];
+      if (Array.isArray(d.unknownsToVerify) && d.unknownsToVerify.length) guidedNotesExtra.push(`Unknowns: ${d.unknownsToVerify.join("; ")}`);
+      if (Array.isArray(d.assumptionsUsed) && d.assumptionsUsed.length) guidedNotesExtra.push(`Assumptions: ${d.assumptionsUsed.join("; ")}`);
+
+      const material = String(d.doorMaterial || "").toLowerCase();
+      const doorType = material === "wood" ? "Wood" : material === "hollow-metal" ? "Hollow metal" : String(d.doorType || "").trim();
+      const fireRated = String(d.fireRatedStatus || "").toLowerCase() === "yes" || d.fireRated === true;
+      const needsVisionKitReference = d.visionKitRequired === true || d.needsVisionKitReference === true;
+
+      return {
+        mode: "guided",
+        name: String(d.name || "").trim(),
+        email: String(d.email || "").trim(),
+        phone: String(d.phone || "").trim(),
+        phoneOptOut: Boolean(d.phoneOptOut),
+        company: String(d.company || "").trim(),
+        doorType,
+        frameWidthIn: Number.isFinite(Number(d.frameWidthIn)) ? Number(d.frameWidthIn) : null,
+        frameHeightIn: Number.isFinite(Number(d.frameHeightIn)) ? Number(d.frameHeightIn) : null,
+        sizeWidthIn: Number.isFinite(Number(d.sizeWidthIn)) ? Number(d.sizeWidthIn) : Number.isFinite(Number(d.frameWidthIn)) ? Number(d.frameWidthIn) : null,
+        sizeHeightIn: Number.isFinite(Number(d.sizeHeightIn)) ? Number(d.sizeHeightIn) : Number.isFinite(Number(d.frameHeightIn)) ? Number(d.frameHeightIn) : null,
+        doorHeightIn: Number.isFinite(Number(d.doorHeightIn)) ? Number(d.doorHeightIn) : null,
+        sizeAssumed: Boolean(d.sizeAssumed),
+        woodSpecies: String(d.woodSpecies || "").trim(),
+        frameType: String(d.frameType || "").trim(),
+        fireRated,
+        frameDepth,
+        wallTypeDetails,
+        needsVisionKitReference,
+        quoteRep: String(qQuoteRep?.value || "").trim().toLowerCase(),
+        timeline: String(d.timeline || "").trim(),
+        guidedNotes: [String(d.guidedNotes || "").trim(), guidedNotesExtra.join("\n")].filter(Boolean).join("\n\n"),
+        chatTranscript: chatbotTranscript.slice(),
+        customScope: "",
+      };
+    }
+
+    async function postQuoteRequest(payload) {
+      const res = await fetch("/api/quote-request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const out = await res.json().catch(() => ({}));
+      return { res, out };
+    }
+
+    function updateWoodSpeciesVisibility() {
+      const isWood = String(qDoorType?.value || "").toLowerCase() === "wood";
+      if (!woodSpeciesField || !qWoodSpecies) return;
+      woodSpeciesField.classList.toggle("hidden", !isWood);
+      qWoodSpecies.required = isWood;
+      if (!isWood) qWoodSpecies.value = "";
+    }
+
+    function updateWallTypeVisibility() {
+      const depth = String(qFrameDepth?.value || "");
+      const shouldShow = depth === "Other" || depth === "Unknown";
+      if (!wallTypeField || !qWallType) return;
+      wallTypeField.classList.toggle("hidden", !shouldShow);
+      qWallType.required = shouldShow;
+      if (!shouldShow) qWallType.value = "";
+    }
+
+    function updateVisionReferenceVisibility() {
+      if (!visionReferenceImage || !qNeedsVisionKit) return;
+      visionReferenceImage.classList.toggle("hidden", !qNeedsVisionKit.checked);
+    }
+
+    function setQuoteExperience(experience) {
+      currentQuoteExperience = experience;
+      quoteOptionButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-quote-experience") === experience);
+      });
+
+      if (quoteBodyWrap) quoteBodyWrap.classList.remove("hidden");
+
+      const isAssistant = experience === "assistant";
+      const isFreeform = experience === "freeform";
+      const isGuided = experience === "guided";
+
+      if (chatbotBox) chatbotBox.classList.toggle("hidden", !isAssistant);
+      if (quoteModePills) quoteModePills.classList.toggle("hidden", isAssistant);
+      if (manualContactFields) manualContactFields.classList.toggle("hidden", isAssistant);
+      if (qManualSubmitRow) qManualSubmitRow.classList.toggle("hidden", isAssistant);
+      if (qMessage) qMessage.classList.toggle("hidden", isAssistant);
+      if (quoteInfoPanel) quoteInfoPanel.classList.toggle("hidden", !isAssistant);
+
+      if (isFreeform) {
+        const customMode = document.querySelector('input[name="quoteMode"][value="custom"]');
+        if (customMode) customMode.checked = true;
+        setQuoteMode("custom");
+      } else if (isGuided) {
+        const guidedMode = document.querySelector('input[name="quoteMode"][value="guided"]');
+        if (guidedMode) guidedMode.checked = true;
+        setQuoteMode("guided");
+      } else if (isAssistant) {
+        guidedFields.style.display = "none";
+        customFields.style.display = "none";
+        if (visionKitWrap) visionKitWrap.style.display = "none";
+      }
+
+      refreshQuoteChecklist();
+    }
+
+    function setQuoteMode(mode) {
+      const guided = mode !== "custom";
+      guidedFields.style.display = guided ? "grid" : "none";
+      customFields.style.display = guided ? "none" : "grid";
+      if (visionKitWrap) visionKitWrap.style.display = guided ? "block" : "none";
+      if (guided) {
+        updateWoodSpeciesVisibility();
+        updateWallTypeVisibility();
+        updateVisionReferenceVisibility();
+      }
+      refreshQuoteChecklist();
+    }
+
+    document.querySelectorAll('input[name="quoteMode"]').forEach((el) => {
+      el.addEventListener("change", () => setQuoteMode(el.value));
+    });
+
+    if (qDoorType) qDoorType.addEventListener("change", updateWoodSpeciesVisibility);
+    if (qFrameDepth) qFrameDepth.addEventListener("change", updateWallTypeVisibility);
+    if (qNeedsVisionKit) qNeedsVisionKit.addEventListener("change", updateVisionReferenceVisibility);
+
+    [qName, qEmail, qCompany, qFrameWidth, qFrameHeight, qDoorType, qFrameDepth, qWallType, qWoodSpecies, qTimeline, qGuidedNotes, qCustomScope, qFireRated, qNeedsVisionKit]
+      .filter(Boolean)
+      .forEach((el) => {
+        el.addEventListener("input", refreshQuoteChecklist);
+        el.addEventListener("change", refreshQuoteChecklist);
+      });
+
+    setQuoteMode(document.querySelector('input[name="quoteMode"]:checked')?.value || "guided");
+
+    updateWoodSpeciesVisibility();
+    updateWallTypeVisibility();
+    updateVisionReferenceVisibility();
+    refreshQuoteChecklist();
+
+    if (quoteStartBtn) {
+      quoteStartBtn.addEventListener("click", () => {
+        if (quoteEntryOptions) quoteEntryOptions.classList.remove("hidden");
+      });
+    }
+
+    quoteOptionButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const experience = btn.getAttribute("data-quote-experience") || "guided";
+        setQuoteExperience(experience);
+      });
+    });
+
+    if (chatbotLog) {
+      appendChatbotMessage("assistant", "Hey, I'm here to help. Start by telling me what you know about the opening, and I’ll guide the rest.");
+    }
+
+    if (chatbotSend) {
+      chatbotSend.addEventListener("click", async () => {
+        const text = String(chatbotInput?.value || "").trim();
+        if (!text) return;
+        appendChatbotMessage("user", text);
+        if (chatbotInput) chatbotInput.value = "";
+        setChatbotStatus("Sending...", "");
+        chatbotSend.disabled = true;
+
+        try {
+          const res = await fetch("/api/chatbot-quote", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              sessionId: chatbotSessionId,
+              userMessage: text,
+              state: chatbotState,
+            }),
+          });
+
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const msg = out.error || "Chatbot is unavailable right now.";
+            appendChatbotMessage("assistant", msg);
+            setChatbotStatus(msg, "err");
+            return;
+          }
+
+          chatbotState = {
+            mode: "guided",
+            currentStep: out.currentStep || "requestType",
+            quoteDraft: out.quoteDraft || {},
+          };
+
+          if (Array.isArray(out.unknownsToVerify)) chatbotState.quoteDraft.unknownsToVerify = out.unknownsToVerify;
+          if (Array.isArray(out.assumptionsUsed)) chatbotState.quoteDraft.assumptionsUsed = out.assumptionsUsed;
+
+          localStorage.setItem(CHATBOT_STATE_KEY, JSON.stringify(chatbotState));
+          appendChatbotMessage("assistant", String(out.assistantMessage || "What should we capture next?"));
+
+          const canSubmit = Boolean(out.canSubmit);
+          if (chatbotSubmit) chatbotSubmit.disabled = !canSubmit;
+          setChatbotStatus(canSubmit ? "Assistant has enough data. You can submit now." : "Continue answering to complete quote details.", canSubmit ? "ok" : "");
+          refreshQuoteChecklist();
+        } catch {
+          appendChatbotMessage("assistant", "Network error while contacting chatbot.");
+          setChatbotStatus("Network error while contacting chatbot.", "err");
+        } finally {
+          chatbotSend.disabled = false;
+        }
+      });
+    }
+
+    if (chatbotInput) {
+      chatbotInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          chatbotSend?.click();
+        }
+      });
+    }
+
+    if (chatbotSubmit) {
+      chatbotSubmit.addEventListener("click", async () => {
+        const payload = buildQuotePayloadFromChatbotDraft();
+        const missing = [];
+        if (!payload.name) missing.push("name");
+        if (!payload.email) missing.push("email");
+        if (!payload.company) missing.push("company");
+        if (!Number.isFinite(payload.frameWidthIn)) missing.push("frame width");
+        if (!Number.isFinite(payload.frameHeightIn)) missing.push("frame height");
+        if (!String(payload.frameDepth || "").trim()) missing.push("frame depth");
+
+        if (missing.length) {
+          setChatbotStatus(`Still needed before submit: ${missing.join(", ")}.`, "err");
+          return;
+        }
+
+        chatbotSubmit.disabled = true;
+        const originalText = chatbotSubmit.textContent;
+        chatbotSubmit.textContent = "Submitting...";
+
+        try {
+          const { res, out } = await postQuoteRequest(payload);
+          if (!res.ok) {
+            setChatbotStatus(out.error || "Unable to submit chatbot quote right now.", "err");
+            return;
+          }
+
+          appendChatbotMessage("assistant", "Quote request sent successfully. Our team will follow up shortly.");
+          setChatbotStatus("Quote request sent.", "ok");
+        } catch {
+          setChatbotStatus("Network error while submitting chatbot quote.", "err");
+        } finally {
+          chatbotSubmit.disabled = false;
+          chatbotSubmit.textContent = originalText;
+        }
+      });
+    }
+
+    quoteForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      qMessage.textContent = "";
+      qMessage.className = "form-message";
+
+      const formData = new FormData(quoteForm);
+      const mode = String(formData.get("quoteMode") || "guided");
+      const payload = {
+        mode,
+        name: String(formData.get("name") || "").trim(),
+        email: String(formData.get("email") || "").trim(),
+        phone: String(formData.get("phone") || "").trim(),
+        company: String(formData.get("company") || "").trim(),
+        frameWidthIn: Number.isFinite(Number(formData.get("frameWidthIn"))) ? Number(formData.get("frameWidthIn")) : null,
+        frameHeightIn: Number.isFinite(Number(formData.get("frameHeightIn"))) ? Number(formData.get("frameHeightIn")) : null,
+        doorType: String(formData.get("doorType") || "").trim(),
+        woodSpecies: String(formData.get("woodSpecies") || "").trim(),
+        frameType: String(formData.get("frameType") || "").trim(),
+        fireRated: formData.get("fireRated") === "on",
+        frameDepth: String(formData.get("frameDepth") || "").trim(),
+        wallTypeDetails: String(formData.get("wallTypeDetails") || "").trim(),
+        needsVisionKitReference: formData.get("needsVisionKitReference") === "on",
+        quoteRep: String(formData.get("quoteRep") || "").trim().toLowerCase(),
+        timeline: String(formData.get("timeline") || "").trim(),
+        guidedNotes: String(formData.get("guidedNotes") || "").trim(),
+        customScope: String(formData.get("customScope") || "").trim(),
+      };
+
+      if (mode === "guided") {
+        payload.sizeWidthIn = payload.frameWidthIn;
+        payload.sizeHeightIn = payload.frameHeightIn;
+      }
+
+      if (!payload.name || !payload.email || !payload.company) {
+        qMessage.textContent = "Name, email, and company are required.";
+        qMessage.classList.add("err");
+        return;
+      }
+
+      if (mode === "custom" && !payload.customScope) {
+        qMessage.textContent = "Please describe your request in the custom scope field.";
+        qMessage.classList.add("err");
+        return;
+      }
+
+      if (mode === "guided") {
+        if (!Number.isFinite(payload.frameWidthIn) || !Number.isFinite(payload.frameHeightIn)) {
+          qMessage.textContent = "Frame width and frame height are required for guided quotes.";
+          qMessage.classList.add("err");
+          return;
+        }
+
+        if (!payload.frameDepth) {
+          qMessage.textContent = "Frame depth is required for guided quotes.";
+          qMessage.classList.add("err");
+          return;
+        }
+
+        if (payload.doorType.toLowerCase() === "wood" && !payload.woodSpecies) {
+          qMessage.textContent = "Please select a wood species (birch, maple, or oak).";
+          qMessage.classList.add("err");
+          return;
+        }
+
+        const needsWallType = payload.frameDepth === "Other" || payload.frameDepth === "Unknown";
+        if (needsWallType && !payload.wallTypeDetails) {
+          qMessage.textContent = "Please add wall type/opening details when frame depth is Other or Unknown.";
+          qMessage.classList.add("err");
+          return;
+        }
+      }
+
+      qSubmit.disabled = true;
+      qSubmit.textContent = "Sending...";
+
+      try {
+        const { res, out } = await postQuoteRequest(payload);
+        if (!res.ok) {
+          qMessage.textContent = out.error || "Unable to send quote request right now.";
+          qMessage.classList.add("err");
+          return;
+        }
+
+        qMessage.textContent = "Quote request sent. We will follow up shortly.";
+        qMessage.classList.add("ok");
+        quoteForm.reset();
+        const defaultMode = document.querySelector('input[name="quoteMode"][value="guided"]');
+        if (defaultMode) defaultMode.checked = true;
+        setQuoteMode("guided");
+        refreshQuoteChecklist();
+      } catch {
+        qMessage.textContent = "Network error while sending quote request.";
+        qMessage.classList.add("err");
+      } finally {
+        qSubmit.disabled = false;
+        qSubmit.textContent = "Send Quote Request";
+      }
+    });
+  </script>
+</body>
+</html>
