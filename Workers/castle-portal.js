@@ -72,6 +72,43 @@ export default {
         .filter((s) => !!s && isValidEmail(s))
         .filter((s, i, arr) => arr.indexOf(s) === i);
 
+    const bizCfgCache = new Map();
+    async function getBusinessConfig(businessCode) {
+      const biz = slug(businessCode || "");
+      if (!biz) return {};
+      if (bizCfgCache.has(biz)) return bizCfgCache.get(biz);
+      let cfg = {};
+      try {
+        cfg = (await env.ENROLL_TOKENS.get(`bizcfg:${biz}`, "json")) || {};
+      } catch {
+        cfg = {};
+      }
+      const normalized = cfg && typeof cfg === "object" ? cfg : {};
+      bizCfgCache.set(biz, normalized);
+      return normalized;
+    }
+
+    async function isSandboxBusiness(businessCode) {
+      const cfg = await getBusinessConfig(businessCode);
+      return cfg && cfg.sandbox_demo === true;
+    }
+
+    async function listSandboxBusinessCodes() {
+      const out = new Set();
+      let cursor;
+      do {
+        const listed = await env.ENROLL_TOKENS.list({ prefix: "bizcfg:", cursor });
+        for (const k of listed.keys || []) {
+          const bizCode = slug(String(k.name || "").replace(/^bizcfg:/, ""));
+          if (!bizCode || bizCode === "unknown") continue;
+          const cfg = (await env.ENROLL_TOKENS.get(k.name, "json")) || {};
+          if (cfg && cfg.sandbox_demo === true) out.add(bizCode);
+        }
+        cursor = listed.cursor;
+      } while (cursor);
+      return Array.from(out);
+    }
+
     const parseCookies = (header) => {
       const out = {};
       if (!header) return out;
@@ -246,7 +283,8 @@ export default {
         }
 
         const member = await env.ENROLL_TOKENS.get(`portalMember:${businessCode}:${email}`, "json");
-        if (!member || member.active === false) {
+        const sandboxBusiness = await isSandboxBusiness(businessCode);
+        if ((!member || member.active === false) && !sandboxBusiness) {
           sawInactiveMember = true;
           continue;
         }
@@ -267,20 +305,24 @@ export default {
             ? rawAccessByBusiness[biz]
             : {};
           accessByBusiness[biz] = {
-            role: normalizePortalRole(scoped.role || (biz === businessCode ? member.role : "member")),
+            role: normalizePortalRole(
+              scoped.role || (biz === businessCode ? (member && member.role) || session.role || "member" : "member")
+            ),
             canComment: normalizeCommentPermission(
               scoped.canComment,
-              biz === businessCode ? normalizeCommentPermission(member.canComment, true) : true
+              biz === businessCode
+                ? normalizeCommentPermission((member && member.canComment) ?? session.canComment, true)
+                : true
             ),
           };
         }
 
         return {
           ok: true,
-          role: normalizePortalRole(member.role || "member"),
+          role: normalizePortalRole((member && member.role) || session.role || "member"),
           email,
           businessCode,
-          canComment: normalizeCommentPermission(member.canComment, true),
+          canComment: normalizeCommentPermission((member && member.canComment) ?? session.canComment, true),
           allowedBusinesses: normalizedAllowedBusinesses,
           accessByBusiness,
         };
@@ -330,7 +372,8 @@ export default {
         `portalMember:${effectiveBusinessCode}:${sess.email}`,
         "json"
       );
-      if (!scopedMember || scopedMember.active === false) {
+      const sandboxBusiness = await isSandboxBusiness(effectiveBusinessCode);
+      if ((!scopedMember || scopedMember.active === false) && !sandboxBusiness) {
         return { ok: false, response: json({ error: "Forbidden business scope" }, 403) };
       }
 
@@ -338,10 +381,15 @@ export default {
         sess.accessByBusiness && typeof sess.accessByBusiness === "object"
           ? sess.accessByBusiness[effectiveBusinessCode]
           : null;
-      const effectiveRole = normalizePortalRole((scoped && scoped.role) || scopedMember.role || "member");
+      const effectiveRole = normalizePortalRole(
+        (scoped && scoped.role) || (scopedMember && scopedMember.role) || sess.role || "member"
+      );
       const effectiveCanComment = normalizeCommentPermission(
         scoped && scoped.canComment,
-        normalizeCommentPermission(scopedMember.canComment, true)
+        normalizeCommentPermission(
+          (scopedMember && scopedMember.canComment) ?? sess.canComment,
+          true
+        )
       );
 
       if (requireManager && effectiveRole !== "manager") {
@@ -566,7 +614,28 @@ export default {
       return out;
     }
 
-    async function submitCtaRequest(payload) {
+    const parseInspectionTimestamp = (value) => {
+      const raw = String(value || "").trim();
+      if (!raw) return 0;
+      const ts = Date.parse(raw);
+      if (Number.isFinite(ts)) return ts;
+
+      const compact = raw.replace(/\s+/g, " ").trim();
+      const mdYTime = compact.match(/^([0-1]?\d)-([0-3]?\d)-(\d{4})\s+(.+)$/);
+      if (mdYTime) {
+        const mm = mdYTime[1].padStart(2, "0");
+        const dd = mdYTime[2].padStart(2, "0");
+        const yyyy = mdYTime[3];
+        const timePart = mdYTime[4].trim();
+        const retry = Date.parse(`${yyyy}-${mm}-${dd} ${timePart}`);
+        if (Number.isFinite(retry)) return retry;
+      }
+
+      return 0;
+    };
+
+    async function submitCtaRequest(payload, options = {}) {
+      const sandboxMode = options && options.sandboxMode === true;
       const kind = (payload.kind || "").toString();
       const businessCode = (payload.businessCode || "").toString();
       const buildingCode = (payload.buildingCode || "").toString();
@@ -583,6 +652,11 @@ export default {
       const cfg = (await env.ENROLL_TOKENS.get(`bizcfg:${businessCode}`, "json")) || {};
       if (!cfg || cfg.cta_enabled === false) {
         return { response: json({ error: "CTA disabled for this business" }, 403), id: null };
+      }
+
+      if (sandboxMode) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        return { response: json({ ok: true, id, sandbox: true, simulated: true }), id };
       }
 
       const now = Date.now();
@@ -636,19 +710,27 @@ export default {
           const dispatch = String(env.CASTLE_DISPATCH_EMAIL || "").trim();
           if (dispatch && !cc.includes(dispatch)) cc.push(dispatch);
 
+          const escHtml = (s = "") =>
+            String(s)
+              .replaceAll("&", "&amp;")
+              .replaceAll("<", "&lt;")
+              .replaceAll(">", "&gt;")
+              .replaceAll('"', "&quot;")
+              .replaceAll("'", "&#39;");
+
           const payloadBody = {
             from,
             to,
             cc,
             subject: `[Door CTA] ${kind} – ${businessCode} – ${doorId || doorSlug}`,
             html:
-              `<p>Business: ${businessCode}</p>` +
-              `<p>Door: ${doorId || doorSlug}</p>` +
-              `<p>Requester: ${requesterName || "(unknown)"} &lt;${requesterEmail || "(none)"}&gt;</p>` +
-              `<pre>${notes || "(none)"}</pre>` +
-              (reportUrl ? `<p><a href="${reportUrl}">Open door report</a></p>` : "") +
-              (pdfUrl ? `<p><a href="${pdfUrl}">Open inspection PDF</a></p>` : "") +
-              `<p>ID: ${id}</p>`,
+              `<p>Business: ${escHtml(businessCode)}</p>` +
+              `<p>Door: ${escHtml(doorId || doorSlug)}</p>` +
+              `<p>Requester: ${escHtml(requesterName || "(unknown)")} &lt;${escHtml(requesterEmail || "(none)")}&gt;</p>` +
+              `<pre>${escHtml(notes || "(none)")}</pre>` +
+              (reportUrl ? `<p><a href="${escHtml(reportUrl)}">Open door report</a></p>` : "") +
+              (pdfUrl ? `<p><a href="${escHtml(pdfUrl)}">Open inspection PDF</a></p>` : "") +
+              `<p>ID: ${escHtml(id)}</p>`,
           };
 
           await fetch("https://api.resend.com/emails", {
@@ -673,6 +755,13 @@ export default {
     }
 
     if (req.method === "GET" && pathname === "/portal/login") {
+      const demoBiz = slug(url.searchParams.get("biz") || "");
+      const demoBizSandbox = demoBiz ? await isSandboxBusiness(demoBiz) : false;
+      console.log("[portal-login-page][temp-debug]", {
+        host: hostname,
+        demoBiz,
+        demoBizSandbox,
+      });
       return html(`<!doctype html>
 <html>
 <head>
@@ -693,30 +782,37 @@ export default {
 <body>
   <div class="card">
     <h1>Customer portal login</h1>
-    <p>Enter your email and we will send one-click sign-in link(s).</p>
-    <input id="email" type="email" placeholder="you@company.com" />
-    <button id="go">Send sign-in link</button>
+    <p>${demoBizSandbox ? "Demo sandbox login: type in an email or anything, then press login to enter instantly." : "Enter your email and we will send one-click sign-in link(s)."}</p>
+    <input id="email" type="text" placeholder="${demoBizSandbox ? "type in an email or anything" : "you@company.com"}" />
+    <button id="go">${demoBizSandbox ? "Login" : "Send sign-in link"}</button>
     <div class="msg" id="msg"></div>
   </div>
   <script>
   (function(){
+    const demoBiz = ${JSON.stringify(demoBiz)};
+    const demoBizSandbox = ${JSON.stringify(demoBizSandbox)};
     const email = document.getElementById("email");
     const go = document.getElementById("go");
     const msg = document.getElementById("msg");
     go.onclick = async function(){
       msg.textContent = "";
       const e = (email.value || "").trim();
-      if(!e){ msg.textContent = "Email is required."; return; }
+      if(!demoBizSandbox && !e){ msg.textContent = "Email is required."; return; }
+      const effectiveEmail = e || "demo@castledoorict.com";
       go.disabled = true;
       try {
         const res = await fetch("/api/portal/auth/start", {
           method: "POST",
           credentials: "same-origin",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email: e })
+          body: JSON.stringify({ email: effectiveEmail, businessCode: demoBiz || "" })
         });
         const out = await res.json().catch(()=>({}));
         if(!res.ok){ msg.textContent = out.error || "Unable to send sign-in links."; return; }
+        if (out && out.portalUrl) {
+          window.location = out.portalUrl;
+          return;
+        }
         msg.textContent = "If your email is authorized, sign-in link(s) have been sent.";
       } finally {
         go.disabled = false;
@@ -828,6 +924,7 @@ export default {
     if (req.method === "GET" && pathname === "/portal") {
       const bizRaw = String(url.searchParams.get("biz") || "").trim();
       const bizFromQuery = bizRaw ? slug(bizRaw) : "";
+      const bizSandbox = bizFromQuery ? await isSandboxBusiness(bizFromQuery) : false;
       const fromMagic = String(url.searchParams.get("from") || "").trim().toLowerCase() === "magic";
       const magicToken = String(url.searchParams.get("t") || "").trim();
       const retryCountRaw = Number(url.searchParams.get("retry") || "0");
@@ -838,19 +935,79 @@ export default {
 
       let access = await requirePortalAccess(req, bizFromQuery || "", false);
       let usedMagicBootstrap = false;
+      console.log("[portal-route][temp-debug] access-check", {
+        host: hostname,
+        bizFromQuery,
+        bizSandbox,
+        hasAccess: !!access.ok,
+        fromMagic,
+        hasMagicToken: !!magicToken,
+        retryCount,
+      });
       if (!access.ok && fromMagic && magicToken) {
         const bootstrap = await bootstrapPortalSessionFromMagicToken(magicToken, requestSids[0] || "");
         if (bootstrap.ok) {
           usedMagicBootstrap = true;
           access = { ok: true, session: bootstrap.session };
+          console.log("[portal-route][temp-debug] magic-bootstrap-success", {
+            host: hostname,
+            bizFromQuery,
+            sessionBiz: slug(bootstrap.session && bootstrap.session.businessCode),
+          });
         }
       }
 
       if (!access.ok) {
-        if (requestSids.length && retryCount < 3) {
-          return Response.redirect(buildPortalUrl("/portal", { retry: String(retryCount + 1) }), 302);
+        if (bizSandbox && bizFromQuery) {
+          const sid = crypto.randomUUID().replace(/-/g, "");
+          const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 14;
+          const role = "manager";
+          const canComment = true;
+          const sandboxBusinesses = await listSandboxBusinessCodes();
+          const allowedBusinesses = Array.from(new Set([bizFromQuery, ...sandboxBusinesses]
+            .map((x) => slug(x || ""))
+            .filter((x) => !!x && x !== "unknown")));
+          const accessByBusiness = {};
+          for (const biz of allowedBusinesses) {
+            accessByBusiness[biz] = { role, canComment };
+          }
+          await env.ENROLL_TOKENS.put(
+            `portalSession:${sid}`,
+            JSON.stringify({
+              sid,
+              businessCode: bizFromQuery,
+              email: "demo@castledoorict.com",
+              role,
+              canComment,
+              allowedBusinesses,
+              accessByBusiness,
+              createdAt: Date.now(),
+              expiresAt,
+              sandboxLogin: true,
+            })
+          );
+          console.log("[portal-route][temp-debug] sandbox-auto-bootstrap", {
+            host: hostname,
+            bizFromQuery,
+            sidPrefix: sid.slice(0, 8),
+          });
+          return redirectWithCookies(
+            buildPortalUrl("/portal", { biz: bizFromQuery }),
+            portalSessionSetCookies(sid, 60 * 60 * 24 * 14)
+          );
         }
-        return Response.redirect(buildPortalUrl("/portal/login"), 302);
+
+        console.log("[portal-route][temp-debug] redirect-login", {
+          host: hostname,
+          bizFromQuery,
+          bizSandbox,
+          requestSidCount: requestSids.length,
+          retryCount,
+        });
+        if (requestSids.length && retryCount < 3) {
+          return Response.redirect(buildPortalUrl("/portal", { retry: String(retryCount + 1), biz: bizFromQuery || "" }), 302);
+        }
+        return Response.redirect(buildPortalUrl("/portal/login", { biz: bizFromQuery || "" }), 302);
       }
 
       if (!usedMagicBootstrap && (fromMagic || retryCount > 0 || magicToken)) {
@@ -868,10 +1025,13 @@ export default {
       const businessCode = businessScopes.includes(bizFromQuery) ? bizFromQuery : session.businessCode;
       const businessOptions = [];
       for (const code of businessScopes) {
-        const cfg = (await env.ENROLL_TOKENS.get(`bizcfg:${code}`, "json")) || {};
+        const cfg = await getBusinessConfig(code);
         const businessName = String((cfg && cfg.name) || code).trim() || code;
         businessOptions.push({ code, name: businessName });
       }
+
+      const activeBizCfg = await getBusinessConfig(businessCode);
+      const sandboxMode = activeBizCfg && activeBizCfg.sandbox_demo === true;
 
       return html(`<!doctype html>
 <html lang="en">
@@ -885,6 +1045,7 @@ export default {
     body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
     .wrap{max-width:1180px;margin:0 auto;padding:20px}
     .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .top-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
     .title{margin:0;font-size:1.35rem}
     .muted{color:var(--muted)}
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px}
@@ -910,8 +1071,34 @@ export default {
     .pill.flagged{border-color:rgba(239,68,68,.45);color:#fca5a5}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .msg{margin-top:8px;font-size:.8rem;color:var(--muted)}
+    .demo-banner{margin-top:12px;border:1px solid #f59e0b;background:rgba(245,158,11,.16);color:#fef3c7;border-radius:10px;padding:10px 12px;font-size:.85rem;font-weight:600}
+    .tabs{display:flex;gap:8px;align-items:center}
+    .tab-btn{background:#1f2937;border:1px solid #334155}
+    .tab-btn.active{background:var(--accent);border-color:#1d4ed8}
     @media(max-width:980px){.kpis{grid-template-columns:repeat(3,minmax(130px,1fr))}.filters{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr}}
-    @media(max-width:640px){.kpis{grid-template-columns:1fr}.filters{grid-template-columns:1fr}}
+    @media(max-width:640px){
+      .wrap{padding:10px}
+      .kpis{grid-template-columns:1fr}
+      .top-actions{width:100%;align-items:flex-start}
+      .top-actions .link{display:inline-flex;padding:8px 0}
+      .card{padding:10px}
+      .filters{position:sticky;top:0;z-index:15;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;background:rgba(11,18,32,.96);backdrop-filter:blur(6px);padding:6px;border:1px solid var(--line);border-radius:10px}
+      #status,#building{max-width:118px}
+      #q,#status,#building{font-size:.8rem;padding:6px 8px;min-height:32px}
+      table{border-collapse:collapse;border-spacing:0;width:100%;min-width:0}
+      thead{display:table-header-group}
+      tbody tr{display:table-row}
+      tbody td{display:table-cell;padding:6px 5px;font-size:.76rem;line-height:1.22;border-bottom:1px solid var(--line)}
+      tbody td::before{display:none}
+      th{font-size:.64rem;padding:6px 5px;white-space:nowrap}
+      #doorRows td:first-child .muted{display:block;font-size:.7rem;line-height:1.1}
+      table th:nth-child(4),
+      table td:nth-child(4){display:none}
+      #doorRows td.actions{display:table-cell;white-space:nowrap}
+      #doorRows td.actions .link,
+      #doorRows td.actions button{min-height:26px;font-size:.72rem;padding:4px 7px}
+      .pill{padding:1px 6px;font-size:.64rem}
+    }
   </style>
 </head>
 <body>
@@ -923,12 +1110,22 @@ export default {
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <label for="bizSwitch" class="muted" style="font-size:12px">View business:</label>
           <select id="bizSwitch" style="min-width:220px"></select>
+          <div class="tabs" id="portalTabs" style="display:none;">
+            <button id="tabOverview" class="tab-btn active" type="button">Overview</button>
+            <button id="tabAdminTools" class="tab-btn" type="button">Admin tools</button>
+          </div>
         </div>
       </div>
-      <a class="link" href="/portal/logout">Logout</a>
+      <div class="top-actions">
+        <button id="resetAliasChanges" type="button" class="alt" title="Reset local name changes for this business in this browser">Reset changes</button>
+        <a class="link" href="/portal/logout">Logout</a>
+      </div>
     </div>
+    ${sandboxMode ? '<div class="demo-banner">Demo sandbox mode is active for this business. Actions are simulated for this session only and are not permanently saved.</div>' : ''}
 
-    <div class="card">
+    <div id="overviewPane">
+
+    <div class="card" id="doorsCard">
       <div id="kpis" class="kpis">
         <div class="kpi"><div class="muted">Loading metrics</div><div class="n">…</div></div>
       </div>
@@ -951,7 +1148,7 @@ export default {
         <span id="tableMeta" class="muted"></span>
       </div>
 
-      <div style="overflow:auto;margin-top:10px">
+      <div id="doorTableWrap" style="overflow:auto;margin-top:10px">
         <table>
           <thead>
             <tr>
@@ -967,12 +1164,14 @@ export default {
       </div>
     </div>
 
+    </div>
+
     <div class="card" id="managerBlock" style="display:none;">
       <h3 style="margin:0 0 8px 0">Manager settings</h3>
       <div class="row">
         <div>
           <label for="repairTo">Default repair destination</label>
-          <input id="repairTo" placeholder="maintenance@customer.com" />
+          <input id="repairTo" name="repair_to_route" placeholder="maintenance@customer.com" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" />
         </div>
         <div>
           <label for="repairCc">Always CC list (comma-separated)</label>
@@ -983,12 +1182,53 @@ export default {
         <button id="saveRepair" type="button">Save routing</button>
         <span id="managerMsg" class="muted"></span>
       </div>
+
+      <div class="row" style="margin-top:14px">
+        <div>
+          <label for="businessDisplayName">Business display name</label>
+          <input id="businessDisplayName" placeholder="Castle Door HQ" />
+        </div>
+        <div class="actions" style="align-items:flex-end;justify-content:flex-start">
+          <button id="saveBusinessDisplayName" type="button">Save business name</button>
+          <span id="displayNameMsg" class="muted"></span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="buildingRenameCode">Building</label>
+          <select id="buildingRenameCode"><option value="">Select building</option></select>
+        </div>
+        <div>
+          <label for="buildingDisplayName">Building display name</label>
+          <input id="buildingDisplayName" placeholder="East Wing" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <button id="saveBuildingDisplayName" type="button">Save building name</button>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <div>
+          <label for="doorRenameTarget">Search Door</label>
+          <input id="doorRenameTarget" list="doorRenameTargets" placeholder="Door label / UID" />
+          <datalist id="doorRenameTargets"></datalist>
+        </div>
+        <div>
+          <label for="doorDisplayName">Door display name</label>
+          <input id="doorDisplayName" placeholder="Office 1" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <button id="saveDoorDisplayName" type="button">Save Door name</button>
+      </div>
     </div>
   </div>
 
   <script>
   (async function(){
     const businessCode = ${JSON.stringify(businessCode)};
+    const sandboxMode = ${JSON.stringify(sandboxMode)};
     const reportsOrigin = ${JSON.stringify(String(env.REPORTS_ORIGIN || "https://r.castledoorict.com").trim().replace(/\/+$/, ""))};
     const businessOptions = ${JSON.stringify(businessOptions)};
     let allDoors = [];
@@ -1002,6 +1242,154 @@ export default {
     const tableMetaEl = document.getElementById("tableMeta");
     const metricsMetaEl = document.getElementById("metricsMeta");
     const bizSwitchEl = document.getElementById("bizSwitch");
+    const portalTabsEl = document.getElementById("portalTabs");
+    const tabOverviewEl = document.getElementById("tabOverview");
+    const tabAdminToolsEl = document.getElementById("tabAdminTools");
+    const overviewPaneEl = document.getElementById("overviewPane");
+    const resetAliasChangesEl = document.getElementById("resetAliasChanges");
+    let managerToolsEnabled = false;
+    let activeUserEmail = "";
+    let localAliases = { businessName: "", buildings: {}, doors: {} };
+
+    function aliasStorageKey(email, biz){
+      const e = String(email || "").trim().toLowerCase() || "anonymous";
+      const b = String(biz || "").trim().toLowerCase() || "unknown";
+      return "castle_portal_aliases:v1:" + e + ":" + b;
+    }
+
+    function loadLocalAliases(email, biz){
+      localAliases = { businessName: "", buildings: {}, doors: {} };
+      const key = aliasStorageKey(email, biz);
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) {
+          console.log("[portal-alias-debug] loadLocalAliases:empty", { key, email: String(email || ""), biz: String(biz || "") });
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        localAliases = {
+          businessName: String((parsed && parsed.businessName) || "").trim(),
+          buildings:
+            parsed && parsed.buildings && typeof parsed.buildings === "object"
+              ? parsed.buildings
+              : {},
+          doors:
+            parsed && parsed.doors && typeof parsed.doors === "object"
+              ? parsed.doors
+              : {},
+        };
+        console.log("[portal-alias-debug] loadLocalAliases:loaded", {
+          key,
+          businessName: localAliases.businessName,
+          buildingAliasCount: Object.keys(localAliases.buildings || {}).length,
+          doorAliasCount: Object.keys(localAliases.doors || {}).length,
+        });
+      } catch {
+        localAliases = { businessName: "", buildings: {}, doors: {} };
+        console.log("[portal-alias-debug] loadLocalAliases:parse-error", { key });
+      }
+    }
+
+    function saveLocalAliases(){
+      const key = aliasStorageKey(activeUserEmail, businessCode);
+      try {
+        window.localStorage.setItem(
+          key,
+          JSON.stringify(localAliases || { businessName: "", buildings: {}, doors: {} })
+        );
+        console.log("[portal-alias-debug] saveLocalAliases:ok", {
+          key,
+          businessName: String((localAliases && localAliases.businessName) || ""),
+          buildings: localAliases && localAliases.buildings ? Object.keys(localAliases.buildings).slice(0, 8) : [],
+        });
+      } catch {
+        // ignore local storage failures
+        console.log("[portal-alias-debug] saveLocalAliases:failed", { key });
+      }
+    }
+
+    function getBusinessAlias(defaultName){
+      const local = String((localAliases && localAliases.businessName) || "").trim();
+      return local || String(defaultName || "").trim();
+    }
+
+    function normalizeAliasKey(value){
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function getBuildingAlias(buildingCode, fallbackName){
+      const code = String(buildingCode || "").trim();
+      const fallback = String(fallbackName || "").trim();
+      const buildings = localAliases && localAliases.buildings && typeof localAliases.buildings === "object"
+        ? localAliases.buildings
+        : {};
+      const directCode = code ? String(buildings[code] || "").trim() : "";
+      const normalizedCode = code ? String(buildings[normalizeAliasKey(code)] || "").trim() : "";
+      const directFallback = fallback ? String(buildings[fallback] || "").trim() : "";
+      const normalizedFallback = fallback
+        ? String(buildings[normalizeAliasKey(fallback)] || "").trim()
+        : "";
+      const resolved = directCode || normalizedCode || directFallback || normalizedFallback || String(fallback || code || "").trim();
+      if (resolved && (code || fallback)) {
+        console.log("[portal-alias-debug] getBuildingAlias", {
+          code,
+          fallback,
+          directCode,
+          normalizedCode,
+          directFallback,
+          normalizedFallback,
+          resolved,
+        });
+      }
+      return resolved;
+    }
+
+    function resolveDoorAlias(door){
+      const d = door && typeof door === "object" ? door : {};
+      const doorId = String(d.doorId || "").trim();
+      const doorSlug = String(d.doorSlug || "").trim();
+      const baseLabel = String(d.displayLabel || d.doorId || d.doorSlug || "Door").trim();
+      const doors = localAliases && localAliases.doors && typeof localAliases.doors === "object"
+        ? localAliases.doors
+        : {};
+      const keys = [
+        doorId,
+        normalizeAliasKey(doorId),
+        doorSlug,
+        normalizeAliasKey(doorSlug),
+        baseLabel,
+        normalizeAliasKey(baseLabel),
+      ].filter(Boolean);
+      for (const k of keys) {
+        const v = String(doors[k] || "").trim();
+        if (v) return v;
+      }
+      return baseLabel || "Door";
+    }
+
+    function applyLocalAliasesToDoor(door){
+      const d = door && typeof door === "object" ? door : {};
+      const code = String(d.buildingCode || "").trim();
+      const fallback = String(d.buildingDisplay || d.building || d.buildingCode || "").trim();
+      const aliased = getBuildingAlias(code, fallback);
+      const aliasedDoorLabel = resolveDoorAlias(d);
+      return {
+        ...d,
+        displayLabel: aliasedDoorLabel,
+        buildingDisplay: aliased || fallback,
+      };
+    }
+
+    function setActiveTab(nextTab){
+      const tab = String(nextTab || "overview").toLowerCase() === "admin" ? "admin" : "overview";
+      if (overviewPaneEl) overviewPaneEl.style.display = tab === "overview" ? "block" : "none";
+      const managerBlock = document.getElementById("managerBlock");
+      if (managerBlock) {
+        managerBlock.style.display = managerToolsEnabled && tab === "admin" ? "block" : "none";
+      }
+      if (tabOverviewEl) tabOverviewEl.classList.toggle("active", tab === "overview");
+      if (tabAdminToolsEl) tabAdminToolsEl.classList.toggle("active", tab === "admin");
+    }
 
     function loadBusinessSwitcher(){
       if (!bizSwitchEl) return;
@@ -1013,6 +1401,14 @@ export default {
         bizSwitchEl.appendChild(option);
       });
       if (businessCode) bizSwitchEl.value = businessCode;
+      const selected = bizSwitchEl.options && bizSwitchEl.selectedIndex >= 0
+        ? bizSwitchEl.options[bizSwitchEl.selectedIndex]
+        : null;
+      if (selected) {
+        const currentLabel = String(selected.textContent || businessCode || "").trim();
+        const aliased = getBusinessAlias(currentLabel);
+        if (aliased) selected.textContent = aliased;
+      }
       bizSwitchEl.addEventListener("change", function(){
         const nextBiz = String(bizSwitchEl.value || "").trim();
         if (!nextBiz || nextBiz === businessCode) return;
@@ -1052,7 +1448,34 @@ export default {
       if (!v) return "—";
       const d = new Date(v);
       if (isNaN(d.getTime())) return String(v);
-      return d.toLocaleString();
+      return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    }
+
+    function formatInspectionDateTime(primaryValue, fallbackValue){
+      const primaryRaw = String(primaryValue || "").trim();
+      if (primaryRaw) {
+        const parsedPrimary = Date.parse(primaryRaw);
+        if (Number.isFinite(parsedPrimary)) {
+          return formatDate(new Date(parsedPrimary).toISOString());
+        }
+
+        const parsedFallback = Date.parse(String(fallbackValue || "").trim());
+        const looksLikeTimeOnly = /^\d{1,2}:\d{2}(?::\d{2})?\s*(am|pm)?$/i.test(primaryRaw);
+        if (looksLikeTimeOnly && Number.isFinite(parsedFallback)) {
+          const datePart = new Date(parsedFallback).toLocaleDateString(undefined, { dateStyle: "medium" });
+          return datePart + " " + primaryRaw;
+        }
+      }
+
+      if (fallbackValue) {
+        const parsedFallback = Date.parse(String(fallbackValue));
+        if (Number.isFinite(parsedFallback)) {
+          return formatDate(new Date(parsedFallback).toISOString());
+        }
+      }
+
+      if (primaryRaw) return primaryRaw;
+      return "—";
     }
 
     function reportUrlFor(door){
@@ -1174,7 +1597,7 @@ export default {
           '<td><strong>' + escHtml(title) + '</strong><div class="muted">' + escHtml(d.doorId || "") + '</div></td>' +
           '<td>' + statusPill(d.status || "") + '</td>' +
           '<td>' + escHtml(buildingLabel) + '</td>' +
-          '<td>' + escHtml(formatDate(d.lastInspectedAt)) + '</td>' +
+          '<td>' + escHtml(formatInspectionDateTime(d.lastInspectedAt || d.inspectedAt || "", d.uploadedAt || d.createdAt || "")) + '</td>' +
           '<td class="actions">' +
             '<a class="link" href="' + escHtml(reportUrlFor(d)) + '" target="_blank" rel="noopener">View report</a>' +
             '<button type="button" class="alt" data-door="' + escHtml(d.doorId || "") + '" data-door-slug="' + escHtml(d.doorSlug || "") + '" data-building-code="' + escHtml(d.buildingCode || d.building || "") + '" data-pdf-url="' + escHtml(pdfUrl) + '">Request repair</button>' +
@@ -1211,7 +1634,11 @@ export default {
               window.alert(out.error || "Unable to submit repair request.");
               return;
             }
-            window.alert("Repair request submitted. ID: " + out.id);
+            if (out && out.sandbox) {
+              window.alert("Demo sandbox: repair request simulated. ID: " + out.id);
+            } else {
+              window.alert("Repair request submitted. ID: " + out.id);
+            }
           } finally {
             btn.disabled = false;
           }
@@ -1259,7 +1686,34 @@ export default {
       }
 
       dashboardSnapshot = dashboard;
-      allDoors = Array.isArray(dashboard.doors) ? dashboard.doors : [];
+      const rawDoors = Array.isArray(dashboard.doors) ? dashboard.doors : [];
+      console.log("[portal-alias-debug] loadDashboard:raw", {
+        businessCode,
+        doorCount: rawDoors.length,
+        sample: rawDoors.slice(0, 6).map(function(d){
+          return {
+            doorId: String((d && d.doorId) || ""),
+            buildingCode: String((d && d.buildingCode) || ""),
+            buildingDisplay: String((d && d.buildingDisplay) || ""),
+            building: String((d && d.building) || ""),
+          };
+        }),
+      });
+      allDoors = rawDoors.map(function(d){ return applyLocalAliasesToDoor(d); });
+      console.log("[portal-alias-debug] loadDashboard:aliased", {
+        businessCode,
+        doorCount: allDoors.length,
+        sample: allDoors.slice(0, 6).map(function(d){
+          return {
+            doorId: String((d && d.doorId) || ""),
+            buildingCode: String((d && d.buildingCode) || ""),
+            buildingDisplay: String((d && d.buildingDisplay) || ""),
+          };
+        }),
+      });
+      if (dashboardSnapshot && typeof dashboardSnapshot === "object") {
+        dashboardSnapshot.businessName = getBusinessAlias(dashboardSnapshot.businessName || businessCode || "");
+      }
 
       const buildingOptions = new Map();
       allDoors.forEach(function(d){
@@ -1297,38 +1751,325 @@ export default {
     buildingEl.addEventListener("change", renderRows);
     document.getElementById("refresh").addEventListener("click", loadDashboard);
 
+    const meRes = await fetch("/api/portal/me?businessCode=" + encodeURIComponent(businessCode));
+    const me = await meRes.json().catch(function(){ return {}; });
+    activeUserEmail = String(me && me.email || "").trim().toLowerCase();
+    loadLocalAliases(activeUserEmail, businessCode);
+
+    if (resetAliasChangesEl) {
+      resetAliasChangesEl.addEventListener("click", async function(){
+        const confirmed = window.confirm("Reset local business/building name changes for this business on this browser?");
+        if (!confirmed) return;
+
+        const key = aliasStorageKey(activeUserEmail, businessCode);
+        try {
+          window.localStorage.removeItem(key);
+        } catch {
+          // ignore localStorage failures
+        }
+        localAliases = { businessName: "", buildings: {}, doors: {} };
+
+        loadBusinessSwitcher();
+        await loadDashboard();
+
+        const businessDisplayNameEl = document.getElementById("businessDisplayName");
+        const buildingRenameCodeEl = document.getElementById("buildingRenameCode");
+        const buildingDisplayNameEl = document.getElementById("buildingDisplayName");
+        const doorRenameTargetEl = document.getElementById("doorRenameTarget");
+        const doorDisplayNameEl = document.getElementById("doorDisplayName");
+        const displayNameMsgEl = document.getElementById("displayNameMsg");
+        if (businessDisplayNameEl) businessDisplayNameEl.value = String((dashboardSnapshot && dashboardSnapshot.businessName) || businessCode || "");
+        if (buildingRenameCodeEl) buildingRenameCodeEl.value = "";
+        if (buildingDisplayNameEl) buildingDisplayNameEl.value = "";
+        if (doorRenameTargetEl) doorRenameTargetEl.value = "";
+        if (doorDisplayNameEl) doorDisplayNameEl.value = "";
+        if (displayNameMsgEl) displayNameMsgEl.textContent = "Local name changes reset for this browser.";
+      });
+    }
+
     loadBusinessSwitcher();
     await loadDashboard();
 
-    const meRes = await fetch("/api/portal/me?businessCode=" + encodeURIComponent(businessCode));
-    const me = await meRes.json().catch(function(){ return {}; });
     if (meRes.ok && me.role === "manager") {
       const managerBlock = document.getElementById("managerBlock");
       const repairToEl = document.getElementById("repairTo");
       const repairCcEl = document.getElementById("repairCc");
       const managerMsgEl = document.getElementById("managerMsg");
-      managerBlock.style.display = "block";
+      const businessDisplayNameEl = document.getElementById("businessDisplayName");
+      const saveBusinessDisplayNameEl = document.getElementById("saveBusinessDisplayName");
+      const buildingRenameCodeEl = document.getElementById("buildingRenameCode");
+      const buildingDisplayNameEl = document.getElementById("buildingDisplayName");
+      const saveBuildingDisplayNameEl = document.getElementById("saveBuildingDisplayName");
+      const doorRenameTargetEl = document.getElementById("doorRenameTarget");
+      const doorRenameTargetsEl = document.getElementById("doorRenameTargets");
+      const doorDisplayNameEl = document.getElementById("doorDisplayName");
+      const saveDoorDisplayNameEl = document.getElementById("saveDoorDisplayName");
+      const displayNameMsgEl = document.getElementById("displayNameMsg");
+      let hiddenRepairDefaultTo = "";
+      const viewerEmail = String(me && me.email || "").trim().toLowerCase();
+      managerToolsEnabled = true;
+      managerBlock.style.display = "none";
+      if (portalTabsEl) portalTabsEl.style.display = "flex";
+      if (tabOverviewEl) tabOverviewEl.addEventListener("click", function(){ setActiveTab("overview"); });
+      if (tabAdminToolsEl) tabAdminToolsEl.addEventListener("click", function(){ setActiveTab("admin"); });
+      setActiveTab("overview");
 
       const setRes = await fetch("/api/portal/settings/repair?businessCode=" + encodeURIComponent(businessCode));
       const setOut = await setRes.json().catch(function(){ return {}; });
+
+      const hideViewerEmailFromRepairTo = function(){
+        const current = String(repairToEl.value || "").trim();
+        if (!current || !viewerEmail) return;
+        if (current.toLowerCase() !== viewerEmail) return;
+        if (!hiddenRepairDefaultTo) hiddenRepairDefaultTo = current;
+        repairToEl.value = "";
+        repairToEl.placeholder = "(hidden — your email)";
+      };
+
       if (setRes.ok) {
-        repairToEl.value = setOut.defaultTo || "";
+        const defaultToRaw = String(setOut.defaultTo || "").trim();
+        if (defaultToRaw && viewerEmail && defaultToRaw.toLowerCase() === viewerEmail) {
+          hiddenRepairDefaultTo = defaultToRaw;
+          repairToEl.value = "";
+          repairToEl.placeholder = "(hidden — your email)";
+        } else {
+          hiddenRepairDefaultTo = "";
+          repairToEl.value = defaultToRaw;
+          repairToEl.placeholder = "maintenance@customer.com";
+        }
         repairCcEl.value = setOut.alwaysCc || "";
       }
 
+      // Browser password/email managers may autofill after script sets values.
+      // Re-check a few times and strip viewer email from visible input.
+      hideViewerEmailFromRepairTo();
+      setTimeout(hideViewerEmailFromRepairTo, 50);
+      setTimeout(hideViewerEmailFromRepairTo, 300);
+      setTimeout(hideViewerEmailFromRepairTo, 1000);
+
+      repairToEl.addEventListener("input", function(){
+        const v = String(repairToEl.value || "").trim();
+        if (v) hiddenRepairDefaultTo = "";
+        hideViewerEmailFromRepairTo();
+      });
+      repairToEl.addEventListener("focus", hideViewerEmailFromRepairTo);
+      repairToEl.addEventListener("blur", hideViewerEmailFromRepairTo);
+
       document.getElementById("saveRepair").addEventListener("click", async function(){
         managerMsgEl.textContent = "Saving…";
+        const defaultToInput = String(repairToEl.value || "").trim();
+        const effectiveDefaultTo = defaultToInput || hiddenRepairDefaultTo || "";
         const res = await fetch("/api/portal/settings/repair", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             businessCode: businessCode,
-            defaultTo: (repairToEl.value || "").trim(),
+            defaultTo: effectiveDefaultTo,
             alwaysCc: (repairCcEl.value || "").trim(),
           }),
         });
         const out = await res.json().catch(function(){ return {}; });
-        managerMsgEl.textContent = res.ok ? "Saved." : (out.error || "Failed to save routing.");
+        if (res.ok && out && out.sandbox) {
+          managerMsgEl.textContent = "Demo sandbox: settings change simulated for this session only.";
+        } else {
+          managerMsgEl.textContent = res.ok ? "Saved." : (out.error || "Failed to save routing.");
+        }
+        if (res.ok) {
+          const savedDefaultTo = String((out && out.defaultTo) || effectiveDefaultTo || "").trim();
+          if (savedDefaultTo && viewerEmail && savedDefaultTo.toLowerCase() === viewerEmail) {
+            hiddenRepairDefaultTo = savedDefaultTo;
+            repairToEl.value = "";
+            repairToEl.placeholder = "(hidden — your email)";
+          } else {
+            hiddenRepairDefaultTo = "";
+            repairToEl.value = savedDefaultTo;
+            repairToEl.placeholder = "maintenance@customer.com";
+          }
+        }
+      });
+
+      const displayRes = await fetch("/api/portal/settings/display?businessCode=" + encodeURIComponent(businessCode));
+      const displayOut = await displayRes.json().catch(function(){ return {}; });
+      if (displayRes.ok) {
+        businessDisplayNameEl.value = getBusinessAlias(String(displayOut.businessName || ""));
+        const buildings = Array.isArray(displayOut.buildings) ? displayOut.buildings : [];
+        buildingRenameCodeEl.innerHTML = '<option value="">Select building</option>';
+        buildings
+          .slice()
+          .sort(function(a, b){ return String(a.name || a.buildingCode || "").localeCompare(String(b.name || b.buildingCode || "")); })
+          .forEach(function(row){
+            const code = String(row && row.buildingCode || "").trim();
+            if (!code) return;
+            const opt = document.createElement("option");
+            opt.value = code;
+            const baseName = String(row && (row.name || row.buildingCode) || code);
+            const aliasedName = getBuildingAlias(code, baseName);
+            opt.textContent = aliasedName;
+            opt.setAttribute("data-name", aliasedName);
+            buildingRenameCodeEl.appendChild(opt);
+          });
+      }
+
+      buildingRenameCodeEl.addEventListener("change", function(){
+        const opt = buildingRenameCodeEl.options[buildingRenameCodeEl.selectedIndex];
+        const name = String((opt && opt.getAttribute("data-name")) || "").trim();
+        buildingDisplayNameEl.value = name;
+      });
+
+      const doorKeyFor = function(d){
+        const doorId = String((d && d.doorId) || "").trim();
+        const doorSlug = String((d && d.doorSlug) || "").trim();
+        return doorId || doorSlug;
+      };
+
+      const findDoorByKey = function(key){
+        const k = normalizeAliasKey(key);
+        if (!k) return null;
+        return (allDoors || []).find(function(d){
+          const doorId = normalizeAliasKey(d && d.doorId);
+          const doorSlug = normalizeAliasKey(d && d.doorSlug);
+          const label = normalizeAliasKey(d && d.displayLabel);
+          return k === doorId || k === doorSlug || k === label;
+        }) || null;
+      };
+
+      const populateDoorRenameTargets = function(){
+        if (!doorRenameTargetsEl) return;
+        doorRenameTargetsEl.innerHTML = "";
+        const seen = new Set();
+        (allDoors || []).forEach(function(d){
+          const key = doorKeyFor(d);
+          if (!key) return;
+          const label = String((d && d.displayLabel) || key).trim() || key;
+          if (seen.has(key)) return;
+          seen.add(key);
+          const opt = document.createElement("option");
+          opt.value = key;
+          opt.label = label;
+          doorRenameTargetsEl.appendChild(opt);
+        });
+      };
+
+      populateDoorRenameTargets();
+
+      if (doorRenameTargetEl && doorDisplayNameEl) {
+        doorRenameTargetEl.addEventListener("change", function(){
+          const key = String(doorRenameTargetEl.value || "").trim();
+          if (!key) {
+            doorDisplayNameEl.value = "";
+            return;
+          }
+          const found = findDoorByKey(key);
+          if (!found) return;
+          doorDisplayNameEl.value = String((found && found.displayLabel) || "").trim();
+        });
+      }
+
+      if (saveDoorDisplayNameEl && doorRenameTargetEl && doorDisplayNameEl) {
+        saveDoorDisplayNameEl.addEventListener("click", async function(){
+          const key = String(doorRenameTargetEl.value || "").trim();
+          const name = String(doorDisplayNameEl.value || "").trim();
+          if (!key) {
+            displayNameMsgEl.textContent = "Choose a door first.";
+            return;
+          }
+          if (!name) {
+            displayNameMsgEl.textContent = "Door name is required.";
+            return;
+          }
+          const found = findDoorByKey(key);
+          if (!found) {
+            displayNameMsgEl.textContent = "Door not found in current list.";
+            return;
+          }
+
+          const doorId = String((found && found.doorId) || "").trim();
+          const doorSlug = String((found && found.doorSlug) || "").trim();
+          const priorLabel = String((found && found.displayLabel) || "").trim();
+          localAliases.doors = localAliases.doors && typeof localAliases.doors === "object"
+            ? localAliases.doors
+            : {};
+          const doorKeys = [
+            doorId,
+            normalizeAliasKey(doorId),
+            doorSlug,
+            normalizeAliasKey(doorSlug),
+            key,
+            normalizeAliasKey(key),
+            priorLabel,
+            normalizeAliasKey(priorLabel)
+          ].filter(Boolean);
+          doorKeys.forEach(function(k){ localAliases.doors[k] = name; });
+          saveLocalAliases();
+
+          displayNameMsgEl.textContent = "Door name saved locally for this signed-in customer.";
+          await loadDashboard();
+          populateDoorRenameTargets();
+          doorRenameTargetEl.value = doorId || doorSlug || key;
+          doorDisplayNameEl.value = name;
+        });
+      }
+
+      saveBusinessDisplayNameEl.addEventListener("click", async function(){
+        const name = String(businessDisplayNameEl.value || "").trim();
+        if (!name) {
+          displayNameMsgEl.textContent = "Business name is required.";
+          return;
+        }
+        console.log("[portal-alias-debug] saveBusinessAlias:start", {
+          businessCode,
+          activeUserEmail,
+          nextName: name,
+        });
+        localAliases.businessName = name;
+        saveLocalAliases();
+        businessDisplayNameEl.value = name;
+        if (bizNameEl) bizNameEl.textContent = name;
+        if (bizSwitchEl && bizSwitchEl.value === businessCode && bizSwitchEl.selectedIndex >= 0) {
+          bizSwitchEl.options[bizSwitchEl.selectedIndex].textContent = name;
+        }
+        displayNameMsgEl.textContent = "Business name saved locally for this signed-in customer.";
+        await loadDashboard();
+        populateDoorRenameTargets();
+      });
+
+      saveBuildingDisplayNameEl.addEventListener("click", async function(){
+        const buildingCode = String(buildingRenameCodeEl.value || "").trim();
+        const name = String(buildingDisplayNameEl.value || "").trim();
+        if (!buildingCode) {
+          displayNameMsgEl.textContent = "Choose a building first.";
+          return;
+        }
+        if (!name) {
+          displayNameMsgEl.textContent = "Building name is required.";
+          return;
+        }
+        localAliases.buildings = localAliases.buildings && typeof localAliases.buildings === "object"
+          ? localAliases.buildings
+          : {};
+        localAliases.buildings[buildingCode] = name;
+        localAliases.buildings[normalizeAliasKey(buildingCode)] = name;
+        const opt = buildingRenameCodeEl.options[buildingRenameCodeEl.selectedIndex];
+        const priorName = String((opt && opt.getAttribute("data-name")) || "").trim();
+        console.log("[portal-alias-debug] saveBuildingAlias:start", {
+          businessCode,
+          activeUserEmail,
+          buildingCode,
+          priorName,
+          nextName: name,
+        });
+        if (priorName) {
+          localAliases.buildings[priorName] = name;
+          localAliases.buildings[normalizeAliasKey(priorName)] = name;
+        }
+        saveLocalAliases();
+        if (opt) {
+          opt.textContent = name;
+          opt.setAttribute("data-name", name);
+        }
+        displayNameMsgEl.textContent = "Building name saved locally for this signed-in customer.";
+        await loadDashboard();
+        populateDoorRenameTargets();
       });
     }
   })();
@@ -1337,85 +2078,87 @@ export default {
 </html>`);
     }
 
-    if (false && req.method === "GET" && pathname === "/portal") {
-      const bizRaw = String(url.searchParams.get("biz") || "").trim();
-      const bizFromQuery = bizRaw ? slug(bizRaw) : "";
-      const fromMagic = String(url.searchParams.get("from") || "").trim().toLowerCase() === "magic";
-      const magicToken = String(url.searchParams.get("t") || "").trim();
-      const retryCountRaw = Number(url.searchParams.get("retry") || "0");
-      const retryCount = Number.isFinite(retryCountRaw) ? Math.max(0, Math.trunc(retryCountRaw)) : 0;
-      const requestSids = getCookieValues(req.headers.get("Cookie") || "", "castle_portal")
-        .map((s) => String(s || "").trim())
-        .filter(Boolean);
-      console.log("[portal] access-check-start", {
-        host: hostname,
-        fromMagic,
-        retryCount,
-        hasMagicToken: !!magicToken,
-        sidCount: requestSids.length,
-        sidPrefixes: requestSids.slice(0, 3).map((s) => s.slice(0, 8)),
-      });
-      let access = await requirePortalAccess(req, bizFromQuery || "", false);
-      let usedMagicBootstrap = false;
-      if (!access.ok && fromMagic && magicToken) {
-        const bootstrap = await bootstrapPortalSessionFromMagicToken(
-          magicToken,
-          requestSids[0] || ""
-        );
-        if (bootstrap.ok) {
-          usedMagicBootstrap = true;
-          access = {
-            ok: true,
-            session: bootstrap.session,
-          };
-          console.log("[portal] bootstrap-session-from-magic", {
-            host: hostname,
-            tokenPrefix: magicToken.slice(0, 8),
-            sidPrefix: String(bootstrap.sid || "").slice(0, 8),
-            businessCode: bootstrap.session.businessCode,
-          });
-        }
-      }
-      if (!access.ok) {
-        console.log("[portal] auth-failed", {
-          host: hostname,
-          reason: access.reason || "unauthorized",
-          fromMagic,
-          retryCount,
-          hasMagicToken: !!magicToken,
-          sidCount: requestSids.length,
-          sidPrefixes: requestSids.slice(0, 3).map((s) => s.slice(0, 8)),
-        });
-        if (requestSids.length && retryCount < 3) {
-          return Response.redirect(
-            buildPortalUrl("/portal", { retry: String(retryCount + 1) }),
-            302
-          );
-        }
-        return Response.redirect(buildPortalUrl("/portal/login"), 302);
-      }
-
-      // Clean URL once authenticated after magic-link bootstrap.
-      if (!usedMagicBootstrap && (fromMagic || retryCount > 0 || magicToken)) {
-        return Response.redirect(buildPortalUrl("/portal"), 302);
-      }
-
-      const session = access.session;
-      const businessCode = session.businessCode;
-      const reportsOrigin = String(env.REPORTS_ORIGIN || "https://r.castledoorict.com")
-        .trim()
-        .replace(/\/+$/, "");
-      return html(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Customer Portal</title><style>:root{--bg:#0b1220;--card:#0f172a;--line:#243043;--border:#1f2937;--text:#e5e7eb;--muted:#94a3b8;--accent:#2563eb}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}.wrap{max-width:1160px;margin:0 auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.title{margin:0;font-size:1.3rem}.muted{color:var(--muted)}.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px}.kpis{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px}.kpi{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:10px}.kpi .n{font-size:1.35rem;font-weight:700}.filters{display:grid;grid-template-columns:1fr 180px 180px;gap:10px}input,select,button{padding:9px 10px;border-radius:8px;border:1px solid #334155;background:#111827;color:var(--text)}button{background:var(--accent);cursor:pointer}table{width:100%;border-collapse:collapse}th,td{padding:9px 8px;border-bottom:1px solid var(--line);font-size:.86rem;text-align:left}.link{color:#93c5fd;text-decoration:none}.empty{padding:16px 8px;color:var(--muted)}@media(max-width:920px){.kpis{grid-template-columns:repeat(2,minmax(130px,1fr))}.filters{grid-template-columns:1fr}}@media(max-width:560px){.kpis{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="top"><div><h1 class="title">Customer Portal</h1><div class="muted">Business: ${businessCode} • Role: ${session.role}</div></div><a class="link" href="/portal/logout">Logout</a></div><div class="card"><div id="kpis" class="kpis"><div class="kpi"><div class="muted">Loading</div><div class="n">…</div></div></div></div><div class="card"><div class="filters"><input id="q" placeholder="Search door or building"/><select id="status"><option value="all">All statuses</option><option value="pass">Pass</option><option value="conditional">Conditional</option><option value="flagged">Flagged</option></select><select id="sort"><option value="recent">Newest inspected</option><option value="label">Door label</option><option value="building">Building</option><option value="status">Status</option></select></div></div><div class="card"><div class="top" style="margin-bottom:6px"><strong>Doors</strong><span id="count" class="muted">0 doors</span></div><div style="overflow:auto"><table><thead><tr><th>Door</th><th>Status</th><th>Building</th><th>Last inspected</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div></div><div class="card" id="managerBlock" style="display:none"><strong>Manager settings</strong><div class="filters" style="margin-top:10px;grid-template-columns:1fr 180px auto"><input id="repairTo" placeholder="maintenance@customer.com"/><button id="saveRepair">Save</button><span id="managerMsg" class="muted"></span></div></div></div><script>(async function(){const businessCode=${JSON.stringify(businessCode)};const reportsOrigin=${JSON.stringify("__REPORTS_ORIGIN__")}.replace('__REPORTS_ORIGIN__', ${JSON.stringify(reportsOrigin)});const kpis=document.getElementById('kpis');const rows=document.getElementById('rows');const count=document.getElementById('count');const q=document.getElementById('q');const status=document.getElementById('status');const sort=document.getElementById('sort');let doors=[];const norm=s=>String(s||'').trim().toLowerCase();const bucket=s=>{const v=norm(s);if(v==='pass')return'pass';if(v==='conditional pass'||v==='conditional')return'conditional';if(v==='fail'||v==='flagged'||v==='needs repair')return'flagged';return'other';};const pct=(n,t)=>t?Math.round((n/t)*100)+'%':'0%';function renderKpis(t){const total=Number(t.total||0),pass=Number(t.pass||0),conditional=Number(t.conditional||0),flagged=Number(t.flagged||0);kpis.innerHTML='<div class="kpi"><div class="muted">Total</div><div class="n">'+total+'</div></div>'+'<div class="kpi"><div class="muted">Pass</div><div class="n">'+pass+'</div><div class="muted">'+pct(pass,total)+'</div></div>'+'<div class="kpi"><div class="muted">Conditional</div><div class="n">'+conditional+'</div><div class="muted">'+pct(conditional,total)+'</div></div>'+'<div class="kpi"><div class="muted">Flagged</div><div class="n">'+flagged+'</div><div class="muted">'+pct(flagged,total)+'</div></div>';}function view(){const query=norm(q.value);const st=norm(status.value||'all');const by=norm(sort.value||'recent');let list=doors.filter(d=>{const dLabel=norm(d.displayLabel||d.doorId||'door');const b=norm(d.building||d.buildingCode||'');if(st!=='all'&&bucket(d.status)!==st)return false;return !query||dLabel.includes(query)||b.includes(query);});list.sort((a,b)=>{if(by==='label')return String(a.displayLabel||a.doorId||'').localeCompare(String(b.displayLabel||b.doorId||''));if(by==='building')return String(a.building||a.buildingCode||'').localeCompare(String(b.building||b.buildingCode||''));if(by==='status')return bucket(a.status).localeCompare(bucket(b.status));return String(b.lastInspectedAt||'').localeCompare(String(a.lastInspectedAt||''));});return list;}function renderRows(){const list=view();rows.innerHTML='';count.textContent=list.length+' door'+(list.length===1?'':'s');if(!list.length){rows.innerHTML='<tr><td colspan="5" class="empty">No doors match current filters.</td></tr>';return;}list.forEach(d=>{const tr=document.createElement('tr');const url=reportsOrigin+'/reports/'+encodeURIComponent(d.businessCode)+'/'+encodeURIComponent(d.buildingCode||'main')+'/'+encodeURIComponent(d.doorSlug||'');tr.innerHTML='<td>'+String(d.displayLabel||d.doorId||'Door')+'</td><td>'+String(d.status||'')+'</td><td>'+String(d.building||d.buildingCode||'')+'</td><td>'+String(d.lastInspectedAt||'')+'</td><td><a class="link" href="'+url+'" target="_blank" rel="noopener">View report</a></td>';rows.appendChild(tr);});}[q,status,sort].forEach(el=>{el.addEventListener('input',renderRows);el.addEventListener('change',renderRows);});const dashRes=await fetch('/api/portal/dashboard?businessCode='+encodeURIComponent(businessCode));const dash=await dashRes.json().catch(()=>({}));if(!dashRes.ok){kpis.innerHTML='<div class="kpi"><div class="muted">Error</div><div class="n">!</div><div class="muted">'+String(dash.error||'Unable to load dashboard')+'</div></div>';rows.innerHTML='<tr><td colspan="5" class="empty">Unable to load doors right now.</td></tr>';return;}renderKpis(dash.totals||{});doors=Array.isArray(dash.doors)?dash.doors:[];renderRows();const meRes=await fetch('/api/portal/me?businessCode='+encodeURIComponent(businessCode));const me=await meRes.json().catch(()=>({}));if(meRes.ok&&me.role==='manager'){document.getElementById('managerBlock').style.display='block';const setRes=await fetch('/api/portal/settings/repair?businessCode='+encodeURIComponent(businessCode));const setOut=await setRes.json().catch(()=>({}));if(setRes.ok)document.getElementById('repairTo').value=setOut.defaultTo||'';document.getElementById('saveRepair').addEventListener('click',async()=>{const defaultTo=String(document.getElementById('repairTo').value||'').trim();const res=await fetch('/api/portal/settings/repair',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({businessCode,defaultTo})});const out=await res.json().catch(()=>({}));document.getElementById('managerMsg').textContent=res.ok?'Saved.':String(out.error||'Failed');});}})();</script></body></html>`);
-    }
     if (req.method === "POST" && pathname === "/api/portal/auth/start") {
       const body = await readJsonBody(req);
       if (!body) return json({ error: "Bad JSON" }, 400);
 
       const traceId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
 
-      const email = normalizeEmail(body.email || "");
+      const rawEmail = String(body.email || "").trim();
+      const normalizedEmail = normalizeEmail(rawEmail);
       const preferredBusinessCode = slug(body.businessCode || body.biz || "");
-      if (!email || !isValidEmail(email)) return json({ error: "valid email required" }, 400);
+      const sandboxForPreferredBiz = preferredBusinessCode
+        ? await isSandboxBusiness(preferredBusinessCode)
+        : false;
+      console.log("[portal-auth-start][temp-debug] request", {
+        traceId,
+        preferredBusinessCode,
+        rawEmailLen: rawEmail.length,
+        sandboxForPreferredBiz,
+      });
+
+      if (preferredBusinessCode && sandboxForPreferredBiz) {
+        const email = normalizedEmail || "demo@castledoorict.com";
+        const sid = crypto.randomUUID().replace(/-/g, "");
+        const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 14;
+        const role = "manager";
+        const canComment = true;
+        const sandboxBusinesses = await listSandboxBusinessCodes();
+        const allowedBusinesses = Array.from(new Set([preferredBusinessCode, ...sandboxBusinesses]
+          .map((x) => slug(x || ""))
+          .filter((x) => !!x && x !== "unknown")));
+        const accessByBusiness = {};
+        for (const biz of allowedBusinesses) {
+          accessByBusiness[biz] = { role, canComment };
+        }
+        await env.ENROLL_TOKENS.put(
+          `portalSession:${sid}`,
+          JSON.stringify({
+            sid,
+            businessCode: preferredBusinessCode,
+            email,
+            role,
+            canComment,
+            allowedBusinesses,
+            accessByBusiness,
+            createdAt: Date.now(),
+            expiresAt,
+            sandboxLogin: true,
+          })
+        );
+
+        const headers = new Headers({ "content-type": "application/json" });
+        for (const c of portalSessionSetCookies(sid, 60 * 60 * 24 * 14)) {
+          headers.append("Set-Cookie", c);
+        }
+        console.log("[portal-auth-start][temp-debug] sandbox-branch", {
+          traceId,
+          preferredBusinessCode,
+          email,
+          sidPrefix: sid.slice(0, 8),
+        });
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            sandbox: true,
+            simulated: true,
+            businessCode: preferredBusinessCode,
+            email,
+            portalUrl: buildPortalUrl("/portal", { biz: preferredBusinessCode }),
+          }),
+          { status: 200, headers }
+        );
+      }
+
+      const email = normalizedEmail;
+      if (!email || !isValidEmail(email)) {
+        console.log("[portal-auth-start][temp-debug] rejected-invalid-email", {
+          traceId,
+          preferredBusinessCode,
+          rawEmailLen: rawEmail.length,
+        });
+        return json({ error: "valid email required" }, 400);
+      }
 
       const memberships = await listActivePortalMembershipsByEmail(email);
       if (!memberships.length) {
@@ -1629,7 +2372,8 @@ export default {
       const businessCode = slug(url.searchParams.get("businessCode") || "");
       const access = await requirePortalAccess(req, businessCode, false);
       if (!access.ok) return access.response;
-      return json({ ok: true, ...access.session, canComment: normalizeCommentPermission(access.session.canComment, true) });
+      const sandboxMode = await isSandboxBusiness(access.session.businessCode);
+      return json({ ok: true, ...access.session, canComment: normalizeCommentPermission(access.session.canComment, true), sandboxMode });
     }
 
     if (req.method === "GET" && pathname === "/api/portal/dashboard") {
@@ -1639,7 +2383,7 @@ export default {
 
       const biz = access.session.businessCode;
       const doors = await listBusinessDoorSummaries(env.REPORTS_KV, biz);
-      const bizCfg = (await env.ENROLL_TOKENS.get(`bizcfg:${biz}`, "json")) || {};
+      const bizCfg = await getBusinessConfig(biz);
       const firstDoorBizName =
         doors.find((d) => d && typeof d.business === "string" && d.business.trim())?.business || "";
       const businessName =
@@ -1694,10 +2438,11 @@ export default {
         if (buildingKey) buildingSet.add(buildingKey);
 
         const inspectedAtRaw = d.lastInspectedAt || d.inspectedAt || d.createdAt || "";
-        const inspectedAtTs = Date.parse(String(inspectedAtRaw || ""));
+        const inspectedAtTs = parseInspectionTimestamp(inspectedAtRaw);
         if (Number.isFinite(inspectedAtTs)) {
           if (now - inspectedAtTs <= sevenDaysMs) inspected7d++;
-          if (!latestInspectionAt || String(inspectedAtRaw) > latestInspectionAt) {
+          const latestTs = parseInspectionTimestamp(latestInspectionAt);
+          if (!latestInspectionAt || inspectedAtTs > latestTs) {
             latestInspectionAt = String(inspectedAtRaw);
           }
         }
@@ -1706,6 +2451,7 @@ export default {
       return json({
         ok: true,
         businessCode: biz,
+        sandboxMode: bizCfg && bizCfg.sandbox_demo === true,
         businessName,
         totals: { total: doors.length, pass, conditional, flagged },
         metrics: {
@@ -1716,7 +2462,14 @@ export default {
         generatedAt: new Date().toISOString(),
         doors: normalizedDoors
           .slice()
-          .sort((a, b) => String(b.lastInspectedAt || "").localeCompare(String(a.lastInspectedAt || "")))
+          .sort((a, b) => {
+            const aTs = parseInspectionTimestamp(a.lastInspectedAt || a.inspectedAt || a.createdAt || "");
+            const bTs = parseInspectionTimestamp(b.lastInspectedAt || b.inspectedAt || b.createdAt || "");
+            if (aTs !== bTs) return bTs - aTs;
+            return String(b.lastInspectedAt || b.inspectedAt || b.createdAt || "").localeCompare(
+              String(a.lastInspectedAt || a.inspectedAt || a.createdAt || "")
+            );
+          })
           .slice(0, 300),
       });
     }
@@ -1749,6 +2502,17 @@ export default {
       if (defaultTo && !isValidEmail(defaultTo)) return json({ error: "defaultTo must be a valid email" }, 400);
 
       const biz = access.session.businessCode;
+      const sandboxMode = await isSandboxBusiness(biz);
+      if (sandboxMode) {
+        return json({
+          ok: true,
+          businessCode: biz,
+          defaultTo,
+          alwaysCc,
+          sandbox: true,
+          simulated: true,
+        });
+      }
       const cfgKey = `bizcfg:${biz}`;
       const cfg = (await env.ENROLL_TOKENS.get(cfgKey, "json")) || {};
       cfg.slug = cfg.slug || biz;
@@ -1761,6 +2525,97 @@ export default {
       cfg.cta_always_cc = ccList.join(",");
       await env.ENROLL_TOKENS.put(cfgKey, JSON.stringify(cfg));
       return json({ ok: true, businessCode: biz, defaultTo: cfg.cta_default_to, alwaysCc: cfg.cta_always_cc });
+    }
+
+    if (req.method === "GET" && pathname === "/api/portal/settings/display") {
+      const businessCode = slug(url.searchParams.get("businessCode") || "");
+      const access = await requirePortalAccess(req, businessCode, true);
+      if (!access.ok) return access.response;
+
+      const biz = access.session.businessCode;
+      const bizCfg = (await env.ENROLL_TOKENS.get(`bizcfg:${biz}`, "json")) || {};
+      const doors = await listBusinessDoorSummaries(env.REPORTS_KV, biz);
+      const buildingCodes = new Set();
+      for (const d of doors) {
+        const code = String((d && d.buildingCode) || "").trim();
+        if (code) buildingCodes.add(code);
+      }
+
+      const buildings = [];
+      for (const code of buildingCodes) {
+        const rec = (await env.REPORTS_KV.get(`bldcfg:${biz}:${code}`, "json")) || {};
+        const cfgName = String((rec && rec.name) || "").trim();
+        const fallbackName =
+          doors.find((d) => String((d && d.buildingCode) || "").trim() === code && String((d && d.building) || "").trim())
+            ?.building || code;
+        buildings.push({ buildingCode: code, name: cfgName || String(fallbackName || code) });
+      }
+
+      return json({
+        ok: true,
+        businessCode: biz,
+        businessName: String((bizCfg && bizCfg.name) || biz).trim() || biz,
+        buildings: buildings
+          .slice()
+          .sort((a, b) => String(a.name || a.buildingCode || "").localeCompare(String(b.name || b.buildingCode || ""))),
+      });
+    }
+
+    if (req.method === "POST" && pathname === "/api/portal/settings/display/business") {
+      const body = await readJsonBody(req);
+      if (!body) return json({ error: "Bad JSON" }, 400);
+
+      const businessCode = slug(body.businessCode || "");
+      const name = String(body.name || "").trim();
+      const access = await requirePortalAccess(req, businessCode, true);
+      if (!access.ok) return access.response;
+      if (!name) return json({ error: "Business name is required" }, 400);
+      if (name.length > 120) return json({ error: "Business name is too long" }, 400);
+
+      const biz = access.session.businessCode;
+      const sandboxMode = await isSandboxBusiness(biz);
+      if (sandboxMode) {
+        return json({ ok: true, businessCode: biz, businessName: name, sandbox: true, simulated: true });
+      }
+
+      const cfgKey = `bizcfg:${biz}`;
+      const cfg = (await env.ENROLL_TOKENS.get(cfgKey, "json")) || {};
+      cfg.slug = cfg.slug || biz;
+      cfg.name = name;
+      await env.ENROLL_TOKENS.put(cfgKey, JSON.stringify(cfg));
+
+      return json({ ok: true, businessCode: biz, businessName: cfg.name });
+    }
+
+    if (req.method === "POST" && pathname === "/api/portal/settings/display/building") {
+      const body = await readJsonBody(req);
+      if (!body) return json({ error: "Bad JSON" }, 400);
+
+      const businessCode = slug(body.businessCode || "");
+      const buildingCode = String(body.buildingCode || "").trim();
+      const name = String(body.name || "").trim();
+      const access = await requirePortalAccess(req, businessCode, true);
+      if (!access.ok) return access.response;
+      if (!buildingCode) return json({ error: "buildingCode is required" }, 400);
+      if (!name) return json({ error: "Building name is required" }, 400);
+      if (name.length > 120) return json({ error: "Building name is too long" }, 400);
+
+      const biz = access.session.businessCode;
+      const sandboxMode = await isSandboxBusiness(biz);
+      if (sandboxMode) {
+        return json({ ok: true, businessCode: biz, buildingCode, name, sandbox: true, simulated: true });
+      }
+
+      await env.REPORTS_KV.put(
+        `bldcfg:${biz}:${buildingCode}`,
+        JSON.stringify({
+          name,
+          updatedAt: Date.now(),
+          updatedBy: access.session.email || "portal-manager",
+        })
+      );
+
+      return json({ ok: true, businessCode: biz, buildingCode, name });
     }
 
     if (req.method === "GET" && pathname === "/api/portal/members") {
@@ -1796,6 +2651,11 @@ export default {
       if (!email || !isValidEmail(email)) return json({ error: "valid email required" }, 400);
 
       const biz = access.session.businessCode;
+      if (await isSandboxBusiness(biz)) {
+        const token = crypto.randomUUID().replace(/-/g, "");
+        const inviteUrl = buildPortalUrl("/portal/invite", { t: token });
+        return json({ ok: true, businessCode: biz, email, role, canComment, inviteUrl, token, sandbox: true, simulated: true });
+      }
       const token = crypto.randomUUID().replace(/-/g, "");
       const invite = {
         token,
@@ -1823,6 +2683,10 @@ export default {
       if (!email || !isValidEmail(email)) return json({ error: "valid email required" }, 400);
 
       const biz = access.session.businessCode;
+      if (await isSandboxBusiness(biz)) {
+        const canComment = normalizeCommentPermission(body.canComment, true);
+        return json({ ok: true, businessCode: biz, email, canComment, sandbox: true, simulated: true });
+      }
       const key = `portalMember:${biz}:${email}`;
       const member = await env.ENROLL_TOKENS.get(key, "json");
       if (!member || member.active === false) return json({ error: "portal member not found" }, 404);
@@ -1844,6 +2708,9 @@ export default {
       if (!email || !isValidEmail(email)) return json({ error: "valid email required" }, 400);
 
       const biz = access.session.businessCode;
+      if (await isSandboxBusiness(biz)) {
+        return json({ ok: true, businessCode: biz, email, sandbox: true, simulated: true });
+      }
       await env.ENROLL_TOKENS.delete(`portalMember:${biz}:${email}`);
       return json({ ok: true, businessCode: biz, email });
     }
@@ -1856,556 +2723,14 @@ export default {
       const access = await requirePortalAccess(req, businessCode, false);
       if (!access.ok) return access.response;
 
+      const sandboxMode = await isSandboxBusiness(access.session.businessCode);
       const result = await submitCtaRequest({
         ...body,
         businessCode: access.session.businessCode,
         requesterEmail: access.session.email || body.requesterEmail || "",
         requesterName: body.requesterName || access.session.email || "Portal user",
-      });
+      }, { sandboxMode });
       return result.response;
-    }
-
-    if (req.method === "GET" && pathname === "/") {
-      const host = String(hostname || "").toLowerCase();
-      const isRootSiteHost = host === "castledoorict.com" || host === "www.castledoorict.com";
-
-      if (isRootSiteHost) {
-        return html(`<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Castle Door & Hardware — commercial door, frame, and hardware solutions. Fast quotes, accurate schedules, and clean installs." />
-  <title>Castle Door & Hardware</title>
-
-  <meta property="og:title" content="Castle Door & Hardware" />
-  <meta property="og:description" content="Commercial door, frame, and hardware solutions. Fast quotes, accurate schedules, and clean installs." />
-  <meta property="og:type" content="website" />
-
-  <style>
-    :root{
-      --bg: #0b1220;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(255,255,255,.09);
-      --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.72);
-      --border: rgba(255,255,255,.12);
-      --brand: #8b5cf6;
-      --brand2: #22c55e;
-      --shadow: 0 12px 40px rgba(0,0,0,.35);
-      --radius: 18px;
-      --max: 1120px;
-    }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      color: var(--text);
-      background:
-        radial-gradient(900px 420px at 20% 10%, rgba(139,92,246,.16), transparent 60%),
-        var(--bg);
-      line-height: 1.5;
-    }
-
-    a{color:inherit; text-decoration:none}
-    a:focus, button:focus, input:focus, textarea:focus{outline: 3px solid rgba(139,92,246,.55); outline-offset: 2px}
-    .wrap{max-width: var(--max); margin:0 auto; padding: 0 20px}
-    .pill{
-      display:inline-flex; align-items:center; gap:10px;
-      padding: 8px 12px; border: 1px solid var(--border);
-      border-radius: 999px; background: rgba(255,255,255,.04);
-      color: var(--muted); font-size: 13px;
-      backdrop-filter: blur(10px);
-    }
-    .dot{width:8px; height:8px; border-radius:999px; background: var(--brand2); box-shadow: 0 0 0 4px rgba(34,197,94,.15)}
-    header{
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(11,18,32,.55);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-    .nav{
-      display:flex; align-items:center; justify-content:space-between;
-      height: 72px;
-    }
-    .logo{
-      display:flex; align-items:center; gap:12px;
-      font-weight: 750; letter-spacing:.2px;
-    }
-    .mark{
-      width: 36px; height: 36px; border-radius: 12px;
-      background:
-        radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,.25), transparent 60%),
-        linear-gradient(135deg, rgba(139,92,246,.95), rgba(34,197,94,.75));
-      box-shadow: 0 10px 24px rgba(139,92,246,.25);
-      border: 1px solid rgba(255,255,255,.18);
-    }
-    .links{display:flex; gap:18px; align-items:center}
-    .links a{
-      font-size: 14px; color: var(--muted);
-      padding: 10px 10px; border-radius: 12px;
-    }
-    .links a:hover{color: var(--text); background: rgba(255,255,255,.05)}
-    .ctaRow{display:flex; gap:10px; align-items:center}
-    .btn{
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.05);
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-weight: 650;
-      font-size: 14px;
-      display:inline-flex; align-items:center; gap:10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.2);
-    }
-    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
-    .btn.primary{
-      border-color: rgba(139,92,246,.35);
-      background: linear-gradient(135deg, rgba(139,92,246,.95), rgba(34,197,94,.65));
-    }
-    .btn.primary:hover{filter: brightness(1.02)}
-    .btn span.icon{display:inline-block; width: 18px; height: 18px}
-
-    main{padding: 40px 0 80px}
-    .hero{
-      display:grid;
-      grid-template-columns: 1.15fr .85fr;
-      gap: 28px;
-      align-items: start;
-      padding: 42px 0 20px;
-    }
-    .hero h1{
-      margin: 16px 0 12px;
-      font-size: clamp(34px, 4.2vw, 56px);
-      line-height: 1.06;
-      letter-spacing: -0.02em;
-    }
-    .hero p{
-      margin: 0 0 22px;
-      color: var(--muted);
-      font-size: 16px;
-      max-width: 58ch;
-    }
-    .heroActions{display:flex; flex-wrap:wrap; gap: 12px; align-items:center}
-    .mini{
-      display:flex; gap: 16px; margin-top: 18px; color: var(--muted);
-      flex-wrap:wrap;
-    }
-    .mini strong{color: var(--text)}
-    .card{
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-    .heroCard{
-      padding: 18px;
-      position: relative;
-      overflow:hidden;
-    }
-    .heroCard:before{
-      content:"";
-      position:absolute; inset:-1px;
-      background: radial-gradient(400px 250px at 30% 0%, rgba(139,92,246,.35), transparent 55%),
-                  radial-gradient(420px 260px at 90% 20%, rgba(34,197,94,.22), transparent 55%);
-      pointer-events:none;
-      opacity:.7;
-    }
-    .heroCard > *{position:relative}
-    .statGrid{
-      display:grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
-      margin-top: 12px;
-    }
-    .stat{
-      padding: 14px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.09);
-    }
-    .stat .k{font-size: 22px; font-weight: 800; letter-spacing: -0.02em}
-    .stat .l{color: var(--muted); font-size: 13px; margin-top: 4px}
-
-    .section{
-      margin-top: 44px;
-    }
-    .sectionHead{
-      display:flex; align-items:flex-end; justify-content:space-between;
-      gap: 16px; margin-bottom: 16px;
-    }
-    .sectionHead h2{
-      margin:0;
-      font-size: 22px;
-      letter-spacing: -0.01em;
-    }
-    .sectionHead p{margin:0; color: var(--muted); max-width: 70ch; font-size: 14px}
-
-    .grid3{display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px}
-    .feature{
-      padding: 18px;
-    }
-    .feature .tag{
-      display:inline-flex; align-items:center; gap:8px;
-      font-size: 12px; color: var(--muted);
-      padding: 7px 10px; border-radius: 999px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-    }
-    .feature h3{margin: 10px 0 8px; font-size: 16px}
-    .feature p{margin:0; color: var(--muted); font-size: 14px}
-
-    .brands{
-      display:flex; flex-wrap:wrap; gap: 10px; align-items:center;
-      padding: 14px;
-      border-radius: var(--radius);
-      background: rgba(255,255,255,.04);
-      border: 1px dashed rgba(255,255,255,.14);
-      color: var(--muted);
-    }
-    .brandPill{
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      font-size: 13px;
-      color: rgba(255,255,255,.78);
-    }
-
-    .split{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      align-items: stretch;
-    }
-
-    form{
-      padding: 18px;
-    }
-    .row{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
-    label{display:block; font-size: 13px; color: var(--muted); margin: 0 0 6px}
-    input, textarea{
-      width: 100%;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(6,10,18,.35);
-      color: var(--text);
-    }
-    textarea{min-height: 120px; resize: vertical}
-    .formActions{display:flex; gap: 10px; align-items:center; margin-top: 12px; flex-wrap:wrap}
-    .fine{font-size: 12px; color: rgba(255,255,255,.6)}
-    footer{
-      margin-top: 54px;
-      padding-top: 22px;
-      border-top: 1px solid rgba(255,255,255,.08);
-      color: rgba(255,255,255,.7);
-      font-size: 13px;
-      display:flex; flex-wrap:wrap; gap: 10px; justify-content:space-between; align-items:center;
-    }
-
-    @media (max-width: 920px){
-      .hero{grid-template-columns: 1fr; padding-top: 26px}
-      .grid3{grid-template-columns: 1fr}
-      .split{grid-template-columns: 1fr}
-      .links{display:none}
-      .row{grid-template-columns: 1fr}
-    }
-
-    .lift{transition: transform .18s ease, filter .18s ease}
-    .lift:hover{transform: translateY(-2px)}
-  </style>
-</head>
-
-<body>
-  <header>
-    <div class="wrap nav">
-      <a class="logo" href="#top" aria-label="Castle Door & Hardware home">
-        <span class="mark" aria-hidden="true"></span>
-        <span>Castle Door &amp; Hardware</span>
-      </a>
-
-      <nav class="links" aria-label="Primary">
-        <a href="#services">Services</a>
-        <a href="#process">Process</a>
-        <a href="#brands">Brands</a>
-        <a href="#contact">Contact</a>
-      </nav>
-
-      <div class="ctaRow">
-        <a class="btn lift" href="/portal/login" aria-label="Customer portal login">
-          <span class="icon" aria-hidden="true">🔐</span>
-          Portal Login
-        </a>
-        <a class="btn lift" href="tel:+13168320300" aria-label="Call Castle Door and Hardware">
-          <span class="icon" aria-hidden="true">☎</span>
-          Call
-        </a>
-        <a class="btn primary lift" href="#contact">
-          <span class="icon" aria-hidden="true">➜</span>
-          Request a Quote
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <main id="top">
-    <div class="wrap hero">
-      <section>
-        <div class="pill">
-          <span class="dot" aria-hidden="true"></span>
-          <span>Commercial door, frame &amp; hardware solutions — quoting fast, installing clean.</span>
-        </div>
-
-        <h1>Doors &amp; hardware that show up on time—and work on day one.</h1>
-        <p>
-          Castle Door &amp; Hardware supports contractors, facilities, and project teams with
-          accurate takeoffs, clear submittals, and dependable field execution.
-        </p>
-
-        <div class="heroActions">
-          <a class="btn primary lift" href="#contact">
-            <span class="icon" aria-hidden="true">🧾</span>
-            Get a Quote
-          </a>
-          <a class="btn lift" href="#services">
-            <span class="icon" aria-hidden="true">▦</span>
-            See Services
-          </a>
-          <a class="btn lift" href="#process">
-            <span class="icon" aria-hidden="true">✓</span>
-            How We Work
-          </a>
-        </div>
-
-        <div class="mini" aria-label="Highlights">
-          <div><strong>Fast</strong> turnaround</div>
-          <div><strong>Accurate</strong> schedules</div>
-          <div><strong>Clean</strong> installs</div>
-          <div><strong>Responsive</strong> support</div>
-        </div>
-      </section>
-
-      <aside class="card heroCard">
-        <div class="pill" style="margin-bottom: 12px;">
-          <span aria-hidden="true">🛠️</span>
-          <span>Project-ready deliverables</span>
-        </div>
-
-        <div class="statGrid">
-          <div class="stat">
-            <div class="k">Takeoff</div>
-            <div class="l">Door + hardware sets organized for bid &amp; buyout</div>
-          </div>
-          <div class="stat">
-            <div class="k">Submittals</div>
-            <div class="l">Clear cut sheets, approvals, and alternates</div>
-          </div>
-          <div class="stat">
-            <div class="k">Coordination</div>
-            <div class="l">RFIs &amp; field conditions handled quickly</div>
-          </div>
-          <div class="stat">
-            <div class="k">Install</div>
-            <div class="l">Trusted crews, punch-list minded</div>
-          </div>
-        </div>
-
-        <div style="margin-top: 14px; color: var(--muted); font-size: 13px;">
-          Need a door schedule review? Send it over and we’ll flag issues before they cost time.
-        </div>
-      </aside>
-    </div>
-
-    <div class="wrap section" id="services">
-      <div class="sectionHead">
-        <div>
-          <h2>What we do</h2>
-          <p>Support from bid through closeout—so your openings don’t become your schedule risk.</p>
-        </div>
-      </div>
-
-      <div class="grid3">
-        <div class="card feature lift">
-          <div class="tag">📐 Estimating</div>
-          <h3>Takeoffs &amp; budgets</h3>
-          <p>Fast, organized counts with clear scope and alternates to keep bids tight.</p>
-        </div>
-
-        <div class="card feature lift">
-          <div class="tag">🧷 Hardware</div>
-          <h3>Hardware sets</h3>
-          <p>Code-aware sets built for function, durability, and consistent field install.</p>
-        </div>
-
-        <div class="card feature lift">
-          <div class="tag">🚪 Doors &amp; frames</div>
-          <h3>Hollow metal / wood</h3>
-          <p>Openings coordinated for lead times, ratings, and real-world conditions.</p>
-        </div>
-
-        <div class="card feature lift">
-          <div class="tag">📄 Submittals</div>
-          <h3>Submittals &amp; approvals</h3>
-          <p>Clean packages that make approvals painless and procurement predictable.</p>
-        </div>
-
-        <div class="card feature lift">
-          <div class="tag">🧰 Field</div>
-          <h3>Install &amp; service</h3>
-          <p>Install support, adjustments, and fixes that keep the punch list short.</p>
-        </div>
-
-        <div class="card feature lift">
-          <div class="tag">🔐 Access</div>
-          <h3>Locks &amp; access control</h3>
-          <p>From cores to electrified hardware—planned to work with the rest of the opening.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="wrap section" id="process">
-      <div class="sectionHead">
-        <div>
-          <h2>How we work</h2>
-          <p>Simple, transparent, and documented—so everyone stays aligned.</p>
-        </div>
-      </div>
-
-      <div class="split">
-        <div class="card feature">
-          <div class="tag">1) Scope</div>
-          <h3>Review drawings &amp; schedule</h3>
-          <p>We confirm openings, ratings, and constraints (fire, egress, ADA) early.</p>
-        </div>
-        <div class="card feature">
-          <div class="tag">2) Package</div>
-          <h3>Deliver takeoff + sets + alternates</h3>
-          <p>You get a clean, field-ready package with notes where decisions matter.</p>
-        </div>
-        <div class="card feature">
-          <div class="tag">3) Approvals</div>
-          <h3>Submittals &amp; procurement</h3>
-          <p>We keep approvals moving and update lead times as selections lock in.</p>
-        </div>
-        <div class="card feature">
-          <div class="tag">4) Install</div>
-          <h3>Coordinate + install + closeout</h3>
-          <p>We support field questions and deliver closeout documentation cleanly.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="wrap section" id="brands">
-      <div class="sectionHead">
-        <div>
-          <h2>Brands we work with</h2>
-          <p>Swap these placeholders for your actual manufacturer list.</p>
-        </div>
-      </div>
-
-      <div class="brands" aria-label="Brand list">
-        <span class="brandPill">Assa Abloy</span>
-        <span class="brandPill">Schlage</span>
-        <span class="brandPill">LCN</span>
-        <span class="brandPill">Von Duprin</span>
-        <span class="brandPill">Allegion</span>
-        <span class="brandPill">Sargent</span>
-        <span class="brandPill">Hager</span>
-        <span class="brandPill">Dormakaba</span>
-      </div>
-    </div>
-
-    <div class="wrap section" id="contact">
-      <div class="sectionHead">
-        <div>
-          <h2>Request a quote</h2>
-          <p>Send a door schedule or describe the scope. We’ll respond with next steps.</p>
-        </div>
-      </div>
-
-      <div class="split">
-        <div class="card feature">
-          <div class="tag">Contact</div>
-          <h3>Castle Door &amp; Hardware</h3>
-          <p style="margin-bottom: 14px;">
-            <strong>Email:</strong> <a href="mailto:Cameron@castledoorandhardware.com">Cameron@castledoorandhardware.com</a><br>
-            <strong>Phone:</strong> <a href="tel:+13168320300">(316) 832-0300</a><br>
-            <strong>Address:</strong> 3515 N Santa Fe, Wichita, KS 67219<br>
-            <strong>Service area:</strong> Wichita and surrounding area
-          </p>
-          <p class="fine">
-            Tip: Add your real phone number, office address, and hours here.
-          </p>
-        </div>
-
-        <div class="card">
-          <form method="post" action="#" onsubmit="return fakeSubmit(event)">
-            <div class="row">
-              <div>
-                <label for="name">Name</label>
-                <input id="name" name="name" autocomplete="name" required />
-              </div>
-              <div>
-                <label for="company">Company</label>
-                <input id="company" name="company" autocomplete="organization" />
-              </div>
-            </div>
-
-            <div class="row" style="margin-top:12px;">
-              <div>
-                <label for="email">Email</label>
-                <input id="email" name="email" type="email" autocomplete="email" required />
-              </div>
-              <div>
-                <label for="phone">Phone</label>
-                <input id="phone" name="phone" autocomplete="tel" />
-              </div>
-            </div>
-
-            <div style="margin-top:12px;">
-              <label for="message">Project details</label>
-              <textarea id="message" name="message" placeholder="Tell us what you need (door types, ratings, quantities, timeline)."></textarea>
-            </div>
-
-            <div class="formActions">
-              <button class="btn primary lift" type="submit">
-                <span class="icon" aria-hidden="true">➜</span>
-                Send Request
-              </button>
-              <span class="fine" id="formStatus" aria-live="polite"></span>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <footer>
-        <div>© <span id="year"></span> Castle Door &amp; Hardware. All rights reserved.</div>
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-          <a href="#services">Services</a>
-          <a href="#process">Process</a>
-          <a href="#brands">Brands</a>
-          <a href="#top">Back to top ↑</a>
-        </div>
-      </footer>
-    </div>
-  </main>
-
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-
-    function fakeSubmit(e){
-      e.preventDefault();
-      const status = document.getElementById("formStatus");
-      status.textContent = "Thanks! This demo form isn’t wired yet. Connect it to a Pages Function or form service.";
-      return false;
-    }
-  </script>
-</body>
-</html>`);
-      }
-
-      return Response.redirect(buildPortalUrl("/portal/login"), 302);
     }
 
     return text("Not found", 404);

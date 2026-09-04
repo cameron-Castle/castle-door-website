@@ -52,6 +52,6 @@ Env vars:
 
 UI wiring:
 
-- Chat assistant UI is now embedded in [`index.html`](../index.html)
+- Chat assistant UI is now embedded in [`quote.html`](../quote.html)
 - Final submission still posts to existing quote route: `POST /api/quote-request`
 - Preview files remain available as backup: [`chatbot-preview.html`](../chatbot-preview.html), [`functions/api/chatbot-quote-preview.js`](../functions/api/chatbot-quote-preview.js)

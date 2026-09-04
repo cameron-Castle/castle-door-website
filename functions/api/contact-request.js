@@ -103,12 +103,14 @@ export async function onRequestPost(context) {
 
     if (!send.ok) {
       const errText = await send.text();
-      return json({ error: "Resend rejected contact email", details: errText.slice(0, 500) }, 502);
+      console.error("[contact-request] Resend rejected contact email", errText.slice(0, 500));
+      return json({ error: "Resend rejected contact email" }, 502);
     }
 
     return json({ ok: true });
   } catch (err) {
-    return json({ error: "Failed to send contact email", details: String(err?.message || err) }, 500);
+    console.error("[contact-request] Failed to send contact email", err);
+    return json({ error: "Failed to send contact email" }, 500);
   }
 }
 

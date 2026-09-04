@@ -66,7 +66,7 @@ export async function onRequestPost(context) {
 
   const resendApiKey = String(env?.RESEND_API_KEY || "").trim();
   const resendFrom = String(env?.RESEND_FROM || "").trim();
-  const quoteTo = "Cameron@castledoorandhardware.com";
+  const quoteTo = String(env?.QUOTE_TO_EMAIL || "Cameron@castledoorandhardware.com").trim();
   const quoteRepName = "Cameron";
 
   if (!resendApiKey || !resendFrom || !quoteTo) {
@@ -265,12 +265,14 @@ export async function onRequestPost(context) {
 
     if (!send.ok) {
       const errText = await send.text();
-      return json({ error: "Resend rejected quote email", details: errText.slice(0, 500) }, 502);
+      console.error("[quote-request] Resend rejected quote email", errText.slice(0, 500));
+      return json({ error: "Resend rejected quote email" }, 502);
     }
 
     return json({ ok: true });
   } catch (err) {
-    return json({ error: "Failed to send quote email", details: String(err?.message || err) }, 500);
+    console.error("[quote-request] Failed to send quote email", err);
+    return json({ error: "Failed to send quote email" }, 500);
   }
 }
 
